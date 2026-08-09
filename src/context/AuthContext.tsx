@@ -1,16 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  signOut,
-  sendPasswordResetEmail,
-  User as FirebaseUser,
-} from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { auth, db } from "../lib/firebase";
+import { User as SupabaseUser } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase";
 import { Teacher } from "../types";
 
 export const ADMIN_EMAIL = "mhmwdlwany4222@gmail.com";
@@ -24,6 +14,9 @@ export interface GoogleTokens {
   forms?: string;
   picker?: string;
 }
+
+// Extend SupabaseUser to include a uid alias for compatibility with existing DataContext code during migration
+export type FirebaseUser = SupabaseUser & { uid: string };
 
 interface AuthContextType {
   teacher: Teacher | null;
@@ -51,8 +44,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Ensure your OAuth Client ID matches the one in firebase-applet-config.json or GCP console.
-const GOOGLE_CLIENT_ID = "517603962496-8ts3iq4f3fdtlodofujkbdfcknu86ffb.apps.googleusercontent.com";
+// Ensure your OAuth Client ID matches the one in your environment variables.
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -82,17 +75,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log("[Auth] Auth state changed. Firebase User:", user ? user.uid : "null");
-      setFirebaseUser(user);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const user = session?.user;
+      console.log("[Auth] Auth state changed. Supabase User:", user ? user.id : "null");
+      
       if (user) {
-        console.log("[Auth] Firebase UID received:", user.uid);
+        const userWithUid: FirebaseUser = { ...user, uid: user.id } as FirebaseUser;
+        setFirebaseUser(userWithUid);
+        console.log("[Auth] Supabase User ID received:", user.id);
         sessionStorage.removeItem("islamroots_session_guest");
         localStorage.removeItem("islamroots_guest_teacher");
 
         const fallbackTeacher: Teacher = {
-          id: user.uid,
-          name: user.displayName || user.email?.split("@")[0] || "Ustadh",
+          id: user.id,
+          name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Ustadh",
           email: user.email || "",
           preferredLanguage: "en",
           onboardingCompleted: true,
@@ -100,50 +96,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         try {
-          console.log("[Auth] Firestore teacher lookup started for UID:", user.uid);
-          const docRef = doc(db, "teachers", user.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            console.log("[Auth] Teacher lookup succeeded: Profile found in Firestore.");
-            const data = docSnap.data();
+          console.log("[Auth] Supabase teacher lookup started for ID:", user.id);
+          const { data, error } = await supabase.from("teachers").select("*").eq("id", user.id).single();
+
+          if (data && !error) {
+            console.log("[Auth] Teacher lookup succeeded: Profile found in Supabase.");
             setTeacher({
-              id: user.uid,
-              name: data.name || user.displayName || "Ustadh",
+              id: user.id,
+              name: data.name || user.user_metadata?.full_name || "Ustadh",
               email: data.email || user.email || "",
-              preferredLanguage: data.preferredLanguage || "en",
+              preferredLanguage: data.preferred_language || "en",
               age: data.age,
-              yearsOfExperience: data.yearsOfExperience,
+              yearsOfExperience: data.years_of_experience,
               purpose: data.purpose,
               location: data.location,
-              onboardingCompleted: data.onboardingCompleted ?? true,
-              tourCompleted: data.tourCompleted ?? false,
+              onboardingCompleted: data.onboarding_completed ?? true,
+              tourCompleted: data.tour_completed ?? false,
               timezone: data.timezone,
-              reminderMinutes: data.reminderMinutes,
-              reminderSoundEnabled: data.reminderSoundEnabled,
-              reminderVibrationEnabled: data.reminderVibrationEnabled,
-              createdAt: data.createdAt || new Date().toISOString(),
+              reminderMinutes: data.reminder_minutes,
+              reminderSoundEnabled: data.reminder_sound_enabled,
+              reminderVibrationEnabled: data.reminder_vibration_enabled,
+              createdAt: data.created_at || new Date().toISOString(),
             });
+            setIsSuperAdminClaim(!!data.is_super_admin);
           } else {
-            console.log("[Auth] Teacher lookup: No profile document found. Creating teacher profile in Firestore.");
+            console.log("[Auth] Teacher lookup: No profile document found. Creating teacher profile in Supabase.");
             setTeacher(fallbackTeacher);
-            setDoc(docRef, fallbackTeacher)
-              .then(() => console.log("[Auth] Teacher profile document created successfully in Firestore."))
-              .catch((e) =>
-                console.warn("[Auth] Async setDoc for teacher doc failed gracefully:", e)
-              );
+            setIsSuperAdminClaim(false);
+            
+            supabase.from("teachers").insert({
+              id: user.id,
+              name: fallbackTeacher.name,
+              email: fallbackTeacher.email,
+              preferred_language: fallbackTeacher.preferredLanguage,
+              onboarding_completed: fallbackTeacher.onboardingCompleted,
+              created_at: fallbackTeacher.createdAt
+            }).then(({ error: insertErr }) => {
+               if (insertErr) {
+                 console.warn("[Auth] Async insert for teacher row failed gracefully:", insertErr);
+               } else {
+                 console.log("[Auth] Teacher profile row created successfully in Supabase.");
+               }
+            });
           }
         } catch (err) {
-          console.warn("[Auth] Teacher lookup failed in Firestore, defaulting to Auth profile:", err);
+          console.warn("[Auth] Teacher lookup failed in Supabase, defaulting to Auth profile:", err);
           setTeacher(fallbackTeacher);
+          setIsSuperAdminClaim(false);
         }
-      } else if (!sessionStorage.getItem("islamroots_session_guest")) {
-        setTeacher(null);
+      } else {
+        setFirebaseUser(null);
+        setIsSuperAdminClaim(false);
+        if (!sessionStorage.getItem("islamroots_session_guest")) {
+          setTeacher(null);
+        }
       }
       setLoading(false);
       console.log("[Auth] Final authentication state updated. Authenticated:", !!user);
     });
 
-    return () => unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loginAsGuest = (name: string = "Ustadh Guest") => {
@@ -163,7 +177,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!password) {
       throw new Error("Password is required to sign in.");
     }
-    await signInWithEmailAndPassword(auth, email, password);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
     return true;
   };
 
@@ -171,44 +186,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!password) {
       throw new Error("Password is required to sign up.");
     }
-    const res = await createUserWithEmailAndPassword(auth, email, password);
-    const newTeacher: Teacher = {
-      id: res.user.uid,
-      name: name || "Teacher",
-      email: email,
-      preferredLanguage: "en",
-      createdAt: new Date().toISOString(),
-    };
-    await setDoc(doc(db, "teachers", res.user.uid), newTeacher);
-    setTeacher(newTeacher);
+    const { data, error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: { data: { full_name: name } }
+    });
+    if (error) throw error;
+    
+    if (data.user) {
+      const newTeacher: Teacher = {
+        id: data.user.id,
+        name: name || "Teacher",
+        email: email,
+        preferredLanguage: "en",
+        createdAt: new Date().toISOString(),
+      };
+      
+      const { error: insertErr } = await supabase.from("teachers").insert({
+        id: data.user.id,
+        name: newTeacher.name,
+        email: newTeacher.email,
+        preferred_language: newTeacher.preferredLanguage,
+        created_at: newTeacher.createdAt
+      });
+      if (insertErr) {
+        console.error("Failed to create teacher row", insertErr);
+      }
+      setTeacher(newTeacher);
+    }
     return true;
   };
 
   const loginWithGoogle = async (): Promise<boolean> => {
     console.log("[Auth] Google sign-in started");
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-      const result = await signInWithPopup(auth, provider);
-      if (result.user.email && result.user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-        try {
-          const token = await result.user.getIdToken();
-          await fetch("/api/auth/claim-admin", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${token}`
-            }
-          });
-          // Force token refresh to get the new claim
-          await result.user.getIdToken(true);
-        } catch (e) {
-          console.error("Failed to claim admin:", e);
+      const { error } = await supabase.auth.signInWithOAuth({ 
+        provider: 'google',
+        options: {
+          queryParams: {
+            prompt: 'select_account'
+          }
         }
-      }
-      console.log("[Auth] Google sign-in succeeded. User UID:", result.user.uid);
+      });
+      if (error) throw error;
       return true;
     } catch (err) {
-      console.error("[Auth] Google sign-in failed:", err);
+      console.warn("[Auth] Google sign-in failed:", err);
       throw err;
     }
   };
@@ -218,6 +241,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const w = window as any;
       if (!w.google?.accounts?.oauth2) {
         reject(new Error("Google Identity Services script not loaded."));
+        return;
+      }
+      if (!GOOGLE_CLIENT_ID) {
+        reject(new Error("Missing VITE_GOOGLE_OAUTH_CLIENT_ID environment variable. Google Workspace integrations require an OAuth Client ID."));
         return;
       }
       const client = w.google.accounts.oauth2.initTokenClient({
@@ -295,17 +322,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sessionStorage.removeItem("islamroots_session_guest");
     localStorage.removeItem("islamroots_guest_teacher");
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
     } catch (e) {
       console.warn("SignOut error:", e);
     }
     setTeacher(null);
     setFirebaseUser(null);
     setGoogleTokens({});
+    setIsSuperAdminClaim(false);
   };
 
   const resetPassword = async (email: string) => {
-    await sendPasswordResetEmail(auth, email);
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) throw error;
   };
 
   const updateProfile = async (updatedData: Partial<Teacher>) => {
@@ -316,9 +345,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem("islamroots_guest_teacher", JSON.stringify(updated));
       } else if (firebaseUser) {
         try {
-          await updateDoc(doc(db, "teachers", firebaseUser.uid), updatedData);
+          // Convert camelCase to snake_case
+          const dbData: any = {};
+          if (updatedData.name !== undefined) dbData.name = updatedData.name;
+          if (updatedData.preferredLanguage !== undefined) dbData.preferred_language = updatedData.preferredLanguage;
+          if (updatedData.age !== undefined) dbData.age = updatedData.age;
+          if (updatedData.yearsOfExperience !== undefined) dbData.years_of_experience = updatedData.yearsOfExperience;
+          if (updatedData.purpose !== undefined) dbData.purpose = updatedData.purpose;
+          if (updatedData.location !== undefined) dbData.location = updatedData.location;
+          if (updatedData.timezone !== undefined) dbData.timezone = updatedData.timezone;
+          if (updatedData.reminderMinutes !== undefined) dbData.reminder_minutes = updatedData.reminderMinutes;
+          if (updatedData.reminderSoundEnabled !== undefined) dbData.reminder_sound_enabled = updatedData.reminderSoundEnabled;
+          if (updatedData.reminderVibrationEnabled !== undefined) dbData.reminder_vibration_enabled = updatedData.reminderVibrationEnabled;
+          
+          if (Object.keys(dbData).length > 0) {
+            const { error } = await supabase.from("teachers").update(dbData).eq("id", firebaseUser.uid);
+            if (error) throw error;
+          }
         } catch (e) {
-          console.error("Failed to update teacher profile in Firestore:", e);
+          console.error("Failed to update teacher profile in Supabase:", e);
         }
       }
     }
@@ -331,18 +376,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       (firebaseUser?.email && firebaseUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
   );
   
-  // Actually, let's also read the claim from the token
+  // Note: isSuperAdminClaim is now populated during teacher lookup in onAuthStateChange
   const [isSuperAdminClaim, setIsSuperAdminClaim] = useState(false);
-  
-  useEffect(() => {
-    if (firebaseUser) {
-      firebaseUser.getIdTokenResult().then(idTokenResult => {
-        setIsSuperAdminClaim(!!idTokenResult.claims.superAdmin);
-      }).catch(console.error);
-    } else {
-      setIsSuperAdminClaim(false);
-    }
-  }, [firebaseUser]);
   
   const effectiveIsAdmin = isAdmin || isSuperAdminClaim;
   

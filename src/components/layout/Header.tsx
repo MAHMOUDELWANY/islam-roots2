@@ -159,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="absolute right-0 rtl:left-0 rtl:right-auto mt-2 w-56 rounded-xl bg-white dark:bg-[#1C221C] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft py-2 z-50 text-xs">
                 <div className="px-4 py-2 border-b border-[#E8E5DB] dark:border-[#2A352A]">
                   <p className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">{teacher?.name}</p>
-                  <p className="text-[#7A7D75] dark:text-stone-400 truncate">{teacher?.email?.includes('@islamroots.internal') ? teacher.name : teacher?.email}</p>
+                  <p className="text-[#7A7D75] dark:text-stone-400 truncate">{teacher?.email?.includes('@users.islamroots.local') ? teacher.name : teacher?.email}</p>
                 </div>
                 <div className="px-2 py-1.5">
                   <div className="flex items-center gap-2 px-3 py-1.5 text-[#3E4D3E] dark:text-stone-300">

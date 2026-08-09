@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { FIRESTORE_DATABASE_ID } from "../../lib/firebase";
 import { useData } from "../../context/DataContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { Settings, User, Globe, Moon, Sun, RefreshCw, Save, Database } from "lucide-react";
@@ -66,10 +67,10 @@ export const SettingsView: React.FC = () => {
                 Email Address
               </label>
               <input
-                type={email.includes("@islamroots.internal") ? "text" : "email"}
+                type={email.includes("@users.islamroots.local") ? "text" : "email"}
                 required
-                value={email.includes("@islamroots.internal") ? email.split("@")[0] : email}
-                disabled={email.includes("@islamroots.internal")}
+                value={email.includes("@users.islamroots.local") ? email.split("@")[0] : email}
+                disabled={email.includes("@users.islamroots.local")}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-none focus:border-[#5A6B5A]"
               />
@@ -234,7 +235,7 @@ export const SettingsView: React.FC = () => {
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
-              Database ID: <code className="bg-stone-200 dark:bg-stone-800 px-1 py-0.5 rounded font-mono text-[10px]">spry-branch-1f6jr</code>
+              Database ID: <code className="bg-stone-200 dark:bg-stone-800 px-1 py-0.5 rounded font-mono text-[10px]">{FIRESTORE_DATABASE_ID}</code>
             </p>
           </div>
 

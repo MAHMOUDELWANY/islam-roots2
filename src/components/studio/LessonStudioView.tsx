@@ -4,7 +4,7 @@ import { useLanguage } from "../../context/LanguageContext";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
 import { exportLessonToGoogleDoc } from "../../lib/googleDocs";
-import { exportLessonToGoogleSlides } from "../../lib/googleSlides";
+import { exportLessonToGoogleSlides, createGoogleSlidesPresentation } from "../../lib/googleSlides";
 import { SubjectType, LevelType, AILessonPlan } from "../../types";
 import {
   Sparkles,
@@ -69,6 +69,47 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
       }
 
       if (token) {
+        let aiSlides = null;
+        try {
+          const fbToken = await auth.currentUser?.getIdToken();
+          if (fbToken) {
+            const planRes = await fetch("/api/gemini/slides-plan", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${fbToken}`
+              },
+              body: JSON.stringify({
+                subject,
+                topic,
+                level,
+                duration: durationMinutes,
+                language: explanationLanguage === "Arabic" ? "ar" : "en",
+                customInstructions,
+                lessonPlan: generatedPlan
+              })
+            });
+            if (planRes.ok) {
+              const planData = await planRes.json();
+              if (planData.data && planData.data.slides && planData.data.slides.length > 0) {
+                aiSlides = planData.data.slides;
+                const presTitle = planData.data.title || `[IslamRoots Deck] ${subject} - ${topic}`;
+                const result = await createGoogleSlidesPresentation(token, presTitle, aiSlides);
+                setCreatedSlidesLink(result.webViewLink);
+                setSlidesStatusMsg(
+                  language === "ar"
+                    ? "تم إنشاء عرض Google Slides بنجاح!"
+                    : "Google Presentation created successfully!"
+                );
+                setIsExportingSlides(false);
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("AI slide generation failed, falling back to basic template", e);
+        }
+
         const result = await exportLessonToGoogleSlides(token, {
           title: topic,
           subject,

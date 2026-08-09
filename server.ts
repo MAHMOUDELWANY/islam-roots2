@@ -40,14 +40,15 @@ async function startServer() {
       
       const adminEmail = "mhmwdlwany4222@gmail.com";
       if (user.email && user.email.toLowerCase() === adminEmail.toLowerCase() && user.email_verified) {
-        const { adminAuth } = await import("./src/lib/firebase-admin");
-        await adminAuth.setCustomUserClaims(user.uid, { superAdmin: true });
+        const { supabaseAdmin } = await import("./src/lib/supabase-admin");
+        const { error } = await supabaseAdmin.from('teachers').update({ is_super_admin: true }).eq('id', user.uid);
+        if (error) throw error;
         return res.json({ success: true, message: "Super admin claim granted" });
       }
       
       return res.status(403).json({ error: "Forbidden: Not an admin" });
     } catch (err: any) {
-      console.error("Error setting custom claim:", err);
+      console.error("Error setting super admin status:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   });
