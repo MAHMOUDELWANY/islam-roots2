@@ -1,25 +1,9 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import fs from 'fs';
-import path from 'path';
 
-let fallbackConfig = { projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID };
-try {
-  const configPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
-  if (fs.existsSync(configPath)) {
-    fallbackConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  }
-} catch (e) {
-  // Ignore
-}
-
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || fallbackConfig.projectId;
-
-const FIRESTORE_DATABASE_ID =
-  process.env.FIRESTORE_DATABASE_ID ||
-  process.env.VITE_FIRESTORE_DATABASE_ID ||
-  (fallbackConfig as any).firestoreDatabaseId;
+const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+const FIRESTORE_DATABASE_ID = process.env.FIRESTORE_DATABASE_ID || process.env.VITE_FIRESTORE_DATABASE_ID;
 
 if (!PROJECT_ID) {
   throw new Error("Missing FIREBASE_PROJECT_ID environment variable for Firebase Admin initialization.");
@@ -39,6 +23,8 @@ if (!getApps().length) {
     } catch (e) {
       console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT", e);
     }
+  } else {
+    console.warn("FIREBASE_SERVICE_ACCOUNT is missing. Admin SDK will attempt to use application default credentials.");
   }
 
   initializeApp(appConfig);

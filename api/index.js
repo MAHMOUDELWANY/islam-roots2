@@ -1,5 +1,9 @@
 const server = require("../dist/server.cjs");
+let appInstance;
+
 module.exports = async (req, res) => {
-  const app = await server.appPromise;
-  return app(req, res);
+  if (!appInstance) {
+    appInstance = await server.appPromise;
+  }
+  return appInstance(req, res);
 };
