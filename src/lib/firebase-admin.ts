@@ -19,8 +19,15 @@ const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_
 const FIRESTORE_DATABASE_ID =
   process.env.FIRESTORE_DATABASE_ID ||
   process.env.VITE_FIRESTORE_DATABASE_ID ||
-  (fallbackConfig as any).firestoreDatabaseId ||
-  "ai-studio-islamroots-c17b3d5a-d730-4c1c-8b68-01d5dfb7b734";
+  (fallbackConfig as any).firestoreDatabaseId;
+
+if (!PROJECT_ID) {
+  throw new Error("Missing FIREBASE_PROJECT_ID environment variable for Firebase Admin initialization.");
+}
+
+if (!FIRESTORE_DATABASE_ID) {
+  throw new Error("Missing FIRESTORE_DATABASE_ID environment variable. Firestore Admin cannot be initialized without a specific database ID.");
+}
 
 if (!getApps().length) {
   let appConfig: any = { projectId: PROJECT_ID };

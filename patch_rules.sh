@@ -1,0 +1,1 @@
+sed -i 's/request.auth.token.email.matches("(?i)mhmwdlwany4222@gmail\\\\.com");/(request.auth.token.superAdmin == true || (request.auth.token.email != null && request.auth.token.email_verified == true && request.auth.token.email.matches("(?i)mhmwdlwany4222@gmail\\\\.com")));/g' firestore.rules

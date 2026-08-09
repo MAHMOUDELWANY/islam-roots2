@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
-import { X, LogIn, Loader2, Sparkles, Globe } from "lucide-react";
+import { X, LogIn, Loader2, Sparkles, Globe, User, Key, Eye, EyeOff } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -15,12 +15,57 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const [authMode, setAuthMode] = useState<"options" | "username">("options");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [usernameSubmitting, setUsernameSubmitting] = useState(false);
+  const { login, signup } = useAuth();
 
   if (!isOpen) return null;
 
   const handleGuestLogin = () => {
     loginAsGuest(isRTL ? "أستاذ محمود" : "Ustadh Mahmoud");
     onClose();
+  };
+
+  const handleUsernameAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setUsernameSubmitting(true);
+    
+    // Normalize username to internal email
+    const normalizedUsername = username.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!normalizedUsername) {
+      setErrorMsg(isRTL ? "اسم المستخدم غير صالح" : "Invalid username");
+      setUsernameSubmitting(false);
+      return;
+    }
+    const internalEmail = `${normalizedUsername}@islamroots.internal`;
+
+    try {
+      if (isSignUp) {
+        await signup(username, internalEmail, password);
+      } else {
+        await login(internalEmail, password);
+      }
+      onClose();
+    } catch (err: any) {
+      console.error("Username Auth error:", err);
+      const code = err?.code || "";
+      if (code === "auth/user-not-found" || code === "auth/invalid-credential") {
+        setErrorMsg(isRTL ? "اسم المستخدم أو كلمة المرور غير صحيحة" : "Invalid username or password");
+      } else if (code === "auth/email-already-in-use") {
+        setErrorMsg(isRTL ? "اسم المستخدم مستخدم بالفعل" : "Username already exists");
+      } else if (code === "auth/weak-password") {
+        setErrorMsg(isRTL ? "كلمة المرور ضعيفة جداً" : "Password is too weak");
+      } else {
+        setErrorMsg(isRTL ? "حدث خطأ أثناء المصادقة" : "An error occurred during authentication");
+      }
+    } finally {
+      setUsernameSubmitting(false);
+    }
   };
 
   const handleGoogleLogin = async () => {

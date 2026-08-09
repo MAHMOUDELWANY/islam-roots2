@@ -275,6 +275,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const connectGoogleForms = async (): Promise<string | null> => {
+    if (!isAdmin) {
+      throw new Error("Google Forms integration is restricted to Super Admin only.");
+    }
     return requestGoogleToken(
       "https://www.googleapis.com/auth/forms.body https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly",
       "forms"

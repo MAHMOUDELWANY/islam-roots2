@@ -2,10 +2,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isAdmin() {
-      return request.auth != null &&
-        request.auth.token.email != null &&
-        request.auth.token.email_verified == true &&
-        request.auth.token.email.matches("(?i)mhmwdlwany4222@gmail\\.com");
+      return request.auth != null && (
+        request.auth.token.superAdmin == true ||
+        (request.auth.token.email != null && request.auth.token.email_verified == true && request.auth.token.email.matches("(?i)mhmwdlwany4222@gmail\\.com"))
+      );
     }
     
     function isOwner(teacherId) {
@@ -15,46 +15,55 @@ service cloud.firestore {
     match /teachers/{teacherId} {
       allow read, write: if request.auth != null && (request.auth.uid == teacherId || isAdmin());
     }
+
     match /students/{studentId} {
       allow read, delete: if request.auth != null && isOwner(resource.data.teacherId);
       allow create: if request.auth != null && isOwner(request.resource.data.teacherId);
       allow update: if request.auth != null && isOwner(resource.data.teacherId) && isOwner(request.resource.data.teacherId);
     }
+
     match /curriculums/{curriculumId} {
       allow read, delete: if request.auth != null && isOwner(resource.data.teacherId);
       allow create: if request.auth != null && isOwner(request.resource.data.teacherId);
       allow update: if request.auth != null && isOwner(resource.data.teacherId) && isOwner(request.resource.data.teacherId);
     }
+
     match /studentCurriculums/{assignmentId} {
       allow read, delete: if request.auth != null && isOwner(resource.data.teacherId);
       allow create: if request.auth != null && isOwner(request.resource.data.teacherId);
       allow update: if request.auth != null && isOwner(resource.data.teacherId) && isOwner(request.resource.data.teacherId);
     }
+
     match /lessonSessions/{sessionId} {
       allow read, delete: if request.auth != null && isOwner(resource.data.teacherId);
       allow create: if request.auth != null && isOwner(request.resource.data.teacherId);
       allow update: if request.auth != null && isOwner(resource.data.teacherId) && isOwner(request.resource.data.teacherId);
     }
+
     match /progressRecords/{recordId} {
       allow read, delete: if request.auth != null && isOwner(resource.data.teacherId);
       allow create: if request.auth != null && isOwner(request.resource.data.teacherId);
       allow update: if request.auth != null && isOwner(resource.data.teacherId) && isOwner(request.resource.data.teacherId);
     }
+
     match /memoryDetectiveSessions/{sessionId} {
       allow read, delete: if request.auth != null && isOwner(resource.data.teacherId);
       allow create: if request.auth != null && isOwner(request.resource.data.teacherId);
       allow update: if request.auth != null && isOwner(resource.data.teacherId) && isOwner(request.resource.data.teacherId);
     }
+
     match /savedAIContent/{contentId} {
       allow read, delete: if request.auth != null && isOwner(resource.data.teacherId);
       allow create: if request.auth != null && isOwner(request.resource.data.teacherId);
       allow update: if request.auth != null && isOwner(resource.data.teacherId) && isOwner(request.resource.data.teacherId);
     }
+
     match /schedules/{scheduleId} {
       allow read, delete: if request.auth != null && isOwner(resource.data.teacherId);
       allow create: if request.auth != null && isOwner(request.resource.data.teacherId);
       allow update: if request.auth != null && isOwner(resource.data.teacherId) && isOwner(request.resource.data.teacherId);
     }
+
     match /notifications/{notificationId} {
       allow read, delete: if request.auth != null && isOwner(resource.data.teacherId);
       allow create: if request.auth != null && isOwner(request.resource.data.teacherId);

@@ -1,0 +1,1 @@
+sed -i 's/console.log(`Islam Roots server listening on http:\/\/0.0.0.0:${PORT}`); }); } return app;  });/console.log(`Islam Roots server listening on http:\/\/0.0.0.0:${PORT}`); }); }\n  return app;/g' server.ts
