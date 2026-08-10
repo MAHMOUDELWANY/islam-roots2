@@ -1,11 +1,22 @@
 /// <reference types="vite/client" />
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://placeholder.supabase.co";
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "placeholder-anon-key";
+function cleanSupabaseUrl(url?: string): string {
+  if (!url) return "https://placeholder.supabase.co";
+  let cleaned = url.trim().replace(/\/+$/, "");
+  cleaned = cleaned.replace(/\/rest\/v1$/i, "");
+  return cleaned || "https://placeholder.supabase.co";
+}
+
+const rawUrl = import.meta.env.VITE_SUPABASE_URL;
+export const supabaseUrl = cleanSupabaseUrl(rawUrl);
+export const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || "placeholder-anon-key").trim();
 
 export const isSupabaseConfigured = Boolean(
-  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+  rawUrl &&
+  import.meta.env.VITE_SUPABASE_ANON_KEY &&
+  supabaseUrl !== "https://placeholder.supabase.co" &&
+  supabaseAnonKey !== "placeholder-anon-key"
 );
 
 if (!isSupabaseConfigured) {
@@ -15,4 +26,6 @@ if (!isSupabaseConfigured) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+
 

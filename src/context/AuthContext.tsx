@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabase";
+import { supabase, isSupabaseConfigured, supabaseAnonKey } from "../lib/supabase";
 import { Teacher } from "../types";
 
 export const ADMIN_EMAIL = "mhmwdlwany4222@gmail.com";
@@ -177,6 +177,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!password) {
       throw new Error("Password is required to sign in.");
     }
+    if (!isSupabaseConfigured) {
+      loginAsGuest(email.split("@")[0] || "Ustadh");
+      return true;
+    }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     return true;
@@ -185,6 +189,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (name: string, email: string, password?: string): Promise<boolean> => {
     if (!password) {
       throw new Error("Password is required to sign up.");
+    }
+    if (!isSupabaseConfigured) {
+      loginAsGuest(name || "Ustadh");
+      return true;
     }
     const { data, error } = await supabase.auth.signUp({ 
       email, 
@@ -219,10 +227,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithGoogle = async (): Promise<boolean> => {
     console.log("[Auth] Google sign-in started");
+    if (!isSupabaseConfigured) {
+      console.warn("[Auth] Supabase environment variables missing. Logging in as Guest Ustadh.");
+      loginAsGuest("Ustadh");
+      throw new Error(
+        "Supabase Authentication is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment variables. You have been logged in as Guest Ustadh in the meantime."
+      );
+    }
     try {
       const { error } = await supabase.auth.signInWithOAuth({ 
         provider: 'google',
         options: {
+          redirectTo: `${window.location.origin}`,
           queryParams: {
             prompt: 'select_account'
           }
@@ -230,7 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (error) throw error;
       return true;
-    } catch (err) {
+    } catch (err: any) {
       console.warn("[Auth] Google sign-in failed:", err);
       throw err;
     }

@@ -3,11 +3,22 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || "https://placeholder.supabase.co";
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-service-key";
+function cleanSupabaseUrl(url?: string): string {
+  if (!url) return "https://placeholder.supabase.co";
+  let cleaned = url.trim().replace(/\/+$/, "");
+  cleaned = cleaned.replace(/\/rest\/v1$/i, "");
+  return cleaned || "https://placeholder.supabase.co";
+}
+
+const rawUrl = process.env.VITE_SUPABASE_URL;
+const supabaseUrl = cleanSupabaseUrl(rawUrl);
+const supabaseServiceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-service-key").trim();
 
 export const isSupabaseAdminConfigured = Boolean(
-  process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  rawUrl &&
+  process.env.SUPABASE_SERVICE_ROLE_KEY &&
+  supabaseUrl !== "https://placeholder.supabase.co" &&
+  supabaseServiceRoleKey !== "placeholder-service-key"
 );
 
 if (!isSupabaseAdminConfigured) {
