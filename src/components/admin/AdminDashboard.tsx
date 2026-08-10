@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
-import { db } from "../../lib/firebase";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { supabase } from "../../lib/supabase";
 import { Teacher, Student, Curriculum, LessonSession, ScheduleEntry } from "../../types";
 import {
   ShieldCheck,
@@ -50,82 +49,119 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     setLoading(true);
 
-    // Fetch all teachers
-    const unsubTeachers = onSnapshot(
-      collection(db, "teachers"),
-      (snapshot) => {
-        const list: Teacher[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        } as Teacher));
-        setTeachers(list);
-        setLoading(false);
-      },
-      (err) => {
-        console.warn("Admin Teachers fetch warning:", err);
+    const fetchAllAdminData = async () => {
+      try {
+        const [
+          { data: teachersRes },
+          { data: studentsRes },
+          { data: curriculumsRes },
+          { data: sessionsRes },
+          { data: schedulesRes },
+        ] = await Promise.all([
+          supabase.from("teachers").select("*"),
+          supabase.from("students").select("*"),
+          supabase.from("curriculums").select("*"),
+          supabase.from("lesson_sessions").select("*"),
+          supabase.from("schedules").select("*"),
+        ]);
+
+        if (teachersRes) {
+          setTeachers(teachersRes.map((r: any) => ({
+            id: r.id,
+            name: r.name || "Ustadh",
+            email: r.email,
+            preferredLanguage: r.preferred_language || "en",
+            age: r.age,
+            yearsOfExperience: r.years_of_experience,
+            purpose: r.purpose,
+            location: r.location,
+            onboardingCompleted: r.onboarding_completed ?? true,
+            tourCompleted: r.tour_completed ?? false,
+            timezone: r.timezone,
+            reminderMinutes: r.reminder_minutes,
+            reminderSoundEnabled: r.reminder_sound_enabled,
+            reminderVibrationEnabled: r.reminder_vibration_enabled,
+            createdAt: r.created_at,
+          } as Teacher)));
+        }
+
+        if (studentsRes) {
+          setAllStudents(studentsRes.map((r: any) => ({
+            id: r.id,
+            teacherId: r.teacher_id,
+            name: r.name,
+            email: r.email,
+            age: r.age,
+            nationality: r.nationality,
+            nativeLanguage: r.native_language,
+            learningLanguage: r.learning_language,
+            level: r.level,
+            subjects: r.subjects || [],
+            notes: r.notes,
+            status: r.status || "Active",
+            createdAt: r.created_at,
+          } as Student)));
+        }
+
+        if (curriculumsRes) {
+          setAllCurriculums(curriculumsRes.map((r: any) => ({
+            id: r.id,
+            teacherId: r.teacher_id,
+            name: r.name,
+            subject: r.subject,
+            description: r.description,
+            level: r.level,
+            lessons: r.lessons || [],
+            createdAt: r.created_at,
+          } as Curriculum)));
+        }
+
+        if (sessionsRes) {
+          setAllSessions(sessionsRes.map((r: any) => ({
+            id: r.id,
+            teacherId: r.teacher_id,
+            studentId: r.student_id,
+            curriculumId: r.curriculum_id,
+            lessonTitle: r.lesson_title,
+            date: r.date,
+            durationMinutes: r.duration_minutes,
+            attendanceStatus: r.attendance_status,
+            objectives: r.objectives || [],
+            completedItems: r.completed_items || [],
+            teacherNotes: r.teacher_notes,
+            homework: r.homework,
+            quizScore: r.quiz_score,
+            createdAt: r.created_at,
+          } as LessonSession)));
+        }
+
+        if (schedulesRes) {
+          setAllSchedules(schedulesRes.map((r: any) => ({
+            id: r.id,
+            teacherId: r.teacher_id,
+            studentId: r.student_id,
+            curriculumId: r.curriculum_id,
+            lessonId: r.lesson_id,
+            subject: r.subject,
+            title: r.title,
+            startAt: r.start_at,
+            durationMinutes: r.duration_minutes,
+            recurrence: r.recurrence,
+            reminderMinutes: r.reminder_minutes,
+            reminderEnabled: r.reminder_enabled ?? true,
+            status: r.status,
+            notes: r.notes,
+            createdAt: r.created_at,
+          } as ScheduleEntry)));
+        }
+      } catch (err) {
+        console.warn("Admin fetch warning:", err);
+      } finally {
         setLoading(false);
       }
-    );
-
-    // Fetch all students
-    const unsubStudents = onSnapshot(
-      collection(db, "students"),
-      (snapshot) => {
-        const list: Student[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        } as Student));
-        setAllStudents(list);
-      },
-      (err) => console.warn("Admin Students fetch warning:", err)
-    );
-
-    // Fetch all curriculums
-    const unsubCurriculums = onSnapshot(
-      collection(db, "curriculums"),
-      (snapshot) => {
-        const list: Curriculum[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        } as Curriculum));
-        setAllCurriculums(list);
-      },
-      (err) => console.warn("Admin Curriculums fetch warning:", err)
-    );
-
-    // Fetch all lesson sessions
-    const unsubSessions = onSnapshot(
-      collection(db, "lessonSessions"),
-      (snapshot) => {
-        const list: LessonSession[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        } as LessonSession));
-        setAllSessions(list);
-      },
-      (err) => console.warn("Admin Sessions fetch warning:", err)
-    );
-
-    // Fetch all schedules
-    const unsubSchedules = onSnapshot(
-      collection(db, "schedules"),
-      (snapshot) => {
-        const list: ScheduleEntry[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        } as ScheduleEntry));
-        setAllSchedules(list);
-      },
-      (err) => console.warn("Admin Schedules fetch warning:", err)
-    );
-
-    return () => {
-      unsubTeachers();
-      unsubStudents();
-      unsubCurriculums();
-      unsubSessions();
-      unsubSchedules();
     };
+
+    fetchAllAdminData();
   }, []);
 
   // Filter teachers list

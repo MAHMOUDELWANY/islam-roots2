@@ -3,12 +3,16 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || "https://placeholder.supabase.co";
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-service-key";
 
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-  throw new Error(
-    "Missing Supabase admin configuration. Please set VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your environment variables."
+export const isSupabaseAdminConfigured = Boolean(
+  process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+if (!isSupabaseAdminConfigured) {
+  console.warn(
+    "[Supabase Admin] Missing VITE_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables."
   );
 }
 
@@ -18,3 +22,4 @@ export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
     persistSession: false
   }
 });
+

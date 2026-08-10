@@ -1,4 +1,4 @@
-import { auth } from "../../lib/firebase";
+import { supabase } from "../../lib/supabase";
 import React, { useState } from "react";
 import { useLanguage } from "../../context/LanguageContext";
 import { useData } from "../../context/DataContext";
@@ -71,7 +71,8 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
       if (token) {
         let aiSlides = null;
         try {
-          const fbToken = await auth.currentUser?.getIdToken();
+          const { data: { session } } = await supabase.auth.getSession();
+          const fbToken = session?.access_token;
           if (fbToken) {
             const planRes = await fetch("/api/gemini/slides-plan", {
               method: "POST",
@@ -195,8 +196,9 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
     setLoading(true);
     setSaved(false);
     try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error("Not authenticated with Firebase.");
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not authenticated with Supabase.");
 
       const response = await fetch("/api/gemini/lesson-plan", {
         method: "POST",

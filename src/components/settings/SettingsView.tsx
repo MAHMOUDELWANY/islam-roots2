@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { FIRESTORE_DATABASE_ID } from "../../lib/firebase";
 import { useData } from "../../context/DataContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { Settings, User, Globe, Moon, Sun, RefreshCw, Save, Database } from "lucide-react";
@@ -223,31 +222,31 @@ export const SettingsView: React.FC = () => {
           <span>Firebase Database & Authentication</span>
         </h3>
         <p className="text-[#7A7D75] dark:text-stone-400">
-          Firebase Firestore and Firebase Auth are integrated into IslamRoots to power live student progress tracking, cloud curriculum persistence, and secure teacher authentication.
+          Supabase Postgres and Supabase Auth are integrated into IslamRoots to power live student progress tracking, cloud curriculum persistence, and secure teacher authentication.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Firebase Firestore</span>
+              <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Supabase Database</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                 Connected & Provisioned
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
-              Database ID: <code className="bg-stone-200 dark:bg-stone-800 px-1 py-0.5 rounded font-mono text-[10px]">{FIRESTORE_DATABASE_ID}</code>
+              Postgres RLS Policies & Realtime Subscriptions Active.
             </p>
           </div>
 
           <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Firebase Authentication</span>
+              <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Supabase Authentication</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                 Active
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
-              Google Auth & Teacher Session Token Management active.
+              Email/Password & OAuth Teacher Session Token Management active.
             </p>
           </div>
         </div>

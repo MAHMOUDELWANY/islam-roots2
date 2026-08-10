@@ -1,4 +1,4 @@
-import { auth } from "../../lib/firebase";
+import { supabase } from "../../lib/supabase";
 import React, { useState } from "react";
 import { SubjectType, LevelType } from "../../types";
 import { useLanguage } from "../../context/LanguageContext";
@@ -42,8 +42,9 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
     setLoading(true);
     setSaved(false);
     try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error("Not authenticated with Firebase.");
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Not authenticated with Supabase.");
 
       const endpoint = type === "quiz" ? "/api/gemini/quiz" : "/api/gemini/homework";
       const response = await fetch(endpoint, {
