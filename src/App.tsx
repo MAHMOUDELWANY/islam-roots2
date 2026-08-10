@@ -32,6 +32,7 @@ import { JalilahTourModal } from "./components/common/JalilahTourModal";
 
 import { Student, Curriculum, SubjectType } from "./types";
 import { Loader2, LogIn, Sparkles, BookOpen } from "lucide-react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const AppContent: React.FC = () => {
   const { teacher, isAuthenticated, loading, loginWithGoogle, loginAsGuest } = useAuth();
@@ -308,6 +309,7 @@ export default function App() {
       <AuthProvider>
         <DataProvider>
           <AppContent />
+          <SpeedInsights />
         </DataProvider>
       </AuthProvider>
     </LanguageProvider>
