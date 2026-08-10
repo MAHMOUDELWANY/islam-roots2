@@ -226,6 +226,76 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             </div>
           </motion.div>
 
+          {/* GOOGLE VERIFICATION & APP PURPOSE SECTION */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="mt-8 text-left p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-[#161D17]/90 backdrop-blur-md border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft max-w-4xl mx-auto space-y-4"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8E5DB] dark:border-[#2A352A] pb-3">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-[#8B5A2B] dark:text-[#C49A6C]" />
+                <h2 className="text-base sm:text-lg font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2]">
+                  Islam Roots Workspace <span className="text-xs font-mono font-normal text-[#5A615A] dark:text-stone-400">(islam-roots-workspace)</span>
+                </h2>
+              </div>
+              <div className="flex items-center gap-3 text-xs font-medium">
+                <a
+                  href="/privacy"
+                  onClick={(e) => {
+                    if (onOpenPrivacy) {
+                      e.preventDefault();
+                      onOpenPrivacy();
+                    }
+                  }}
+                  className="text-[#3E4D3E] dark:text-[#8BA888] underline hover:text-[#2A352A] font-semibold cursor-pointer"
+                >
+                  Privacy Policy
+                </a>
+                <span>•</span>
+                <a
+                  href="/terms"
+                  onClick={(e) => {
+                    if (onOpenTerms) {
+                      e.preventDefault();
+                      onOpenTerms();
+                    }
+                  }}
+                  className="text-[#3E4D3E] dark:text-[#8BA888] underline hover:text-[#2A352A] font-semibold cursor-pointer"
+                >
+                  Terms of Service
+                </a>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-[#3E4D3E] dark:text-stone-300 leading-relaxed font-sans">
+              <strong>Application Purpose:</strong> Islam Roots Workspace is an all-in-one educational platform designed for Quran teachers, Tajweed scholars, Hifz academies, and Islamic studies educators. The application enables teachers to manage student progress records, create structured curriculums, generate AI-assisted lesson plans, and streamline educational administration.
+            </p>
+
+            <div className="space-y-1.5 text-xs text-[#5A615A] dark:text-stone-400 font-sans">
+              <p className="font-semibold text-[#1F261F] dark:text-[#E2E8E2]">Google Workspace API Integrations:</p>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                <li className="flex items-start gap-1.5 p-2.5 rounded-xl bg-[#FCFAF5] dark:bg-[#1C251D] border border-[#E8E5DB]/70 dark:border-[#2A352A]">
+                  <CheckCircle2 className="w-4 h-4 text-[#8BA888] shrink-0 mt-0.5" />
+                  <span><strong>Google Calendar:</strong> Sync class schedules and Hifz revision sessions directly to teacher calendars.</span>
+                </li>
+                <li className="flex items-start gap-1.5 p-2.5 rounded-xl bg-[#FCFAF5] dark:bg-[#1C251D] border border-[#E8E5DB]/70 dark:border-[#2A352A]">
+                  <CheckCircle2 className="w-4 h-4 text-[#8BA888] shrink-0 mt-0.5" />
+                  <span><strong>Google Docs & Slides:</strong> Export generated Tajweed lesson plans and study presentations to Google Drive.</span>
+                </li>
+                <li className="flex items-start gap-1.5 p-2.5 rounded-xl bg-[#FCFAF5] dark:bg-[#1C251D] border border-[#E8E5DB]/70 dark:border-[#2A352A]">
+                  <CheckCircle2 className="w-4 h-4 text-[#8BA888] shrink-0 mt-0.5" />
+                  <span><strong>Google Tasks:</strong> Create and track teacher preparation tasks and student assignment reminders.</span>
+                </li>
+                <li className="flex items-start gap-1.5 p-2.5 rounded-xl bg-[#FCFAF5] dark:bg-[#1C251D] border border-[#E8E5DB]/70 dark:border-[#2A352A]">
+                  <CheckCircle2 className="w-4 h-4 text-[#8BA888] shrink-0 mt-0.5" />
+                  <span><strong>Gmail & Forms:</strong> Send student progress reports to parents and distribute Tajweed assessment quizzes.</span>
+                </li>
+              </ul>
+            </div>
+          </motion.div>
+
           {/* App Interactive Showcase Card */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}

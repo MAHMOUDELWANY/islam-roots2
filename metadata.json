@@ -1,5 +1,5 @@
 {
-  "name": "Islam Roots",
+  "name": "Islam Roots Workspace",
   "description": "Smart teaching assistant, student progress tracker, and AI workspace for Quran, Tajweed, Islamic Studies, and Arabic teachers.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

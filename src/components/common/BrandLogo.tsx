@@ -52,11 +52,13 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ className = "", size = "md
           <div className={`font-serif font-bold tracking-tight ${textSize} text-[#3E4D3E] dark:text-[#E2E8E2] flex items-center gap-1.5`}>
             <span>جذور</span>
             <span className="text-[#8BA888] font-normal italic">الإسلام</span>
+            <span className="text-xs bg-[#5A6B5A]/10 text-[#5A6B5A] dark:text-[#8BA888] px-1.5 py-0.5 rounded font-mono font-normal">Workspace</span>
           </div>
         ) : (
           <div className={`font-serif font-bold tracking-tight ${textSize} text-[#3E4D3E] dark:text-[#E2E8E2] uppercase flex items-center gap-1.5`}>
             <span>ISLAM</span>
             <span className="text-[#8BA888] font-normal italic">ROOTS</span>
+            <span className="text-xs font-mono font-semibold tracking-normal text-[#5A6B5A] dark:text-[#8BA888] lowercase bg-[#5A6B5A]/10 px-1.5 py-0.5 rounded">workspace</span>
           </div>
         )}
 
