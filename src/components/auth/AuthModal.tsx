@@ -286,11 +286,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </div>
           </form>
         )}
-        <p className="text-[11px] text-center text-[#7A7D75] dark:text-stone-400 leading-normal font-sans">
-          {isRTL
-            ? "تسجيل الدخول يضمن مزامنة بيانات طلابك ومناهجك بأمان تام عبر السحابة."
-            : "Signing in protects your data with end-to-end cloud persistence across all your devices."}
-        </p>
+        <div className="space-y-1 text-[11px] text-center text-[#7A7D75] dark:text-stone-400 font-sans">
+          <p>
+            {isRTL
+              ? "تسجيل الدخول يضمن مزامنة بيانات طلابك ومناهجك بأمان تام عبر السحابة."
+              : "Signing in protects your data with end-to-end cloud persistence across all your devices."}
+          </p>
+          <div className="flex items-center justify-center gap-2 pt-1 text-[10px]">
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-[#3E4D3E] dark:hover:text-[#E2E8E2] underline font-medium"
+            >
+              {isRTL ? "سياسة الخصوصية" : "Privacy Policy"}
+            </a>
+            <span>•</span>
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-[#3E4D3E] dark:hover:text-[#E2E8E2] underline font-medium"
+            >
+              {isRTL ? "شروط الخدمة" : "Terms of Service"}
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );

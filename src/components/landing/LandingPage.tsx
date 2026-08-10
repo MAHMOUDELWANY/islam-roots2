@@ -31,9 +31,11 @@ import {
 interface LandingPageProps {
   onOpenAuth: () => void;
   onEnterAsGuest: () => void;
+  onOpenPrivacy?: () => void;
+  onOpenTerms?: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsGuest }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsGuest, onOpenPrivacy, onOpenTerms }) => {
   const { loginAsGuest } = useAuth();
   const { language, setLanguage, theme, toggleTheme } = useLanguage();
   const isRTL = language === "ar";
@@ -713,7 +715,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#7A7D75] dark:text-stone-400">
           <BrandLogo size="sm" showSubtitle={false} />
           <p>© {new Date().getFullYear()} Islam Roots (جذور الإسلام). All rights reserved.</p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+            <a
+              href="/privacy"
+              onClick={(e) => {
+                if (onOpenPrivacy) {
+                  e.preventDefault();
+                  onOpenPrivacy();
+                }
+              }}
+              className="hover:text-[#3E4D3E] dark:hover:text-[#E2E8E2] underline font-medium transition-colors cursor-pointer"
+            >
+              {isRTL ? "سياسة الخصوصية" : "Privacy Policy"}
+            </a>
+            <span>•</span>
+            <a
+              href="/terms"
+              onClick={(e) => {
+                if (onOpenTerms) {
+                  e.preventDefault();
+                  onOpenTerms();
+                }
+              }}
+              className="hover:text-[#3E4D3E] dark:hover:text-[#E2E8E2] underline font-medium transition-colors cursor-pointer"
+            >
+              {isRTL ? "شروط الخدمة" : "Terms of Service"}
+            </a>
+            <span>•</span>
             <button onClick={onOpenAuth} className="hover:text-[#3E4D3E] dark:hover:text-[#E2E8E2] transition-colors cursor-pointer">
               {isRTL ? "تسجيل الدخول" : "Sign In"}
             </button>

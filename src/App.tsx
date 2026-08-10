@@ -26,6 +26,8 @@ import { ScheduleView } from "./components/schedule/ScheduleView";
 import { SettingsView } from "./components/settings/SettingsView";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
 import { LandingPage } from "./components/landing/LandingPage";
+import { PrivacyPolicy } from "./components/legal/PrivacyPolicy";
+import { TermsOfService } from "./components/legal/TermsOfService";
 import { AuthModal } from "./components/auth/AuthModal";
 import { TeacherOnboardingModal } from "./components/auth/TeacherOnboardingModal";
 import { JalilahTourModal } from "./components/common/JalilahTourModal";
@@ -63,6 +65,29 @@ const AppContent: React.FC = () => {
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isTourOpen, setIsTourOpen] = useState(false);
+
+  // Legal Pages URL Routing
+  const [legalView, setLegalView] = useState<"privacy" | "terms" | null>(() => {
+    if (typeof window !== "undefined") {
+      const path = window.location.pathname.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      if (path.includes("/privacy") || search.includes("privacy")) return "privacy";
+      if (path.includes("/terms") || search.includes("terms")) return "terms";
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      if (path.includes("/privacy") || search.includes("privacy")) setLegalView("privacy");
+      else if (path.includes("/terms") || search.includes("terms")) setLegalView("terms");
+      else setLegalView(null);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   // Direct Google Login Trigger
   const handleDirectGoogleLogin = async () => {
@@ -106,6 +131,14 @@ const AppContent: React.FC = () => {
     setCurrentSection("students");
   };
 
+  if (legalView === "privacy") {
+    return <PrivacyPolicy onBack={() => setLegalView(null)} />;
+  }
+
+  if (legalView === "terms") {
+    return <TermsOfService onBack={() => setLegalView(null)} />;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F7F3E9] dark:bg-[#131E18] flex flex-col items-center justify-center p-6 text-center space-y-4 font-sans">
@@ -125,6 +158,8 @@ const AppContent: React.FC = () => {
         <LandingPage
           onOpenAuth={() => setIsAuthOpen(true)}
           onEnterAsGuest={() => loginAsGuest("Ustadh Guest")}
+          onOpenPrivacy={() => setLegalView("privacy")}
+          onOpenTerms={() => setLegalView("terms")}
         />
         <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
       </>

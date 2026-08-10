@@ -449,6 +449,36 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
+      {/* Legal & Public Links Section */}
+      <div className="p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 text-xs">
+        <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
+          <Settings className="w-5 h-5 text-[#8B5A2B]" />
+          <span>Legal & Privacy Links</span>
+        </h3>
+        <p className="text-[#7A7D75] dark:text-stone-400">
+          Public compliance links for Google Cloud Console and OAuth User Data verification.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-2.5 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] font-bold text-[#3E4D3E] dark:text-[#8BA888] hover:bg-[#E8E5DB] dark:hover:bg-[#2A352A] transition-all"
+          >
+            📄 View Public Privacy Policy (/privacy)
+          </a>
+          <a
+            href="/terms"
+            target="_blank"
+            rel="noreferrer"
+            className="px-4 py-2.5 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] font-bold text-[#3E4D3E] dark:text-[#8BA888] hover:bg-[#E8E5DB] dark:hover:bg-[#2A352A] transition-all"
+          >
+            📋 View Public Terms of Service (/terms)
+          </a>
+        </div>
+      </div>
+
       {/* Demo Data Reset & Logout Section */}
       <div className="p-6 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 text-xs">
         <h3 className="text-base font-serif font-bold text-rose-800 dark:text-rose-400 flex items-center gap-2">
