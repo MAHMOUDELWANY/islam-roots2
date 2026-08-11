@@ -387,25 +387,11 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     const normalizedEmail = email.trim().toLowerCase();
     const cleanToken = token.trim();
 
-    // Primary attempt: type 'signup' for email confirmation OTPs
-    let { data, error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       email: normalizedEmail,
       token: cleanToken,
       type: "signup",
     });
-
-    if (error) {
-      // Secondary attempt: type 'email' fallback
-      const fallbackRes = await supabase.auth.verifyOtp({
-        email: normalizedEmail,
-        token: cleanToken,
-        type: "email",
-      });
-      if (!fallbackRes.error) {
-        data = fallbackRes.data;
-        error = null;
-      }
-    }
 
     if (error) {
       console.warn(`[Auth Diagnostic] Supabase verifyOtp error: status=${error.status}, code=${error.code || 'none'}, message=${error.message}`);
@@ -418,7 +404,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       throw new Error("Invalid verification code. Please check your email and try again.");
     }
 
-    console.log("[Auth Diagnostic] Supabase verifyOtp succeeded for:", normalizedEmail);
+    console.log("[Auth Diagnostic] Supabase verifyOtp succeeded.");
 
     if (data?.user) {
       const fbUser = { ...data.user, uid: data.user.id } as FirebaseUser;
