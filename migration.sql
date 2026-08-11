@@ -11,6 +11,12 @@ ALTER TABLE teachers ADD COLUMN IF NOT EXISTS specializations JSONB DEFAULT '[]'
 ALTER TABLE teachers ADD COLUMN IF NOT EXISTS bio TEXT;
 ALTER TABLE teachers ADD COLUMN IF NOT EXISTS profile_completed BOOLEAN DEFAULT false;
 ALTER TABLE teachers ADD COLUMN IF NOT EXISTS profile_completed_at TIMESTAMPTZ;
+ALTER TABLE teachers ALTER COLUMN onboarding_completed SET DEFAULT false;
+
+-- Synchronize profile_completed for existing completed accounts so they do not break
+UPDATE teachers
+SET profile_completed = true
+WHERE onboarding_completed = true AND (profile_completed IS NULL OR profile_completed = false);
 
 -- Helper function to check super admin
 CREATE OR REPLACE FUNCTION is_super_admin()
