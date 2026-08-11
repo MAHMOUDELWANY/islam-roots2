@@ -1,3 +1,6 @@
+
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;
+
 -- Helper function to check super admin
 CREATE OR REPLACE FUNCTION is_super_admin()
 RETURNS boolean AS $$

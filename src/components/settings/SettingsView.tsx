@@ -66,10 +66,10 @@ export const SettingsView: React.FC = () => {
                 Email Address
               </label>
               <input
-                type={email.includes("@users.islamroots.local") ? "text" : "email"}
+                type={(email.includes("@users.islamroots.local") || email.includes("@internal.islamroots.local") || email === "") ? "text" : "email"}
                 required
-                value={email.includes("@users.islamroots.local") ? email.split("@")[0] : email}
-                disabled={email.includes("@users.islamroots.local")}
+                value={teacher?.username || (email.includes("@users.islamroots.local") || email.includes("@internal.islamroots.local") ? email.split("@")[0] : email)}
+                disabled={email.includes("@users.islamroots.local") || email.includes("@internal.islamroots.local")}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-none focus:border-[#5A6B5A]"
               />

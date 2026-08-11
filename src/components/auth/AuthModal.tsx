@@ -43,20 +43,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
     setErrorMsg(null);
     setUsernameSubmitting(true);
     
-    // Normalize username to internal email
-    const normalizedUsername = username.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (!normalizedUsername) {
-      setErrorMsg(isRTL ? "اسم المستخدم غير صالح" : "Invalid username");
+    // Basic format validation
+    const normalizedUsername = username.trim().toLowerCase();
+    if (!normalizedUsername || normalizedUsername.length < 3 || normalizedUsername.length > 32 || !/^[a-z0-9_.-]+$/.test(normalizedUsername)) {
+      setErrorMsg(isRTL ? "اسم المستخدم غير صالح" : "Invalid username. Must be 3-32 characters (a-z, 0-9, ., _, -).");
       setUsernameSubmitting(false);
       return;
     }
-    const internalEmail = `${normalizedUsername}@users.islamroots.local`;
 
     try {
       if (isSignUp) {
-        await signup(username, internalEmail, password);
+        await signup(normalizedUsername, normalizedUsername, password);
       } else {
-        await login(internalEmail, password);
+        await login(normalizedUsername, password);
       }
       onClose();
     } catch (err: any) {

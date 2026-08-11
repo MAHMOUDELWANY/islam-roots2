@@ -26,8 +26,8 @@ interface AuthContextType {
   isGuest: boolean;
   isAdmin: boolean;
   loading: boolean;
-  login: (email: string, password?: string) => Promise<boolean>;
-  signup: (name: string, email: string, password?: string) => Promise<boolean>;
+  login: (username: string, password?: string) => Promise<boolean>;
+  signup: (name: string, username: string, password?: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<boolean>;
   connectGoogleCalendar: () => Promise<string | null>;
   connectGoogleDocs: () => Promise<string | null>;
@@ -118,7 +118,8 @@ useEffect(() => {
            console.log("[Auth] Teacher lookup: No profile document found or error. Creating teacher profile in Supabase.");
            const fallbackTeacher = {
              id: user.id,
-             name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Ustadh",
+             username: user.user_metadata?.username || "",
+             name: user.user_metadata?.full_name || "Ustadh",
              email: user.email || "",
              preferred_language: "en",
              onboarding_completed: true,
@@ -142,6 +143,7 @@ useEffect(() => {
         if (isMounted) {
             setTeacher({
               id: teacherData.id,
+              username: teacherData.username,
               name: teacherData.name || "Ustadh",
               email: teacherData.email || "",
               preferredLanguage: teacherData.preferred_language || "en",
@@ -203,8 +205,9 @@ useEffect(() => {
   const loginAsGuest = (name: string = "Ustadh Guest") => {
     const guestTeacher: Teacher = {
       id: "guest-ustadh-101",
+      username: "guest",
       name,
-      email: "guest@islamroots.org",
+      email: "guest@internal.islamroots.local",
       preferredLanguage: "en",
       onboardingCompleted: true,
       createdAt: new Date().toISOString(),
@@ -213,7 +216,11 @@ useEffect(() => {
     sessionStorage.setItem("islamroots_session_guest", JSON.stringify(guestTeacher));
   };
 
-  const login = async (email: string, password?: string): Promise<boolean> => {
+  const getInternalEmail = (username: string) => {
+    return `${username.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '')}@internal.islamroots.local`;
+  };
+
+  const login = async (username: string, password?: string): Promise<boolean> => {
     if (!password) {
       throw new Error("Password is required to sign in.");
     }
@@ -221,6 +228,9 @@ useEffect(() => {
       throw new Error("Authentication service is not configured. Please contact the administrator.");
     }
     
+    // Normalize username to internal technical email
+    const email = getInternalEmail(username);
+
     // Explicitly clear local state and sign out before attempting to sign in to avoid session conflicts
     setTeacher(null);
     setFirebaseUser(null);
@@ -232,16 +242,36 @@ useEffect(() => {
     }
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    if (error) {
+      // Clean up Supabase error message to not expose internal email
+      if (error.message.includes('email') || error.message.includes('credentials')) {
+         throw new Error("Invalid username or password.");
+      }
+      throw error;
+    }
     return true;
   };
 
-  const signup = async (name: string, email: string, password?: string): Promise<boolean> => {
+  const signup = async (name: string, username: string, password?: string): Promise<boolean> => {
     if (!password) {
       throw new Error("Password is required to sign up.");
     }
     if (!isSupabaseConfigured) {
       throw new Error("Authentication service is not configured. Please contact the administrator.");
+    }
+    
+    const email = getInternalEmail(username);
+    const normalizedUsername = username.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
+
+    // Check username uniqueness
+    const { data: existingUser } = await supabase
+      .from('teachers')
+      .select('username')
+      .ilike('username', normalizedUsername)
+      .maybeSingle();
+      
+    if (existingUser) {
+      throw new Error("Username already exists.");
     }
 
     // Explicitly clear local state and sign out before attempting to sign up to avoid session conflicts
@@ -257,9 +287,16 @@ useEffect(() => {
     const { data, error } = await supabase.auth.signUp({ 
       email, 
       password,
-      options: { data: { full_name: name } }
+      options: { data: { full_name: name, username: normalizedUsername } }
     });
-    if (error) throw error;
+
+    if (error) {
+       // Clean up error message
+       if (error.message.includes('email') || error.message.includes('address')) {
+         throw new Error("Invalid username format or already exists.");
+       }
+       throw error;
+    }
     
     return true;
   };

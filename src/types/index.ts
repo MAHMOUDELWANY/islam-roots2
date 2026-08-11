@@ -10,6 +10,7 @@ export type LanguageCode = "en" | "ar";
 
 export interface Teacher {
   id: string;
+  username?: string;
   name: string;
   email: string;
   preferredLanguage: LanguageCode;

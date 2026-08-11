@@ -6,6 +6,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 1. Teachers
 CREATE TABLE IF NOT EXISTS teachers (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  username TEXT UNIQUE,
   name TEXT NOT NULL DEFAULT 'Ustadh',
   email TEXT NOT NULL,
   preferred_language TEXT DEFAULT 'en',
