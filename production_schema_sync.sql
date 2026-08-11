@@ -35,4 +35,9 @@ SET
   teaching_language = COALESCE(teaching_language, preferred_language, 'en'),
   years_experience = COALESCE(years_experience, years_of_experience),
   bio = COALESCE(bio, purpose)
-WHERE full_name IS NULL OR display_name IS NULL OR country IS NULL OR teaching_language IS NULL;
+WHERE full_name IS NULL 
+   OR display_name IS NULL 
+   OR country IS NULL 
+   OR teaching_language IS NULL 
+   OR years_experience IS NULL 
+   OR bio IS NULL;
