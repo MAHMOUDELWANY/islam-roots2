@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { LanguageProvider, useLanguage } from "./context/LanguageContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { DataProvider } from "./context/DataContext";
 
@@ -33,14 +33,10 @@ import { TeacherOnboardingModal } from "./components/auth/TeacherOnboardingModal
 import { JalilahTourModal } from "./components/common/JalilahTourModal";
 
 import { Student, Curriculum, SubjectType } from "./types";
-import { Loader2, LogIn, Sparkles, BookOpen } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 const AppContent: React.FC = () => {
-  const { teacher, isAuthenticated, loading, loginWithGoogle, loginAsGuest } = useAuth();
-  const { t } = useLanguage();
-
-  const [googleSigningIn, setGoogleSigningIn] = useState(false);
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const { teacher, isAuthenticated, loading, loginAsGuest } = useAuth();
 
   const [currentSection, setCurrentSection] = useState<NavSection>("dashboard");
   const [selectedStudentProfileId, setSelectedStudentProfileId] = useState<string | null>(null);
@@ -121,27 +117,6 @@ const AppContent: React.FC = () => {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
-
-  // Direct Google Login Trigger
-  const handleDirectGoogleLogin = async () => {
-    setLoginError(null);
-    setGoogleSigningIn(true);
-    try {
-      await loginWithGoogle();
-    } catch (err: any) {
-      console.error("Direct Google Auth Error:", err);
-      const code = err?.code || "";
-      if (code === "auth/popup-closed-by-user") {
-        setLoginError("Sign-in popup was closed. Please try again.");
-      } else if (code === "auth/popup-blocked") {
-        setLoginError("Sign-in popup was blocked by browser. Please allow popups for this site.");
-      } else {
-        setLoginError(err?.message || "Google Authentication failed. Please try again or use Guest mode.");
-      }
-    } finally {
-      setGoogleSigningIn(false);
-    }
-  };
 
   // Auto-launch tour on user's first time after onboarding completed
   useEffect(() => {

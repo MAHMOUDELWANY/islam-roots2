@@ -24,9 +24,9 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
   const { saveAIContent } = useData();
 
   const [lessonTitle, setLessonTitle] = useState(initialLessonTitle || "Rule of Noon Sakinah & Tanween");
-  const [subject, setSubject] = useState<SubjectType>(initialSubject || "Tajweed");
+  const [subject] = useState<SubjectType>(initialSubject || "Tajweed");
   const [level, setLevel] = useState<LevelType>("Beginner");
-  const [questionCount, setQuestionCount] = useState(4);
+  const [questionCount] = useState(4);
 
   const [loading, setLoading] = useState(false);
   const [generatedData, setGeneratedData] = useState<any | null>(null);

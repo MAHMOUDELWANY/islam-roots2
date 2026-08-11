@@ -5,14 +5,10 @@ import { getSurahs, generateMemoryDetectiveQuestions } from "../../services/qura
 import { Surah } from "../../services/quran/quranTypes";
 import {
   SearchCheck,
-  Eye,
-  HelpCircle,
   RefreshCw,
   Play,
   CheckCircle2,
   XCircle,
-  HelpCircle as QuestionIcon,
-  Sparkles,
 } from "lucide-react";
 
 export const MemoryDetectiveView: React.FC = () => {

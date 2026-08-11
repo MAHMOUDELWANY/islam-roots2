@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Student, AttendanceStatus } from "../../types";
+import { AttendanceStatus } from "../../types";
 import { useData } from "../../context/DataContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { X, Play, Save, CheckCircle2, Clock, XCircle } from "lucide-react";

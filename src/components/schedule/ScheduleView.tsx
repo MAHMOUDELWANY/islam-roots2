@@ -6,12 +6,8 @@ import {
   Trash2,
   Play,
   User,
-  BookOpen,
-  Bell,
-  CheckCircle,
   Filter,
   X,
-  Repeat,
   AlertCircle,
   Sparkles,
   ExternalLink,
@@ -33,7 +29,7 @@ interface ScheduleViewProps {
 }
 
 export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession }) => {
-  const { students, curriculums, schedules, addSchedule, deleteSchedule, updateSchedule } = useData();
+  const { students, schedules, addSchedule, deleteSchedule } = useData();
   const { t, language } = useLanguage();
   const { googleTokens, connectGoogleCalendar } = useAuth();
 

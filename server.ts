@@ -57,12 +57,12 @@ async function startServer() {
   });
 
   // API Health Check
-  app.get("/api/health", (req, res) => {
+  app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", app: "Islam Roots Server" });
   });
 
   // API: Quran Foundation / API Proxy
-  app.get("/api/quran/surahs", async (req, res) => {
+  app.get("/api/quran/surahs", async (_req, res) => {
     try {
       const response = await fetch("https://api.quran.com/api/v4/chapters?language=en");
       if (!response.ok) throw new Error("Failed to fetch surahs from Quran API");
@@ -225,7 +225,7 @@ ${customInstructions ? `4. Custom Instructions: ${customInstructions}` : ""}
       const isArabic = language === "ar";
       const prompt = `You are a world-class Islamic & Arabic educator designing a Google Slides presentation structure for a lesson.\n
 Generate a structured, practical slide deck in ${isArabic ? "Arabic" : "English"} based on this lesson plan:\n${JSON.stringify(lessonPlan)}\n\n
-Context: Subject: ${subject}, Topic: ${topic}, Student: ${studentName} (Age: ${studentAge}, Level: ${studentLevel}), Duration: ${duration} minutes.\n
+Context: Subject: ${subject}, Topic: ${topic}, Student: ${studentName} (Age: ${studentAge}, Level: ${studentLevel}), Duration: ${duration} minutes, Style: ${teachingStyle || "Standard"}, Goal: ${learningGoal || "General"}, Notes: ${customInstructions || "None"}.\n
 The number of slides should be appropriate for a ${duration} minute lesson.\n
 Provide the title, bullet points, and speaker notes for each slide.`;
       const response = await ai.models.generateContent({
@@ -421,7 +421,7 @@ Provide:
 
   if (isProduction) {
     app.use(express.static(distPath));
-    app.get("*", (req, res) => {
+    app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   } else {
@@ -436,7 +436,7 @@ Provide:
       console.warn("Vite failed to load in dev mode, serving dist static files if available:", e);
       if (fs.existsSync(distPath)) {
         app.use(express.static(distPath));
-        app.get("*", (req, res) => {
+        app.get("*", (_req, res) => {
           res.sendFile(path.join(distPath, "index.html"));
         });
       }

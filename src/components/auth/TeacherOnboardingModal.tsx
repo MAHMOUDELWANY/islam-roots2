@@ -14,7 +14,6 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
-  Search,
 } from "lucide-react";
 
 interface TeacherOnboardingModalProps {

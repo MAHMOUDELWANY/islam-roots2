@@ -17,7 +17,6 @@ import {
   Lightbulb,
   Minimize2,
   Maximize2,
-  Compass,
   MousePointerClick,
   SlidersHorizontal,
 } from "lucide-react";

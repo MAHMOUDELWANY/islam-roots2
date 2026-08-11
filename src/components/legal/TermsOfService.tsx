@@ -1,6 +1,6 @@
 import React from "react";
 import { BrandLogo } from "../common/BrandLogo";
-import { FileText, ArrowLeft, Shield, CheckCircle, Scale, Mail } from "lucide-react";
+import { ArrowLeft, Shield, Scale, Mail } from "lucide-react";
 
 interface TermsOfServiceProps {
   onBack?: () => void;

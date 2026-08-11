@@ -16,16 +16,8 @@ import {
   LogIn,
   Sun,
   Moon,
-  Compass,
-  Star,
-  Award,
   GraduationCap,
-  Heart,
-  Globe,
-  Layers,
-  Zap,
   TrendingUp,
-  Brain,
 } from "lucide-react";
 
 interface LandingPageProps {

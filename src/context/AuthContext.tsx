@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
-import { supabase, isSupabaseConfigured, supabaseAnonKey } from "../lib/supabase";
+import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { Teacher } from "../types";
 
 export const ADMIN_EMAIL = "mhmwdlwany4222@gmail.com";
@@ -78,7 +78,7 @@ useEffect(() => {
       }
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user;
       console.log("[Auth] Auth state changed. Supabase User:", user ? user.id : "null");
       

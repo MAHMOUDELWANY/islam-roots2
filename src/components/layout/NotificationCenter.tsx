@@ -9,7 +9,7 @@ interface NotificationCenterProps {
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({ onOpenSchedule }) => {
   const { notifications, markNotificationRead, markAllNotificationsRead, clearNotifications } = useData();
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read).length;

@@ -13,7 +13,6 @@ export const MemoryMapView: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<SubjectType>("Quran");
 
   // Find active student's curriculum for this category
-  const activeStudent = students.find((s) => s.id === selectedStudentId);
   const studentCurr = studentCurriculums.find((sc) => sc.studentId === selectedStudentId);
   const assignedCurr = curriculums.find(
     (c) => c.id === studentCurr?.curriculumId && c.subject === activeCategory

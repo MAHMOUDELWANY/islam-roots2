@@ -10,26 +10,20 @@ import {
   Calendar,
   Sparkles,
   Search,
-  Filter,
   Download,
   Eye,
-  RefreshCw,
   CheckCircle2,
-  Clock,
   MapPin,
   Award,
-  Globe,
   FileText,
   UserCheck,
   X,
-  ChevronRight,
-  TrendingUp,
   GraduationCap,
 } from "lucide-react";
 
 export const AdminDashboard: React.FC = () => {
-  const { teacher, isAdmin } = useAuth();
-  const { t, language } = useLanguage();
+  const { isAdmin } = useAuth();
+  const { language } = useLanguage();
   const isRTL = language === "ar";
 
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -38,7 +32,7 @@ export const AdminDashboard: React.FC = () => {
   const [allSessions, setAllSessions] = useState<LessonSession[]>([]);
   const [allSchedules, setAllSchedules] = useState<ScheduleEntry[]>([]);
 
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "onboarded" | "pending" | "with_students">("all");
 

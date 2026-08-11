@@ -1,6 +1,6 @@
 import React from "react";
 import { BrandLogo } from "../common/BrandLogo";
-import { ShieldCheck, ArrowLeft, Lock, FileText, Globe, CheckCircle, Mail } from "lucide-react";
+import { ShieldCheck, ArrowLeft, Lock, Mail } from "lucide-react";
 
 interface PrivacyPolicyProps {
   onBack?: () => void;
