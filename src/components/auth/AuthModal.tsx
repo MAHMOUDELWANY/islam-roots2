@@ -11,7 +11,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialError, initialMode }) => {
-  const { loginWithGoogle, loginAsGuest, login, signup, resendVerificationEmail, resetPassword, updatePassword } = useAuth();
+  const { loginWithGoogle, loginAsGuest, login, signup, resendVerificationEmail, verifyOtp, resetPassword, updatePassword } = useAuth();
   const { t, language } = useLanguage();
   const isRTL = language === "ar";
 
@@ -24,6 +24,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
@@ -57,6 +58,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
     setErrorMsg(null);
     setSuccessMsg(null);
     setShowUnverifiedResend(false);
+    setOtpCode("");
   };
 
   const switchMode = (mode: "options" | "signup" | "signin" | "verification_pending" | "forgot_password" | "reset_password") => {
@@ -208,23 +210,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
     }
   };
 
-  const handleCheckVerifiedStatus = async () => {
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    resetFormState();
+
+    const targetEmail = unverifiedEmail || email.trim().toLowerCase();
+    const cleanOtp = otpCode.trim();
+
+    if (!targetEmail) {
+      setErrorMsg(isRTL ? "يرجى إدخال البريد الإلكتروني" : "Email address is missing. Please try signing in again.");
+      return;
+    }
+
+    if (!cleanOtp || cleanOtp.length < 6) {
+      setErrorMsg(isRTL ? "يرجى إدخال رمز التفعيل المكون من 6 أرقام" : "Please enter the 6-digit verification code.");
+      return;
+    }
+
     setSubmitting(true);
-    setErrorMsg(null);
     try {
-      if (email && password) {
-        await login(email, password);
+      await verifyOtp(targetEmail, cleanOtp);
+      setSuccessMsg(isRTL ? "تم تفعيل البريد الإلكتروني بنجاح!" : "Email verified successfully!");
+      setTimeout(() => {
         onClose();
-      } else {
-        switchMode("signin");
-      }
+      }, 500);
     } catch (err: any) {
-      const message = err?.message || "";
-      if (message.includes("verify your email") || err?.code === "email_not_confirmed") {
-        setErrorMsg(isRTL ? "لم يتم تفعيل البريد بعد. يرجى التحقق من صندوق الوارد والضغط على رابط التفعيل." : "Email not verified yet. Please check your inbox and click the verification link.");
-      } else {
-        setErrorMsg(message || (isRTL ? "يرجى تسجيل الدخول بعد التفعيل." : "Please sign in after verifying."));
-      }
+      console.warn("[AuthModal] Verify OTP error:", err);
+      setErrorMsg(err?.message || (isRTL ? "رمز التفعيل غير صحيح أو منتهي الصلاحية" : "Invalid or expired verification code."));
     } finally {
       setSubmitting(false);
     }
@@ -607,49 +619,72 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
           </form>
         )}
 
-        {/* MODE 4: EMAIL VERIFICATION PENDING */}
+        {/* MODE 4: EMAIL VERIFICATION PENDING (6-DIGIT OTP) */}
         {authMode === "verification_pending" && (
-          <div className="space-y-4 font-sans text-center">
-            <div className="p-4 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
+          <form onSubmit={handleVerifyOtpSubmit} className="space-y-4 font-sans">
+            <div className="p-3.5 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-2 text-center">
               <p className="text-xs text-[#3E4D3E] dark:text-[#8BA888] font-medium leading-relaxed">
-                {isRTL
-                  ? "يرجى فتح صندوق البريد الإلكتروني والنقر على رابط التفعيل للتحقق من ملكية البريد الإلكتروني."
-                  : "Please check your inbox and click the verification link inside to verify your email ownership."}
+                {t("verificationSentNotice")}{" "}
+                <strong className="text-[#1F261F] dark:text-[#E2E8E2]">{unverifiedEmail || email}</strong>
+              </p>
+              <p className="text-[11px] text-[#7A7D75] dark:text-stone-400">
+                {t("verificationSentNoticeEnd")}
               </p>
             </div>
 
-            <div className="space-y-2.5 pt-2">
-              <button
-                type="button"
-                onClick={handleCheckVerifiedStatus}
-                disabled={submitting}
-                className="w-full py-3 px-4 rounded-xl bg-[#3E4D3E] text-white font-bold text-sm hover:bg-[#2D332D] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
-              >
-                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                <span>{t("iveVerifiedMyEmail")}</span>
-              </button>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-[#1F261F] dark:text-[#E2E8E2] text-center">
+                {t("enterVerificationCode")}
+              </label>
+              <div className="relative max-w-xs mx-auto">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    setOtpCode(val);
+                    if (errorMsg) setErrorMsg(null);
+                  }}
+                  className="w-full text-center text-xl font-mono tracking-[0.5em] px-4 py-3 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#1C221C] text-[#1F261F] dark:text-[#E2E8E2] focus:outline-none focus:ring-2 focus:ring-[#8BA888]/50 placeholder:tracking-normal placeholder:font-sans placeholder:text-xs"
+                  placeholder="123456"
+                  required
+                  autoFocus
+                />
+              </div>
+            </div>
 
+            <button
+              type="submit"
+              disabled={submitting || otpCode.trim().length < 6}
+              className="w-full py-3 px-4 rounded-xl bg-[#3E4D3E] text-white font-bold text-sm hover:bg-[#2D332D] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              <span>{t("verifyCode")}</span>
+            </button>
+
+            <div className="flex items-center justify-between text-xs text-[#7A7D75] pt-1">
               <button
                 type="button"
                 onClick={handleResendVerification}
                 disabled={resendSubmitting}
-                className="w-full py-2.5 px-4 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-white dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] font-bold text-xs hover:bg-[#FCFAF5] dark:hover:bg-[#1C221C] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                className="hover:text-[#3E4D3E] dark:hover:text-[#8BA888] font-medium cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
               >
-                {resendSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                {resendSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                 <span>{t("resendVerificationEmail")}</span>
               </button>
-            </div>
 
-            <div className="pt-2">
               <button
                 type="button"
                 onClick={() => switchMode("signin")}
-                className="text-xs text-[#7A7D75] hover:text-[#3E4D3E] underline cursor-pointer"
+                className="hover:text-[#3E4D3E] underline cursor-pointer"
               >
-                {isRTL ? "العودة إلى تسجيل الدخول" : "Sign in with another account"}
+                {isRTL ? "تسجيل الدخول" : "Sign in instead"}
               </button>
             </div>
-          </div>
+          </form>
         )}
 
         {/* MODE 5: FORGOT PASSWORD */}

@@ -29,6 +29,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string) => Promise<{ user: SupabaseUser | null; session: any }>;
   resendVerificationEmail: (email: string) => Promise<void>;
+  verifyOtp: (email: string, token: string) => Promise<boolean>;
   updatePassword: (newPassword: string) => Promise<void>;
   loginWithGoogle: () => Promise<boolean>;
   connectGoogleCalendar: () => Promise<string | null>;
@@ -99,154 +100,144 @@ useEffect(() => {
     };
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-    
-    const loadProfile = async (user: FirebaseUser) => {
-      try {
-        setLoading(true);
-        console.log("[Auth] Supabase teacher lookup started for ID:", user.id);
-        
-        sessionStorage.removeItem("islamroots_session_guest");
-        localStorage.removeItem("islamroots_guest_teacher");
+  const loadProfile = async (user: FirebaseUser) => {
+    try {
+      setLoading(true);
+      console.log("[Auth] Supabase teacher lookup started for ID:", user.id);
+      
+      sessionStorage.removeItem("islamroots_session_guest");
+      localStorage.removeItem("islamroots_guest_teacher");
 
-        // STRICT AUTH BOUNDARY: Block unverified email/password users from creating or loading profile
-        const isGoogleUser = user.app_metadata?.provider === "google" ||
-          (Array.isArray(user.app_metadata?.providers) && user.app_metadata.providers.includes("google")) ||
-          (Array.isArray((user as any).identities) && (user as any).identities.some((id: any) => id.provider === "google"));
+      // STRICT AUTH BOUNDARY: Block unverified email/password users from creating or loading profile
+      const isGoogleUser = user.app_metadata?.provider === "google" ||
+        (Array.isArray(user.app_metadata?.providers) && user.app_metadata.providers.includes("google")) ||
+        (Array.isArray((user as any).identities) && (user as any).identities.some((id: any) => id.provider === "google"));
 
-        const isEmailUnverified = !isGoogleUser && !user.email_confirmed_at;
+      const isEmailUnverified = !isGoogleUser && !user.email_confirmed_at;
 
-        if (isEmailUnverified) {
-          console.log("[Auth Boundary] User email is unverified. Skipping teacher profile creation, load, and workspace access.");
-          if (isMounted) {
-            setTeacher(null);
-            setIsSuperAdminClaim(false);
-          }
-          return;
+      if (isEmailUnverified) {
+        console.log("[Auth Boundary] User email is unverified. Skipping teacher profile creation, load, and workspace access.");
+        setTeacher(null);
+        setIsSuperAdminClaim(false);
+        return;
+      }
+      
+      const { data, error } = await supabase.from("teachers").select("*").eq("id", user.id).single();
+      
+      let teacherData = null;
+      if (data && !error) {
+        console.log("[Auth] Teacher lookup succeeded: Profile found in Supabase.");
+        teacherData = data;
+        // Synchronize email in teachers table if user email exists and differs
+        if (user.email && teacherData.email !== user.email) {
+          supabase.from("teachers").update({ email: user.email }).eq("id", user.id).then(() => {
+            console.log("[Auth] Updated teacher email in database to match auth email.");
+          });
         }
-        
-        const { data, error } = await supabase.from("teachers").select("*").eq("id", user.id).single();
-        
-        let teacherData = null;
-        if (data && !error) {
-          console.log("[Auth] Teacher lookup succeeded: Profile found in Supabase.");
-          teacherData = data;
-          // Synchronize email in teachers table if user email exists and differs
-          if (user.email && teacherData.email !== user.email) {
-            supabase.from("teachers").update({ email: user.email }).eq("id", user.id).then(() => {
-              console.log("[Auth] Updated teacher email in database to match auth email.");
-            });
-          }
-        } else {
-           console.log("[Auth] Teacher lookup: No profile document found or error. Creating teacher profile in Supabase.");
-           const initialDisplayName = user.user_metadata?.full_name || user.user_metadata?.name || (user.email ? user.email.split('@')[0] : "Ustadh");
-           const fallbackTeacher = {
-             id: user.id,
-             username: user.user_metadata?.username || null,
-             name: initialDisplayName,
-             email: user.email || "",
-             full_name: user.user_metadata?.full_name || user.user_metadata?.name || "",
-             display_name: initialDisplayName,
-             preferred_language: "en",
-             onboarding_completed: false,
-             profile_completed: false,
-             created_at: new Date().toISOString(),
-           };
+      } else {
+         console.log("[Auth] Teacher lookup: No profile document found or error. Creating teacher profile in Supabase.");
+         const initialDisplayName = user.user_metadata?.full_name || user.user_metadata?.name || (user.email ? user.email.split('@')[0] : "Ustadh");
+         const fallbackTeacher = {
+           id: user.id,
+           username: user.user_metadata?.username || null,
+           name: initialDisplayName,
+           email: user.email || "",
+           full_name: user.user_metadata?.full_name || user.user_metadata?.name || "",
+           display_name: initialDisplayName,
+           preferred_language: "en",
+           onboarding_completed: false,
+           profile_completed: false,
+           created_at: new Date().toISOString(),
+         };
+         
+         const { data: insertData, error: insertErr } = await supabase
+           .from("teachers")
+           .upsert(fallbackTeacher, { onConflict: 'id' })
+           .select()
+           .single();
            
-           const { data: insertData, error: insertErr } = await supabase
-             .from("teachers")
-             .upsert(fallbackTeacher, { onConflict: 'id' })
-             .select()
-             .single();
-             
-           if (insertErr) {
-             console.warn("[Auth] Upsert for teacher row failed:", insertErr);
-             throw insertErr;
-           }
-           console.log("[Auth] Teacher profile row created/verified successfully in Supabase.");
-           teacherData = insertData || fallbackTeacher;
-        }
+         if (insertErr) {
+           console.warn("[Auth] Upsert for teacher row failed:", insertErr);
+           throw insertErr;
+         }
+         console.log("[Auth] Teacher profile row created/verified successfully in Supabase.");
+         teacherData = insertData || fallbackTeacher;
+      }
 
-        if (isMounted) {
-            const isProfileDone = Boolean(
-              (teacherData.profile_completed === true || teacherData.onboarding_completed === true) &&
-              (teacherData.full_name || teacherData.name) &&
-              (teacherData.display_name || teacherData.name) &&
-              (teacherData.country || teacherData.location) &&
-              (teacherData.teaching_language || teacherData.preferred_language)
-            );
+      const isProfileDone = Boolean(
+        (teacherData.profile_completed === true || teacherData.onboarding_completed === true) &&
+        (teacherData.full_name || teacherData.name) &&
+        (teacherData.display_name || teacherData.name) &&
+        (teacherData.country || teacherData.location) &&
+        (teacherData.teaching_language || teacherData.preferred_language)
+      );
 
-            setTeacher({
-              id: teacherData.id,
-              username: teacherData.username || user.user_metadata?.username,
-              name: teacherData.display_name || teacherData.name || user.user_metadata?.full_name || user.email?.split('@')[0] || "Ustadh",
-              email: user.email || teacherData.email || "",
-              preferredLanguage: (teacherData.teaching_language || teacherData.preferred_language || "en") as any,
-              
-              fullName: teacherData.full_name || teacherData.name || user.user_metadata?.full_name || "",
-              displayName: teacherData.display_name || teacherData.name || user.user_metadata?.full_name || user.email?.split('@')[0] || "",
-              arabicName: teacherData.arabic_name || "",
-              country: teacherData.country || teacherData.location || "",
-              teachingLanguage: teacherData.teaching_language || teacherData.preferred_language || "en",
-              gender: teacherData.gender || "",
-              yearsExperience: teacherData.years_experience ?? teacherData.years_of_experience ?? "",
-              specializations: Array.isArray(teacherData.specializations) ? teacherData.specializations : [],
-              bio: teacherData.bio || teacherData.purpose || "",
-              profileCompleted: isProfileDone,
-              profileCompletedAt: teacherData.profile_completed_at,
+      setTeacher({
+        id: teacherData.id,
+        username: teacherData.username || user.user_metadata?.username,
+        name: teacherData.display_name || teacherData.name || user.user_metadata?.full_name || user.email?.split('@')[0] || "Ustadh",
+        email: user.email || teacherData.email || "",
+        preferredLanguage: (teacherData.teaching_language || teacherData.preferred_language || "en") as any,
+        
+        fullName: teacherData.full_name || teacherData.name || user.user_metadata?.full_name || "",
+        displayName: teacherData.display_name || teacherData.name || user.user_metadata?.full_name || user.email?.split('@')[0] || "",
+        arabicName: teacherData.arabic_name || "",
+        country: teacherData.country || teacherData.location || "",
+        teachingLanguage: teacherData.teaching_language || teacherData.preferred_language || "en",
+        gender: teacherData.gender || "",
+        yearsExperience: teacherData.years_experience ?? teacherData.years_of_experience ?? "",
+        specializations: Array.isArray(teacherData.specializations) ? teacherData.specializations : [],
+        bio: teacherData.bio || teacherData.purpose || "",
+        profileCompleted: isProfileDone,
+        profileCompletedAt: teacherData.profile_completed_at,
 
-              age: teacherData.age,
-              yearsOfExperience: teacherData.years_experience ?? teacherData.years_of_experience,
-              purpose: teacherData.bio || teacherData.purpose,
-              location: teacherData.country || teacherData.location,
-              onboardingCompleted: isProfileDone,
-              tourCompleted: teacherData.tour_completed ?? false,
-              timezone: teacherData.timezone || (typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC"),
-              reminderMinutes: teacherData.reminder_minutes,
-              reminderSoundEnabled: teacherData.reminder_sound_enabled,
-              reminderVibrationEnabled: teacherData.reminder_vibration_enabled,
-              isSuperAdmin: !!teacherData.is_super_admin,
-              createdAt: teacherData.created_at || new Date().toISOString(),
-            });
-            setIsSuperAdminClaim(!!teacherData.is_super_admin);
-        }
+        age: teacherData.age,
+        yearsOfExperience: teacherData.years_experience ?? teacherData.years_of_experience,
+        purpose: teacherData.bio || teacherData.purpose,
+        location: teacherData.country || teacherData.location,
+        onboardingCompleted: isProfileDone,
+        tourCompleted: teacherData.tour_completed ?? false,
+        timezone: teacherData.timezone || (typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC"),
+        reminderMinutes: teacherData.reminder_minutes,
+        reminderSoundEnabled: teacherData.reminder_sound_enabled,
+        reminderVibrationEnabled: teacherData.reminder_vibration_enabled,
+        isSuperAdmin: !!teacherData.is_super_admin,
+        createdAt: teacherData.created_at || new Date().toISOString(),
+      });
+      setIsSuperAdminClaim(!!teacherData.is_super_admin);
 
-        // Trigger super admin claim if this is the admin email
-        if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.access_token) {
-              const res = await fetch("/api/auth/claim-admin", {
-                method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${session.access_token}`
-                }
-              });
-              if (res.ok) {
-                if (isMounted) setIsSuperAdminClaim(true);
-              } else {
-                console.warn("[Auth] Failed to claim admin status via API. Status:", res.status);
+      // Trigger super admin claim if this is the admin email
+      if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            const res = await fetch("/api/auth/claim-admin", {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${session.access_token}`
               }
+            });
+            if (res.ok) {
+              setIsSuperAdminClaim(true);
+            } else {
+              console.warn("[Auth] Failed to claim admin status via API. Status:", res.status);
             }
-          } catch (adminErr) {
-            console.error("Failed to claim admin status:", adminErr);
           }
-        }
-      } catch (err) {
-        console.warn("[Auth] Teacher profile initialization failed:", err);
-        if (isMounted) {
-           setTeacher(null);
-           setIsSuperAdminClaim(false);
-        }
-      } finally {
-        if (isMounted) {
-           setLoading(false);
-           console.log("[Auth] Final authentication state updated.");
+        } catch (adminErr) {
+          console.error("Failed to claim admin status:", adminErr);
         }
       }
-    };
+    } catch (err) {
+      console.warn("[Auth] Teacher profile initialization failed:", err);
+      setTeacher(null);
+      setIsSuperAdminClaim(false);
+    } finally {
+      setLoading(false);
+      console.log("[Auth] Final authentication state updated.");
+    }
+  };
 
+  useEffect(() => {
     if (firebaseUser) {
        loadProfile(firebaseUser);
     }
@@ -383,6 +374,59 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       }
       throw error;
     }
+  };
+
+  const verifyOtp = async (email: string, token: string): Promise<boolean> => {
+    if (!email || !token) {
+      throw new Error("Email and verification code are required.");
+    }
+    if (!isSupabaseConfigured) {
+      throw new Error("Authentication service is not configured. Please contact the administrator.");
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const cleanToken = token.trim();
+
+    // Primary attempt: type 'signup' for email confirmation OTPs
+    let { data, error } = await supabase.auth.verifyOtp({
+      email: normalizedEmail,
+      token: cleanToken,
+      type: "signup",
+    });
+
+    if (error) {
+      // Secondary attempt: type 'email' fallback
+      const fallbackRes = await supabase.auth.verifyOtp({
+        email: normalizedEmail,
+        token: cleanToken,
+        type: "email",
+      });
+      if (!fallbackRes.error) {
+        data = fallbackRes.data;
+        error = null;
+      }
+    }
+
+    if (error) {
+      console.warn(`[Auth Diagnostic] Supabase verifyOtp error: status=${error.status}, code=${error.code || 'none'}, message=${error.message}`);
+      if (error.status === 429 || error.code === "over_email_send_rate_limit" || error.message?.includes("rate limit")) {
+        throw new Error("Too many verification attempts. Please wait a few minutes before trying again.");
+      }
+      if (error.message?.includes("expired") || error.code === "otp_expired") {
+        throw new Error("Verification code has expired. Please request a new code.");
+      }
+      throw new Error("Invalid verification code. Please check your email and try again.");
+    }
+
+    console.log("[Auth Diagnostic] Supabase verifyOtp succeeded for:", normalizedEmail);
+
+    if (data?.user) {
+      const fbUser = { ...data.user, uid: data.user.id } as FirebaseUser;
+      setFirebaseUser(fbUser);
+      await loadProfile(fbUser);
+    }
+
+    return true;
   };
 
   const getRedirectUrl = () => {
@@ -637,6 +681,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
         login,
         signup,
         resendVerificationEmail,
+        verifyOtp,
         updatePassword,
         loginWithGoogle,
         connectGoogleCalendar,
