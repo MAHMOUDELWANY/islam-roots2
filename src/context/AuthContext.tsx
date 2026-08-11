@@ -26,8 +26,10 @@ interface AuthContextType {
   isGuest: boolean;
   isAdmin: boolean;
   loading: boolean;
-  login: (username: string, password?: string) => Promise<boolean>;
-  signup: (name: string, username: string, password?: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string) => Promise<{ user: SupabaseUser | null; session: any }>;
+  resendVerificationEmail: (email: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
   loginWithGoogle: () => Promise<boolean>;
   connectGoogleCalendar: () => Promise<string | null>;
   connectGoogleDocs: () => Promise<string | null>;
@@ -114,14 +116,22 @@ useEffect(() => {
         if (data && !error) {
           console.log("[Auth] Teacher lookup succeeded: Profile found in Supabase.");
           teacherData = data;
+          // Synchronize email in teachers table if user email exists and differs
+          if (user.email && teacherData.email !== user.email) {
+            supabase.from("teachers").update({ email: user.email }).eq("id", user.id).then(() => {
+              console.log("[Auth] Updated teacher email in database to match auth email.");
+            });
+          }
         } else {
            console.log("[Auth] Teacher lookup: No profile document found or error. Creating teacher profile in Supabase.");
-           const initialDisplayName = user.user_metadata?.full_name || user.user_metadata?.name || user.user_metadata?.username || "Ustadh";
+           const initialDisplayName = user.user_metadata?.full_name || user.user_metadata?.name || (user.email ? user.email.split('@')[0] : "Ustadh");
            const fallbackTeacher = {
              id: user.id,
              username: user.user_metadata?.username || null,
              name: initialDisplayName,
-             email: (user.email && user.email.includes("@system.local")) ? "" : (user.email || ""),
+             email: user.email || "",
+             full_name: user.user_metadata?.full_name || user.user_metadata?.name || "",
+             display_name: initialDisplayName,
              preferred_language: "en",
              onboarding_completed: false,
              profile_completed: false,
@@ -154,12 +164,12 @@ useEffect(() => {
             setTeacher({
               id: teacherData.id,
               username: teacherData.username || user.user_metadata?.username,
-              name: teacherData.display_name || teacherData.name || user.user_metadata?.full_name || "Ustadh",
-              email: (user.email && user.email.includes("@system.local")) ? "" : (user.email || teacherData.email || ""),
+              name: teacherData.display_name || teacherData.name || user.user_metadata?.full_name || user.email?.split('@')[0] || "Ustadh",
+              email: user.email || teacherData.email || "",
               preferredLanguage: (teacherData.teaching_language || teacherData.preferred_language || "en") as any,
               
               fullName: teacherData.full_name || teacherData.name || user.user_metadata?.full_name || "",
-              displayName: teacherData.display_name || teacherData.name || user.user_metadata?.full_name || user.user_metadata?.username || "",
+              displayName: teacherData.display_name || teacherData.name || user.user_metadata?.full_name || user.email?.split('@')[0] || "",
               arabicName: teacherData.arabic_name || "",
               country: teacherData.country || teacherData.location || "",
               teachingLanguage: teacherData.teaching_language || teacherData.preferred_language || "en",
@@ -240,18 +250,15 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     sessionStorage.setItem("islamroots_session_guest", JSON.stringify(guestTeacher));
   };
 
-  const login = async (username: string, password?: string): Promise<boolean> => {
-    if (!password) {
-      throw new Error("Password is required to sign in.");
+  const login = async (email: string, password: string): Promise<boolean> => {
+    if (!email || !password) {
+      throw new Error("Email and password are required.");
     }
     if (!isSupabaseConfigured) {
       throw new Error("Authentication service is not configured. Please contact the administrator.");
     }
-    
-    const normalizedUsername = username.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
-    const authEmail = `${normalizedUsername}@system.local`;
 
-    console.log("[Auth Diagnostic] login() invoked");
+    const normalizedEmail = email.trim().toLowerCase();
 
     // Explicitly clear local state and sign out before attempting to sign in to avoid session conflicts
     setTeacher(null);
@@ -263,30 +270,51 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       console.warn("Silent signout failed during login step", e);
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
+
     if (error) {
-      console.warn(`[Auth Diagnostic] Supabase signInWithPassword error status=${error.status}, code=${error.code || 'none'}`);
-      if (error.message.includes('email') || error.message.includes('credentials') || error.message.includes('Invalid login')) {
-         throw new Error("Invalid username or password.");
+      console.warn(`[Auth Diagnostic] Supabase signInWithPassword error status=${error.status}, code=${error.code || 'none'}, message=${error.message}`);
+      if (
+        error.message?.toLowerCase().includes("email not confirmed") ||
+        error.code === "email_not_confirmed"
+      ) {
+        const unconfirmedErr = new Error("Please verify your email before signing in.");
+        (unconfirmedErr as any).code = "email_not_confirmed";
+        throw unconfirmedErr;
+      }
+      if (
+        error.message?.includes("Invalid login credentials") ||
+        error.message?.includes("invalid") ||
+        error.code === "invalid_credentials" ||
+        error.status === 400
+      ) {
+        throw new Error("Invalid email or password.");
       }
       throw error;
     }
+
+    if (data?.user && !data.user.email_confirmed_at) {
+      const unconfirmedErr = new Error("Please verify your email before signing in.");
+      (unconfirmedErr as any).code = "email_not_confirmed";
+      throw unconfirmedErr;
+    }
+
     console.log("[Auth Diagnostic] Supabase signInWithPassword succeeded.");
     return true;
   };
 
-  const signup = async (name: string, username: string, password?: string): Promise<boolean> => {
-    if (!password) {
-      throw new Error("Password is required to sign up.");
+  const signup = async (email: string, password: string): Promise<{ user: SupabaseUser | null; session: any }> => {
+    if (!email || !password) {
+      throw new Error("Email and password are required.");
     }
     if (!isSupabaseConfigured) {
       throw new Error("Authentication service is not configured. Please contact the administrator.");
     }
-    
-    const normalizedUsername = username.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
-    const authEmail = `${normalizedUsername}@system.local`;
 
-    console.log("[Auth Diagnostic] signup() invoked");
+    const normalizedEmail = email.trim().toLowerCase();
 
     // Explicitly clear local state and sign out before attempting to sign up to avoid session conflicts
     setTeacher(null);
@@ -298,19 +326,41 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       console.warn("Silent signout failed during signup step", e);
     }
 
-    const { data, error } = await supabase.auth.signUp({ 
-      email: authEmail, 
+    const { data, error } = await supabase.auth.signUp({
+      email: normalizedEmail,
       password,
-      options: { data: { full_name: name, username: normalizedUsername } }
+      options: {
+        emailRedirectTo: `${window.location.origin}`,
+        data: {
+          full_name: normalizedEmail.split('@')[0],
+        },
+      },
     });
 
     if (error) {
-       console.warn(`[Auth Diagnostic] Supabase signUp error status=${error.status}, code=${error.code || 'none'}`);
-       throw error;
+      console.warn(`[Auth Diagnostic] Supabase signUp error status=${error.status}, code=${error.code || 'none'}`);
+      throw error;
     }
-    
+
     console.log("[Auth Diagnostic] Supabase signUp succeeded.");
-    return true;
+    return { user: data.user, session: data.session };
+  };
+
+  const resendVerificationEmail = async (email: string): Promise<void> => {
+    if (!email) throw new Error("Email is required.");
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim().toLowerCase(),
+      options: {
+        emailRedirectTo: `${window.location.origin}`,
+      },
+    });
+    if (error) {
+      if (error.status === 429 || error.message?.includes("rate limit") || error.code === "over_email_send_rate_limit") {
+        throw new Error("Too many email requests. Please wait a few minutes before trying again.");
+      }
+      throw error;
+    }
   };
 
   const getRedirectUrl = () => {
@@ -446,7 +496,23 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (!email) throw new Error("Email is required.");
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+      redirectTo: `${window.location.origin}/#reset-password`,
+    });
+    if (error) {
+      if (error.status === 429 || error.message?.includes("rate limit") || error.code === "over_email_send_rate_limit") {
+        throw new Error("Too many requests. Please wait a few minutes and try again.");
+      }
+      throw error;
+    }
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error("Password must be at least 6 characters.");
+    }
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
   };
 
@@ -548,6 +614,8 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
         loading,
         login,
         signup,
+        resendVerificationEmail,
+        updatePassword,
         loginWithGoogle,
         connectGoogleCalendar,
         connectGoogleDocs,

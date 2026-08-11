@@ -1,101 +1,76 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
-import { X, LogIn, Loader2, Sparkles, Globe, User, Key, Eye, EyeOff } from "lucide-react";
+import { X, LogIn, Loader2, Sparkles, User, Key, Eye, EyeOff, Mail, CheckCircle2, ArrowLeft, RefreshCw } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialError?: string | null;
+  initialMode?: "options" | "signup" | "signin" | "verification_pending" | "forgot_password" | "reset_password";
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialError }) => {
-  const { loginWithGoogle, loginAsGuest } = useAuth();
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialError, initialMode }) => {
+  const { loginWithGoogle, loginAsGuest, login, signup, resendVerificationEmail, resetPassword, updatePassword } = useAuth();
   const { t, language } = useLanguage();
   const isRTL = language === "ar";
 
-  const [errorMsg, setErrorMsg] = useState<string | null>(initialError || null);
+  const [authMode, setAuthMode] = useState<"options" | "signup" | "signin" | "verification_pending" | "forgot_password" | "reset_password">(
+    initialMode || "options"
+  );
 
-  React.useEffect(() => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState("");
+
+  const [submitting, setSubmitting] = useState(false);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const [resendSubmitting, setResendSubmitting] = useState(false);
+  
+  const [errorMsg, setErrorMsg] = useState<string | null>(initialError || null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [showUnverifiedResend, setShowUnverifiedResend] = useState(false);
+
+  useEffect(() => {
     if (initialError) {
       setErrorMsg(initialError);
     }
   }, [initialError]);
 
-  const [googleSubmitting, setGoogleSubmitting] = useState(false);
-  const [authMode, setAuthMode] = useState<"options" | "username">("options");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [usernameSubmitting, setUsernameSubmitting] = useState(false);
-  const { login, signup } = useAuth();
+  useEffect(() => {
+    if (initialMode) {
+      setAuthMode(initialMode);
+    }
+  }, [initialMode]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash.includes("reset-password")) {
+      setAuthMode("reset_password");
+    }
+  }, []);
 
   if (!isOpen) return null;
+
+  const resetFormState = () => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+    setShowUnverifiedResend(false);
+  };
+
+  const switchMode = (mode: "options" | "signup" | "signin" | "verification_pending" | "forgot_password" | "reset_password") => {
+    resetFormState();
+    setAuthMode(mode);
+  };
 
   const handleGuestLogin = () => {
     loginAsGuest(isRTL ? "أستاذ محمود" : "Ustadh Mahmoud");
     onClose();
   };
 
-  const handleUsernameAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (usernameSubmitting) {
-      console.warn("[Auth Diagnostic] handleUsernameAuth ignored duplicate submit click.");
-      return;
-    }
-    setErrorMsg(null);
-    setUsernameSubmitting(true);
-    
-    // Basic format validation
-    const normalizedUsername = username.trim().toLowerCase();
-    console.log(`[Auth Diagnostic] handleUsernameAuth triggered. Mode: ${isSignUp ? 'signup' : 'login'}`);
-
-    if (!normalizedUsername || normalizedUsername.length < 3 || normalizedUsername.length > 32 || !/^[a-z0-9_.-]+$/.test(normalizedUsername)) {
-      setErrorMsg(isRTL ? "اسم المستخدم غير صالح" : "Invalid username. Must be 3-32 characters (a-z, 0-9, ., _, -).");
-      setUsernameSubmitting(false);
-      return;
-    }
-
-    try {
-      if (isSignUp) {
-        await signup(normalizedUsername, normalizedUsername, password);
-      } else {
-        await login(normalizedUsername, password);
-      }
-      onClose();
-    } catch (err: any) {
-      console.warn("[Auth Diagnostic] Username Auth error:", err?.message || err);
-      const message = err?.message || err?.error_description || "";
-      const code = err?.code || "";
-      const status = err?.status;
-      
-      if (message.includes("Invalid username or password") || message.includes("Invalid login credentials") || code === "auth/user-not-found" || code === "auth/invalid-credential") {
-        setErrorMsg(isRTL ? "اسم المستخدم أو كلمة المرور غير صحيحة" : "Invalid username or password");
-      } else if (message.includes("Username already exists") || message.includes("already exists") || message.includes("User already registered") || code === "auth/email-already-in-use" || code === "user_already_exists") {
-        setErrorMsg(isRTL ? "اسم المستخدم مستخدم بالفعل" : "Username already exists");
-      } else if (message.includes("Password should be") || message.includes("weak") || code === "auth/weak-password") {
-        setErrorMsg(isRTL ? "كلمة المرور ضعيفة جداً" : "Password is too weak");
-      } else if (message.includes("Email signups are disabled") || code === "auth/operation-not-allowed") {
-        setErrorMsg(isRTL ? "تسجيل الدخول معطل. يرجى تفعيله (Email/Password) في إعدادات Supabase." : "Username sign-in is disabled. Please enable Email/Password authentication in Supabase.");
-      } else if (status === 429 || code === "over_email_send_rate_limit" || message.includes("rate limit") || message.includes("over_email_send_rate_limit") || message.includes("Too many")) {
-        setErrorMsg(
-          isRTL 
-            ? "تم تجاوز حد محاولات إنشاء الحساب. يرجى الانتظار بضع دقائق ثم المحاولة مرة أخرى."
-            : "Too many signup attempts. Please wait a few minutes and try again."
-        );
-      } else if (message.includes("Authentication service is not configured")) {
-        setErrorMsg(isRTL ? "خدمة المصادقة غير مكوّنة. يرجى الاتصال بالمسؤول." : message);
-      } else {
-        setErrorMsg(isRTL ? "حدث خطأ أثناء المصادقة" : message || "An error occurred during authentication");
-      }
-    } finally {
-      setUsernameSubmitting(false);
-    }
-  };
-
   const handleGoogleLogin = async () => {
-    setErrorMsg(null);
+    resetFormState();
     setGoogleSubmitting(true);
     try {
       await loginWithGoogle();
@@ -130,6 +105,180 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
     }
   };
 
+  const handleSignUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    resetFormState();
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+      setErrorMsg(isRTL ? "يرجى إدخال بريد إلكتروني صحيح" : "Please enter a valid email address.");
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setErrorMsg(t("passwordTooShort"));
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMsg(t("passwordsDoNotMatch"));
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await signup(cleanEmail, password);
+      console.log("[AuthModal] Signup response:", res);
+
+      // If session exists immediately, close modal
+      if (res.session && res.user?.email_confirmed_at) {
+        onClose();
+      } else {
+        // Pending email confirmation
+        setUnverifiedEmail(cleanEmail);
+        switchMode("verification_pending");
+      }
+    } catch (err: any) {
+      console.warn("[AuthModal] Signup error:", err);
+      const message = err?.message || "";
+      const code = err?.code || "";
+      if (message.includes("already registered") || message.includes("User already exists") || code === "user_already_exists") {
+        setErrorMsg(isRTL ? "هذا البريد الإلكتروني مسجل بالفعل. يرجى تسجيل الدخول." : "This email address is already registered. Please sign in.");
+      } else if (err?.status === 429 || code === "over_email_send_rate_limit" || message.includes("rate limit")) {
+        setErrorMsg(isRTL ? "تم تجاوز حد الطلبات. يرجى الانتظار بضع دقائق والمحاولة مجدداً." : "Too many requests. Please wait a few minutes and try again.");
+      } else {
+        setErrorMsg(message || (isRTL ? "تعذر إنشاء الحساب" : "Failed to create account."));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSignInSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    resetFormState();
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setErrorMsg(isRTL ? "يرجى إدخال بريد إلكتروني صحيح" : "Please enter a valid email address.");
+      return;
+    }
+
+    if (!password) {
+      setErrorMsg(isRTL ? "يرجى إدخال كلمة المرور" : "Please enter your password.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await login(cleanEmail, password);
+      onClose();
+    } catch (err: any) {
+      console.warn("[AuthModal] Signin error:", err);
+      const message = err?.message || "";
+      const code = err?.code || "";
+      
+      if (code === "email_not_confirmed" || message.includes("verify your email") || message.includes("not confirmed")) {
+        setUnverifiedEmail(cleanEmail);
+        setErrorMsg(t("pleaseVerifyEmailBeforeSignIn"));
+        setShowUnverifiedResend(true);
+      } else if (message.includes("Invalid email or password") || message.includes("Invalid login credentials") || code === "invalid_credentials") {
+        setErrorMsg(t("invalidEmailOrPassword"));
+      } else {
+        setErrorMsg(message || t("invalidEmailOrPassword"));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    const targetEmail = unverifiedEmail || email.trim().toLowerCase();
+    if (!targetEmail) return;
+
+    setResendSubmitting(true);
+    setErrorMsg(null);
+    try {
+      await resendVerificationEmail(targetEmail);
+      setSuccessMsg(t("resendSuccess"));
+    } catch (err: any) {
+      setErrorMsg(err?.message || (isRTL ? "تعذر إعادة إرسال البريد" : "Failed to resend verification email."));
+    } finally {
+      setResendSubmitting(false);
+    }
+  };
+
+  const handleCheckVerifiedStatus = async () => {
+    setSubmitting(true);
+    setErrorMsg(null);
+    try {
+      if (email && password) {
+        await login(email, password);
+        onClose();
+      } else {
+        switchMode("signin");
+      }
+    } catch (err: any) {
+      const message = err?.message || "";
+      if (message.includes("verify your email") || err?.code === "email_not_confirmed") {
+        setErrorMsg(isRTL ? "لم يتم تفعيل البريد بعد. يرجى التحقق من صندوق الوارد والضغط على رابط التفعيل." : "Email not verified yet. Please check your inbox and click the verification link.");
+      } else {
+        setErrorMsg(message || (isRTL ? "يرجى تسجيل الدخول بعد التفعيل." : "Please sign in after verifying."));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    resetFormState();
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setErrorMsg(isRTL ? "يرجى إدخال بريد إلكتروني صحيح" : "Please enter a valid email address.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await resetPassword(cleanEmail);
+      setSuccessMsg(t("passwordResetSent"));
+    } catch (err: any) {
+      setErrorMsg(err?.message || (isRTL ? "تعذر إرسال رابط إعادة الضبط" : "Failed to send password reset link."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    resetFormState();
+
+    if (!password || password.length < 6) {
+      setErrorMsg(t("passwordTooShort"));
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMsg(t("passwordsDoNotMatch"));
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await updatePassword(password);
+      setSuccessMsg(isRTL ? "تم تحديث كلمة المرور بنجاح! يمكنك الآن الاستمرار." : "Password updated successfully!");
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      setErrorMsg(err?.message || (isRTL ? "تعذر تحديث كلمة المرور" : "Failed to update password."));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1C221C]/60 backdrop-blur-xs animate-fade-in font-sans">
       <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft overflow-hidden p-6 sm:p-8 space-y-6">
@@ -140,77 +289,87 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
           <X className="w-5 h-5" />
         </button>
 
-        <div className="text-center space-y-2.5 font-sans pt-1">
+        {/* Modal Header */}
+        <div className="text-center space-y-2 font-sans pt-1">
           <div className="inline-flex p-3 rounded-2xl bg-[#FCFAF5] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] border border-[#E8E5DB] dark:border-[#2A352A] shadow-xs">
-            <LogIn className="w-6 h-6" />
+            {authMode === "verification_pending" ? (
+              <Mail className="w-6 h-6 text-[#5A6B5A]" />
+            ) : (
+              <LogIn className="w-6 h-6" />
+            )}
           </div>
+
           <h3 className="text-xl font-bold text-[#1F261F] dark:text-[#E2E8E2] tracking-tight">
-            {authMode === "options" 
-              ? (isRTL ? "تسجيل الدخول عبر Google" : "Sign In with Google")
-              : (isRTL ? "تسجيل الدخول" : "Sign In")
-            }
+            {authMode === "options" && t("welcomeToIslamRoots")}
+            {authMode === "signup" && t("signUpTitle")}
+            {authMode === "signin" && t("loginTitle")}
+            {authMode === "verification_pending" && t("checkYourEmail")}
+            {authMode === "forgot_password" && t("forgotPasswordTitle")}
+            {authMode === "reset_password" && t("setNewPassword")}
           </h3>
+
           <p className="text-xs text-[#7A7D75] dark:text-stone-300 leading-relaxed max-w-xs mx-auto">
-            {authMode === "options"
-              ? (isRTL
-                ? "استخدم حساب جوجل الخاص بك للوصول إلى لوحة الأستاذ، وإدارة قائمة الطلاب، والمناهج والذكاء الاصطناعي."
-                : "Access your private Ustadh workspace, student rosters, curriculums, and Jalilah AI tools.")
-              : (isRTL
-                ? "قم بتسجيل الدخول للوصول إلى لوحة الأستاذ، وإدارة قائمة الطلاب، والمناهج والذكاء الاصطناعي."
-                : "Sign in to access your private Ustadh workspace, student rosters, curriculums, and Jalilah AI tools.")
-            }
+            {authMode === "options" && t("areYouNewToIslamRoots")}
+            {authMode === "signup" && (isRTL ? "قم بإنشاء حساب أستاذ جديد للوصول إلى لوحتك الخاصة." : "Create your teacher account to access your workspace.")}
+            {authMode === "signin" && (isRTL ? "تسجيل الدخول للوصول إلى أدوات الأستاذ والطلاب." : "Sign in to access your Ustadh workspace and student rosters.")}
+            {authMode === "verification_pending" && (
+              <span>
+                {t("verificationSentNotice")}{" "}
+                <strong className="text-[#3E4D3E] dark:text-[#8BA888]">{unverifiedEmail || email}</strong>.{" "}
+                {t("verificationSentNoticeEnd")}
+              </span>
+            )}
+            {authMode === "forgot_password" && (isRTL ? "أدخل بريدك الإلكتروني لإرسال رابط إعادة ضبط كلمة المرور." : "Enter your email address and we'll send you a password reset link.")}
+            {authMode === "reset_password" && (isRTL ? "أدخل كلمة المرور الجديدة لحسابك." : "Type your new password below.")}
           </p>
         </div>
 
+        {/* Feedback Messages */}
         {errorMsg && (
-          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs font-medium space-y-2.5">
+          <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs font-medium space-y-2">
             <p>{errorMsg}</p>
-            <div className="flex items-center justify-end gap-2">
+            {showUnverifiedResend && (
               <button
                 type="button"
-                onClick={() => setErrorMsg(null)}
-                className="py-1.5 px-3 rounded-lg bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs transition-colors cursor-pointer text-center"
+                onClick={handleResendVerification}
+                disabled={resendSubmitting}
+                className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs transition-colors cursor-pointer"
               >
-                {isRTL ? "فهمت" : "Dismiss"}
+                {resendSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                <span>{t("resendVerificationEmail")}</span>
               </button>
-            </div>
+            )}
           </div>
         )}
 
-        {/* Primary Google Login Button */}
-        {authMode === "options" ? (
+        {successMsg && (
+          <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-medium flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <p>{successMsg}</p>
+          </div>
+        )}
+
+        {/* MODE 1: OPTIONS CHOICE SCREEN */}
+        {authMode === "options" && (
           <div className="space-y-3 font-sans">
             <button
               type="button"
-              onClick={handleGoogleLogin}
-              disabled={googleSubmitting}
-              className="w-full py-3.5 px-4 rounded-xl border border-[#3E4D3E]/20 dark:border-[#5A6B5A]/40 bg-white dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] font-bold text-sm hover:bg-[#FCFAF5] dark:hover:bg-[#1C221C] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-3 active:scale-98 disabled:opacity-50"
+              onClick={() => switchMode("signup")}
+              className="w-full py-3.5 px-4 rounded-xl bg-[#3E4D3E] text-white font-bold text-sm hover:bg-[#2D332D] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 active:scale-98"
             >
-              {googleSubmitting ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin text-[#5A6B5A]" />
-                  <span>{isRTL ? "جاري الاتصال بـ Google..." : "Connecting to Google..."}</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                  </svg>
-                  <span>{isRTL ? "المتابعة باستخدام Google" : "Continue with Google"}</span>
-                </>
-              )}
+              <User className="w-4 h-4" />
+              <span>{t("imANewTeacherSignUp")}</span>
             </button>
+
             <button
               type="button"
-              onClick={() => setAuthMode("username")}
-              className="w-full py-3.5 px-4 rounded-xl border border-[#3E4D3E]/20 dark:border-[#5A6B5A]/40 bg-white dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] font-bold text-sm hover:bg-[#FCFAF5] dark:hover:bg-[#1C221C] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-3 active:scale-98"
+              onClick={() => switchMode("signin")}
+              className="w-full py-3.5 px-4 rounded-xl border border-[#3E4D3E]/30 dark:border-[#5A6B5A]/40 bg-white dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] font-bold text-sm hover:bg-[#FCFAF5] dark:hover:bg-[#1C221C] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 active:scale-98"
             >
-              <User className="w-5 h-5 text-[#5A6B5A]" />
-              <span>{isRTL ? "المتابعة باستخدام اسم المستخدم" : "Continue with Username"}</span>
+              <LogIn className="w-4 h-4 text-[#5A6B5A]" />
+              <span>{t("iAlreadyHaveAnAccountSignIn")}</span>
             </button>
+
             <div className="relative flex items-center justify-center my-2">
               <div className="border-t border-[#E8E5DB] dark:border-[#2A352A] w-full"></div>
               <span className="bg-white dark:bg-[#161D17] px-3 text-[10px] text-[#7A7D75] dark:text-stone-400 font-bold shrink-0 uppercase tracking-wider">
@@ -218,6 +377,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
               </span>
               <div className="border-t border-[#E8E5DB] dark:border-[#2A352A] w-full"></div>
             </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={googleSubmitting}
+              className="w-full py-3 px-4 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-white dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] font-bold text-xs hover:bg-[#FCFAF5] dark:hover:bg-[#1C221C] transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
+            >
+              {googleSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#5A6B5A]" />
+                  <span>{isRTL ? "جاري الاتصال بـ Google..." : "Connecting to Google..."}</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                  </svg>
+                  <span>{t("continueWithGoogle")}</span>
+                </>
+              )}
+            </button>
+
             <button
               type="button"
               onClick={handleGuestLogin}
@@ -227,28 +411,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
               <span>{t("continueAsGuest")}</span>
             </button>
           </div>
-        ) : (
-          <form onSubmit={handleUsernameAuth} className="space-y-4 font-sans">
+        )}
+
+        {/* MODE 2: SIGN UP FORM */}
+        {authMode === "signup" && (
+          <form onSubmit={handleSignUpSubmit} className="space-y-4 font-sans">
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-bold text-[#1F261F] dark:text-[#E2E8E2] mb-1.5">
-                  {isRTL ? "اسم المستخدم" : "Username"}
+                  {t("emailAddress")}
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A7D75]" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A7D75]" />
                   <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => { setUsername(e.target.value); setErrorMsg(null); }}
+                    type="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setErrorMsg(null); }}
                     className="w-full pl-9 rtl:pl-3 rtl:pr-9 pr-3 py-2.5 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#1C221C] text-[#1F261F] dark:text-[#E2E8E2] text-sm focus:outline-none focus:ring-2 focus:ring-[#8BA888]/50"
-                    placeholder={isRTL ? "أدخل اسم المستخدم" : "Enter username"}
+                    placeholder="ustadh@example.com"
                     required
                   />
                 </div>
               </div>
+
               <div>
                 <label className="block text-xs font-bold text-[#1F261F] dark:text-[#E2E8E2] mb-1.5">
-                  {isRTL ? "كلمة المرور" : "Password"}
+                  {t("password")}
                 </label>
                 <div className="relative">
                   <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A7D75]" />
@@ -257,7 +445,108 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setErrorMsg(null); }}
                     className="w-full pl-9 pr-10 rtl:pl-10 rtl:pr-9 py-2.5 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#1C221C] text-[#1F261F] dark:text-[#E2E8E2] text-sm focus:outline-none focus:ring-2 focus:ring-[#8BA888]/50"
-                    placeholder={isRTL ? "أدخل كلمة المرور" : "Enter password"}
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A7D75] hover:text-[#3E4D3E]"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#1F261F] dark:text-[#E2E8E2] mb-1.5">
+                  {t("confirmPassword")}
+                </label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A7D75]" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => { setConfirmPassword(e.target.value); setErrorMsg(null); }}
+                    className="w-full pl-9 pr-10 rtl:pl-10 rtl:pr-9 py-2.5 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#1C221C] text-[#1F261F] dark:text-[#E2E8E2] text-sm focus:outline-none focus:ring-2 focus:ring-[#8BA888]/50"
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3 px-4 rounded-xl bg-[#3E4D3E] text-white font-bold text-sm hover:bg-[#2D332D] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              <span>{t("createTeacherAccount")}</span>
+            </button>
+
+            <div className="flex items-center justify-between text-xs text-[#7A7D75]">
+              <button
+                type="button"
+                onClick={() => switchMode("options")}
+                className="hover:text-[#3E4D3E] underline decoration-dotted cursor-pointer flex items-center gap-1"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 rtl:rotate-180" />
+                <span>{t("backToChoices")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode("signin")}
+                className="hover:text-[#3E4D3E] font-bold cursor-pointer"
+              >
+                {t("alreadyHaveAccount")}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* MODE 3: SIGN IN FORM */}
+        {authMode === "signin" && (
+          <form onSubmit={handleSignInSubmit} className="space-y-4 font-sans">
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-[#1F261F] dark:text-[#E2E8E2] mb-1.5">
+                  {t("emailAddress")}
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A7D75]" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => { setEmail(e.target.value); setErrorMsg(null); }}
+                    className="w-full pl-9 rtl:pl-3 rtl:pr-9 pr-3 py-2.5 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#1C221C] text-[#1F261F] dark:text-[#E2E8E2] text-sm focus:outline-none focus:ring-2 focus:ring-[#8BA888]/50"
+                    placeholder="ustadh@example.com"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-[#1F261F] dark:text-[#E2E8E2]">
+                    {t("password")}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => switchMode("forgot_password")}
+                    className="text-[11px] text-[#5A6B5A] hover:underline cursor-pointer"
+                  >
+                    {t("forgotPasswordLink")}
+                  </button>
+                </div>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A7D75]" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setErrorMsg(null); }}
+                    className="w-full pl-9 pr-10 rtl:pl-10 rtl:pr-9 py-2.5 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#1C221C] text-[#1F261F] dark:text-[#E2E8E2] text-sm focus:outline-none focus:ring-2 focus:ring-[#8BA888]/50"
+                    placeholder="••••••••"
                     required
                   />
                   <button
@@ -270,40 +559,197 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
                 </div>
               </div>
             </div>
-            
+
             <button
               type="submit"
-              disabled={usernameSubmitting}
+              disabled={submitting}
               className="w-full py-3 px-4 rounded-xl bg-[#3E4D3E] text-white font-bold text-sm hover:bg-[#2D332D] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
             >
-              {usernameSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-              {isSignUp 
-                ? (isRTL ? "إنشاء حساب" : "Sign Up")
-                : (isRTL ? "تسجيل الدخول" : "Sign In")
-              }
+              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              <span>{t("login")}</span>
             </button>
 
-            <div className="flex items-center justify-between text-xs text-[#7A7D75]">
-              <button 
-                type="button" 
-                onClick={() => setAuthMode("options")}
-                className="hover:text-[#3E4D3E] underline decoration-dotted cursor-pointer"
+            <div className="relative flex items-center justify-center my-1">
+              <div className="border-t border-[#E8E5DB] dark:border-[#2A352A] w-full"></div>
+              <span className="bg-white dark:bg-[#161D17] px-2 text-[10px] text-[#7A7D75] dark:text-stone-400 font-bold shrink-0 uppercase">
+                {isRTL ? "أو" : "OR"}
+              </span>
+              <div className="border-t border-[#E8E5DB] dark:border-[#2A352A] w-full"></div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={googleSubmitting}
+              className="w-full py-2.5 px-4 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-white dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] font-bold text-xs hover:bg-[#FCFAF5] dark:hover:bg-[#1C221C] transition-all cursor-pointer shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {googleSubmitting ? <Loader2 className="w-4 h-4 animate-spin text-[#5A6B5A]" /> : null}
+              <span>{t("continueWithGoogle")}</span>
+            </button>
+
+            <div className="flex items-center justify-between text-xs text-[#7A7D75] pt-1">
+              <button
+                type="button"
+                onClick={() => switchMode("options")}
+                className="hover:text-[#3E4D3E] underline decoration-dotted cursor-pointer flex items-center gap-1"
               >
-                {isRTL ? "العودة للخيارات" : "Back to options"}
+                <ArrowLeft className="w-3.5 h-3.5 rtl:rotate-180" />
+                <span>{t("backToChoices")}</span>
               </button>
-              <button 
-                type="button" 
-                onClick={() => setIsSignUp(!isSignUp)}
+              <button
+                type="button"
+                onClick={() => switchMode("signup")}
                 className="hover:text-[#3E4D3E] font-bold cursor-pointer"
               >
-                {isSignUp 
-                  ? (isRTL ? "لديك حساب بالفعل؟ الدخول" : "Already have an account? Sign in")
-                  : (isRTL ? "حساب جديد؟ إنشاء" : "New? Sign up")
-                }
+                {t("needAccount")}
               </button>
             </div>
           </form>
         )}
+
+        {/* MODE 4: EMAIL VERIFICATION PENDING */}
+        {authMode === "verification_pending" && (
+          <div className="space-y-4 font-sans text-center">
+            <div className="p-4 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
+              <p className="text-xs text-[#3E4D3E] dark:text-[#8BA888] font-medium leading-relaxed">
+                {isRTL
+                  ? "يرجى فتح صندوق البريد الإلكتروني والنقر على رابط التفعيل للتحقق من ملكية البريد الإلكتروني."
+                  : "Please check your inbox and click the verification link inside to verify your email ownership."}
+              </p>
+            </div>
+
+            <div className="space-y-2.5 pt-2">
+              <button
+                type="button"
+                onClick={handleCheckVerifiedStatus}
+                disabled={submitting}
+                className="w-full py-3 px-4 rounded-xl bg-[#3E4D3E] text-white font-bold text-sm hover:bg-[#2D332D] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
+              >
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                <span>{t("iveVerifiedMyEmail")}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resendSubmitting}
+                className="w-full py-2.5 px-4 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-white dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] font-bold text-xs hover:bg-[#FCFAF5] dark:hover:bg-[#1C221C] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {resendSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                <span>{t("resendVerificationEmail")}</span>
+              </button>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => switchMode("signin")}
+                className="text-xs text-[#7A7D75] hover:text-[#3E4D3E] underline cursor-pointer"
+              >
+                {isRTL ? "العودة إلى تسجيل الدخول" : "Sign in with another account"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* MODE 5: FORGOT PASSWORD */}
+        {authMode === "forgot_password" && (
+          <form onSubmit={handleForgotPasswordSubmit} className="space-y-4 font-sans">
+            <div>
+              <label className="block text-xs font-bold text-[#1F261F] dark:text-[#E2E8E2] mb-1.5">
+                {t("emailAddress")}
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A7D75]" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setErrorMsg(null); }}
+                  className="w-full pl-9 rtl:pl-3 rtl:pr-9 pr-3 py-2.5 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#1C221C] text-[#1F261F] dark:text-[#E2E8E2] text-sm focus:outline-none focus:ring-2 focus:ring-[#8BA888]/50"
+                  placeholder="ustadh@example.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3 px-4 rounded-xl bg-[#3E4D3E] text-white font-bold text-sm hover:bg-[#2D332D] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              <span>{t("sendResetLink")}</span>
+            </button>
+
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => switchMode("signin")}
+                className="text-xs text-[#7A7D75] hover:text-[#3E4D3E] underline cursor-pointer"
+              >
+                {t("alreadyHaveAccount")}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* MODE 6: RESET PASSWORD */}
+        {authMode === "reset_password" && (
+          <form onSubmit={handleResetPasswordSubmit} className="space-y-4 font-sans">
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-[#1F261F] dark:text-[#E2E8E2] mb-1.5">
+                  {t("setNewPassword")}
+                </label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A7D75]" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => { setPassword(e.target.value); setErrorMsg(null); }}
+                    className="w-full pl-9 pr-10 rtl:pl-10 rtl:pr-9 py-2.5 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#1C221C] text-[#1F261F] dark:text-[#E2E8E2] text-sm focus:outline-none focus:ring-2 focus:ring-[#8BA888]/50"
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A7D75] hover:text-[#3E4D3E]"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#1F261F] dark:text-[#E2E8E2] mb-1.5">
+                  {t("confirmPassword")}
+                </label>
+                <div className="relative">
+                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#7A7D75]" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => { setConfirmPassword(e.target.value); setErrorMsg(null); }}
+                    className="w-full pl-9 pr-10 rtl:pl-10 rtl:pr-9 py-2.5 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#1C221C] text-[#1F261F] dark:text-[#E2E8E2] text-sm focus:outline-none focus:ring-2 focus:ring-[#8BA888]/50"
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3 px-4 rounded-xl bg-[#3E4D3E] text-white font-bold text-sm hover:bg-[#2D332D] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
+            >
+              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              <span>{t("updatePassword")}</span>
+            </button>
+          </form>
+        )}
+
         <div className="space-y-1 text-[11px] text-center text-[#7A7D75] dark:text-stone-400 font-sans">
           <p>
             {isRTL

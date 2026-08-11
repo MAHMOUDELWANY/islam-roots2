@@ -64,10 +64,11 @@ const AppContent: React.FC = () => {
   const [quizModalSubject, setQuizModalSubject] = useState<SubjectType>("Tajweed");
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authInitialMode, setAuthInitialMode] = useState<"options" | "signup" | "signin" | "verification_pending" | "forgot_password" | "reset_password">("options");
   const [oAuthError, setOAuthError] = useState<string | null>(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
 
-  // Parse Google OAuth Errors from URL
+  // Parse Google OAuth Errors or Password Reset from URL
   useEffect(() => {
     if (typeof window !== "undefined") {
       const hash = window.location.hash;
@@ -79,12 +80,17 @@ const AppContent: React.FC = () => {
       const error = hashParams.get('error') || searchParams.get('error');
       const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
       const errorCode = hashParams.get('error_code') || searchParams.get('error_code');
+      const type = hashParams.get('type') || searchParams.get('type');
       
-      if (error) {
+      if (type === 'recovery' || hash.includes('reset-password')) {
+        setAuthInitialMode('reset_password');
+        setIsAuthOpen(true);
+      } else if (error) {
         console.warn("[Auth] OAuth Error returned from provider:", { error, errorDescription, errorCode });
         
         const readableError = (errorDescription || error).replace(/\+/g, ' ');
         setOAuthError(`Google Login Error: ${readableError}`);
+        setAuthInitialMode('options');
         setIsAuthOpen(true);
         
         // Clean up the URL
@@ -188,7 +194,7 @@ const AppContent: React.FC = () => {
           onOpenPrivacy={() => setLegalView("privacy")}
           onOpenTerms={() => setLegalView("terms")}
         />
-        <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} initialError={oAuthError} />
+        <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} initialError={oAuthError} initialMode={authInitialMode} />
       </>
     );
   }
@@ -350,7 +356,7 @@ const AppContent: React.FC = () => {
         initialSubject={quizModalSubject}
       />
 
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} initialError={oAuthError} />
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} initialError={oAuthError} initialMode={authInitialMode} />
       <TeacherOnboardingModal
         isOpen={
           isAuthenticated &&
