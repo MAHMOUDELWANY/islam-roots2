@@ -247,7 +247,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     return true;
   };
 
-  const signup = async (name: string, username: string, password?: string): Promise<boolean> => {
+const signup = async (name: string, username: string, password?: string): Promise<boolean> => {
     if (!password) {
       throw new Error("Password is required to sign up.");
     }
@@ -257,17 +257,6 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     
     const normalizedUsername = username.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
     const authEmail = `${normalizedUsername}@system.local`;
-
-    // Check username uniqueness (Application Layer)
-    const { data: existingUser } = await supabase
-      .from('teachers')
-      .select('username')
-      .ilike('username', normalizedUsername)
-      .maybeSingle();
-      
-    if (existingUser) {
-      throw new Error("Username already exists.");
-    }
 
     // Explicitly clear local state and sign out before attempting to sign up to avoid session conflicts
     setTeacher(null);
@@ -286,9 +275,6 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     });
 
     if (error) {
-       if (error.message.includes('email') || error.message.includes('address')) {
-         throw new Error("Invalid username format or already exists.");
-       }
        throw error;
     }
     

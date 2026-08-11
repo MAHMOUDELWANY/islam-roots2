@@ -58,7 +58,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
         await login(normalizedUsername, password);
       }
       onClose();
-} catch (err: any) {
+    } catch (err: any) {
       console.warn("Username Auth error:", err);
       const message = err?.message || err?.error_description || "";
       const code = err?.code || "";
@@ -71,13 +71,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
         setErrorMsg(isRTL ? "كلمة المرور ضعيفة جداً" : "Password is too weak");
       } else if (message.includes("Email signups are disabled") || code === "auth/operation-not-allowed") {
         setErrorMsg(isRTL ? "تسجيل الدخول معطل. يرجى تفعيله (Email/Password) في إعدادات Supabase." : "Username sign-in is disabled. Please enable Email/Password authentication in Supabase.");
+      } else if (message.includes("rate limit") || code === "over_email_send_rate_limit") {
+        setErrorMsg(isRTL ? "تم تجاوز حد المحاولات. يرجى المحاولة لاحقاً." : "Too many signup attempts. Please try again later.");
       } else if (message.includes("Authentication service is not configured")) {
         setErrorMsg(isRTL ? "خدمة المصادقة غير مكوّنة. يرجى الاتصال بالمسؤول." : message);
       } else {
         setErrorMsg(isRTL ? "حدث خطأ أثناء المصادقة" : message || "An error occurred during authentication");
       }
     } finally {
-
       setUsernameSubmitting(false);
     }
   };
