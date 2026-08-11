@@ -14,6 +14,21 @@ export interface Teacher {
   name: string;
   email: string;
   preferredLanguage: LanguageCode;
+
+  // Onboarding Profile Fields
+  fullName?: string;
+  displayName?: string;
+  arabicName?: string;
+  country?: string;
+  teachingLanguage?: string;
+  gender?: string;
+  yearsExperience?: number | string;
+  specializations?: string[];
+  bio?: string;
+  profileCompleted?: boolean;
+  profileCompletedAt?: string;
+
+  // Legacy/compatibility fields
   age?: number | string;
   yearsOfExperience?: number | string;
   purpose?: string;
@@ -24,6 +39,8 @@ export interface Teacher {
   reminderMinutes?: number;
   reminderSoundEnabled?: boolean;
   reminderVibrationEnabled?: boolean;
+  isSuperAdmin?: boolean;
+  isGuest?: boolean;
   createdAt: string;
 }
 

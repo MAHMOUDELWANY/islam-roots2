@@ -116,13 +116,15 @@ useEffect(() => {
           teacherData = data;
         } else {
            console.log("[Auth] Teacher lookup: No profile document found or error. Creating teacher profile in Supabase.");
-const fallbackTeacher = {
+           const initialDisplayName = user.user_metadata?.full_name || user.user_metadata?.name || user.user_metadata?.username || "Ustadh";
+           const fallbackTeacher = {
              id: user.id,
              username: user.user_metadata?.username || null,
-             name: user.user_metadata?.full_name || "Ustadh",
+             name: initialDisplayName,
              email: (user.email && user.email.includes("@system.local")) ? "" : (user.email || ""),
              preferred_language: "en",
-             onboarding_completed: true,
+             onboarding_completed: false,
+             profile_completed: false,
              created_at: new Date().toISOString(),
            };
            
@@ -141,22 +143,44 @@ const fallbackTeacher = {
         }
 
         if (isMounted) {
+            const isProfileDone = Boolean(
+              (teacherData.profile_completed === true || teacherData.onboarding_completed === true) &&
+              (teacherData.full_name || teacherData.name) &&
+              (teacherData.display_name || teacherData.name) &&
+              (teacherData.country || teacherData.location) &&
+              (teacherData.teaching_language || teacherData.preferred_language)
+            );
+
             setTeacher({
               id: teacherData.id,
-              username: teacherData.username,
-              name: teacherData.name || "Ustadh",
-              email: teacherData.email || "",
-              preferredLanguage: teacherData.preferred_language || "en",
+              username: teacherData.username || user.user_metadata?.username,
+              name: teacherData.display_name || teacherData.name || user.user_metadata?.full_name || "Ustadh",
+              email: (user.email && user.email.includes("@system.local")) ? "" : (user.email || teacherData.email || ""),
+              preferredLanguage: (teacherData.teaching_language || teacherData.preferred_language || "en") as any,
+              
+              fullName: teacherData.full_name || teacherData.name || user.user_metadata?.full_name || "",
+              displayName: teacherData.display_name || teacherData.name || user.user_metadata?.full_name || user.user_metadata?.username || "",
+              arabicName: teacherData.arabic_name || "",
+              country: teacherData.country || teacherData.location || "",
+              teachingLanguage: teacherData.teaching_language || teacherData.preferred_language || "en",
+              gender: teacherData.gender || "",
+              yearsExperience: teacherData.years_experience ?? teacherData.years_of_experience ?? "",
+              specializations: Array.isArray(teacherData.specializations) ? teacherData.specializations : [],
+              bio: teacherData.bio || teacherData.purpose || "",
+              profileCompleted: isProfileDone,
+              profileCompletedAt: teacherData.profile_completed_at,
+
               age: teacherData.age,
-              yearsOfExperience: teacherData.years_of_experience,
-              purpose: teacherData.purpose,
-              location: teacherData.location,
-              onboardingCompleted: teacherData.onboarding_completed ?? true,
+              yearsOfExperience: teacherData.years_experience ?? teacherData.years_of_experience,
+              purpose: teacherData.bio || teacherData.purpose,
+              location: teacherData.country || teacherData.location,
+              onboardingCompleted: isProfileDone,
               tourCompleted: teacherData.tour_completed ?? false,
-              timezone: teacherData.timezone,
+              timezone: teacherData.timezone || (typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC"),
               reminderMinutes: teacherData.reminder_minutes,
               reminderSoundEnabled: teacherData.reminder_sound_enabled,
               reminderVibrationEnabled: teacherData.reminder_vibration_enabled,
+              isSuperAdmin: !!teacherData.is_super_admin,
               createdAt: teacherData.created_at || new Date().toISOString(),
             });
             setIsSuperAdminClaim(!!teacherData.is_super_admin);
@@ -434,25 +458,66 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
         localStorage.setItem("islamroots_guest_teacher", JSON.stringify(updated));
       } else if (firebaseUser) {
         try {
-          // Convert camelCase to snake_case
           const dbData: any = {};
-          if (updatedData.name !== undefined) dbData.name = updatedData.name;
-          if (updatedData.preferredLanguage !== undefined) dbData.preferred_language = updatedData.preferredLanguage;
-          if (updatedData.age !== undefined) dbData.age = updatedData.age;
-          if (updatedData.yearsOfExperience !== undefined) dbData.years_of_experience = updatedData.yearsOfExperience;
-          if (updatedData.purpose !== undefined) dbData.purpose = updatedData.purpose;
-          if (updatedData.location !== undefined) dbData.location = updatedData.location;
+          if (updatedData.fullName !== undefined) dbData.full_name = updatedData.fullName;
+          if (updatedData.displayName !== undefined) {
+            dbData.display_name = updatedData.displayName;
+            dbData.name = updatedData.displayName;
+          }
+          if (updatedData.name !== undefined && updatedData.displayName === undefined) dbData.name = updatedData.name;
+          if (updatedData.arabicName !== undefined) dbData.arabic_name = updatedData.arabicName;
+          if (updatedData.country !== undefined) {
+            dbData.country = updatedData.country;
+            dbData.location = updatedData.country;
+          }
+          if (updatedData.teachingLanguage !== undefined) {
+            dbData.teaching_language = updatedData.teachingLanguage;
+            dbData.preferred_language = updatedData.teachingLanguage;
+          }
+          if (updatedData.gender !== undefined) dbData.gender = updatedData.gender;
+          if (updatedData.yearsExperience !== undefined) {
+            const num = updatedData.yearsExperience ? Number(updatedData.yearsExperience) : null;
+            dbData.years_experience = num;
+            dbData.years_of_experience = num;
+          }
+          if (updatedData.specializations !== undefined) dbData.specializations = updatedData.specializations;
+          if (updatedData.bio !== undefined) {
+            dbData.bio = updatedData.bio;
+            dbData.purpose = updatedData.bio;
+          }
+          if (updatedData.profileCompleted !== undefined || updatedData.onboardingCompleted !== undefined) {
+            const val = updatedData.profileCompleted ?? updatedData.onboardingCompleted ?? true;
+            dbData.profile_completed = val;
+            dbData.onboarding_completed = val;
+            if (val) {
+              dbData.profile_completed_at = new Date().toISOString();
+            }
+          }
           if (updatedData.timezone !== undefined) dbData.timezone = updatedData.timezone;
           if (updatedData.reminderMinutes !== undefined) dbData.reminder_minutes = updatedData.reminderMinutes;
           if (updatedData.reminderSoundEnabled !== undefined) dbData.reminder_sound_enabled = updatedData.reminderSoundEnabled;
           if (updatedData.reminderVibrationEnabled !== undefined) dbData.reminder_vibration_enabled = updatedData.reminderVibrationEnabled;
-          
+
           if (Object.keys(dbData).length > 0) {
             const { error } = await supabase.from("teachers").update(dbData).eq("id", firebaseUser.uid);
-            if (error) throw error;
+            if (error) {
+              console.warn("[Auth] Primary update returned error, attempting fallback update:", error.message);
+              const fallbackDbData: any = {};
+              if (dbData.name || dbData.display_name || dbData.full_name) fallbackDbData.name = dbData.display_name || dbData.full_name || dbData.name;
+              if (dbData.location || dbData.country) fallbackDbData.location = dbData.country || dbData.location;
+              if (dbData.preferred_language || dbData.teaching_language) fallbackDbData.preferred_language = dbData.teaching_language || dbData.preferred_language;
+              if (dbData.years_of_experience || dbData.years_experience) fallbackDbData.years_of_experience = dbData.years_experience || dbData.years_of_experience;
+              if (dbData.purpose || dbData.bio) fallbackDbData.purpose = dbData.bio || dbData.purpose;
+              if (dbData.timezone) fallbackDbData.timezone = dbData.timezone;
+              if (dbData.onboarding_completed !== undefined) fallbackDbData.onboarding_completed = dbData.onboarding_completed;
+
+              const { error: fallbackErr } = await supabase.from("teachers").update(fallbackDbData).eq("id", firebaseUser.uid);
+              if (fallbackErr) throw fallbackErr;
+            }
           }
         } catch (e) {
           console.error("Failed to update teacher profile in Supabase:", e);
+          throw e;
         }
       }
     }

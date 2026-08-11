@@ -68,14 +68,26 @@ export const AdminDashboard: React.FC = () => {
         if (teachersRes) {
           setTeachers(teachersRes.map((r: any) => ({
             id: r.id,
-            name: r.name || "Ustadh",
+            username: r.username,
+            name: r.display_name || r.full_name || r.name || "Ustadh",
             email: r.email,
-            preferredLanguage: r.preferred_language || "en",
+            preferredLanguage: r.teaching_language || r.preferred_language || "en",
+            fullName: r.full_name || r.name || "",
+            displayName: r.display_name || r.name || "",
+            arabicName: r.arabic_name || "",
+            country: r.country || r.location || "",
+            teachingLanguage: r.teaching_language || r.preferred_language || "en",
+            gender: r.gender || "",
+            yearsExperience: r.years_experience ?? r.years_of_experience,
+            specializations: Array.isArray(r.specializations) ? r.specializations : [],
+            bio: r.bio || r.purpose || "",
+            profileCompleted: r.profile_completed ?? r.onboarding_completed ?? false,
+            profileCompletedAt: r.profile_completed_at,
             age: r.age,
-            yearsOfExperience: r.years_of_experience,
-            purpose: r.purpose,
-            location: r.location,
-            onboardingCompleted: r.onboarding_completed ?? true,
+            yearsOfExperience: r.years_experience ?? r.years_of_experience,
+            purpose: r.bio || r.purpose,
+            location: r.country || r.location,
+            onboardingCompleted: r.profile_completed ?? r.onboarding_completed ?? false,
             tourCompleted: r.tour_completed ?? false,
             timezone: r.timezone,
             reminderMinutes: r.reminder_minutes,
@@ -711,16 +723,72 @@ export const AdminDashboard: React.FC = () => {
               {/* TAB 1: Profile */}
               {activeInspectorTab === "profile" && (
                 <div className="space-y-6">
+                  {/* Status Banner */}
+                  <div className={`p-4 rounded-xl flex items-center justify-between border ${
+                    selectedTeacher.profileCompleted
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-300"
+                      : "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300"
+                  }`}>
+                    <div className="flex items-center gap-2 text-xs font-bold">
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      <span>
+                        {isRTL ? "حالة إكمال الملف الشخصي:" : "Profile Completion Status:"}{" "}
+                        {selectedTeacher.profileCompleted
+                          ? (isRTL ? "مكتمل" : "Completed")
+                          : (isRTL ? "غير مكتمل" : "Incomplete")}
+                      </span>
+                    </div>
+
+                    {selectedTeacher.profileCompletedAt && (
+                      <span className="text-[11px] font-mono opacity-80">
+                        {isRTL ? "تاريخ الإكمال:" : "Completed at:"}{" "}
+                        {new Date(selectedTeacher.profileCompletedAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Full Name */}
                     <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1">
                       <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
                         {isRTL ? "الاسم الكامل" : "Full Name"}
                       </span>
                       <p className="text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2]">
-                        {selectedTeacher.name || "N/A"}
+                        {selectedTeacher.fullName || selectedTeacher.name || "N/A"}
                       </p>
                     </div>
 
+                    {/* Display Name */}
+                    <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1">
+                      <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
+                        {isRTL ? "اسم العرض" : "Display Name"}
+                      </span>
+                      <p className="text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2]">
+                        {selectedTeacher.displayName || selectedTeacher.name || "N/A"}
+                      </p>
+                    </div>
+
+                    {/* Arabic Name */}
+                    <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1">
+                      <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
+                        {isRTL ? "الاسم باللغة العربية" : "Arabic Name"}
+                      </span>
+                      <p className="text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2]" dir="rtl">
+                        {selectedTeacher.arabicName || "N/A"}
+                      </p>
+                    </div>
+
+                    {/* Username */}
+                    <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1">
+                      <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
+                        {isRTL ? "اسم المستخدم" : "Username"}
+                      </span>
+                      <p className="text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2] font-mono">
+                        {selectedTeacher.username || "N/A"}
+                      </p>
+                    </div>
+
+                    {/* Email */}
                     <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1">
                       <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
                         {isRTL ? "البريد الإلكتروني" : "Email Address"}
@@ -730,50 +798,99 @@ export const AdminDashboard: React.FC = () => {
                       </p>
                     </div>
 
+                    {/* Country */}
                     <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1">
                       <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
-                        {isRTL ? "اللغة المفضلة" : "Preferred Language"}
-                      </span>
-                      <p className="text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2] uppercase">
-                        {selectedTeacher.preferredLanguage || "en"}
-                      </p>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1">
-                      <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
-                        {isRTL ? "العمر" : "Age"}
+                        {isRTL ? "الدولة" : "Country"}
                       </span>
                       <p className="text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2]">
-                        {selectedTeacher.age ? `${selectedTeacher.age} years` : "Not specified"}
+                        {selectedTeacher.country || selectedTeacher.location || "N/A"}
                       </p>
                     </div>
 
+                    {/* Primary Teaching Language */}
+                    <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1">
+                      <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
+                        {isRTL ? "لغة التدريس الأساسية" : "Teaching Language"}
+                      </span>
+                      <p className="text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2]">
+                        {selectedTeacher.teachingLanguage || selectedTeacher.preferredLanguage || "N/A"}
+                      </p>
+                    </div>
+
+                    {/* Timezone */}
+                    <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1">
+                      <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
+                        {isRTL ? "المنطقة الزمنية" : "Time Zone"}
+                      </span>
+                      <p className="text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2] font-mono">
+                        {selectedTeacher.timezone || "N/A"}
+                      </p>
+                    </div>
+
+                    {/* Gender */}
+                    <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1">
+                      <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
+                        {isRTL ? "الجنس" : "Gender"}
+                      </span>
+                      <p className="text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2]">
+                        {selectedTeacher.gender || "N/A"}
+                      </p>
+                    </div>
+
+                    {/* Years of Experience */}
                     <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1">
                       <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
                         {isRTL ? "سنوات الخبرة" : "Years of Experience"}
                       </span>
                       <p className="text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2]">
-                        {selectedTeacher.yearsOfExperience ? `${selectedTeacher.yearsOfExperience} years` : "Not specified"}
+                        {selectedTeacher.yearsExperience || selectedTeacher.yearsOfExperience
+                          ? `${selectedTeacher.yearsExperience || selectedTeacher.yearsOfExperience} yrs`
+                          : "N/A"}
                       </p>
                     </div>
 
+                    {/* Specializations */}
+                    <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1 col-span-1 sm:col-span-2">
+                      <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
+                        {isRTL ? "التخصصات" : "Specializations"}
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {selectedTeacher.specializations && selectedTeacher.specializations.length > 0 ? (
+                          selectedTeacher.specializations.map((spec) => (
+                            <span
+                              key={spec}
+                              className="px-2 py-0.5 rounded bg-[#5A6B5A]/10 text-[#3E4D3E] dark:text-[#8BA888] text-xs font-semibold"
+                            >
+                              {spec}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-[#7A7D75]">N/A</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Account Created At */}
                     <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-1">
                       <span className="text-[11px] font-semibold text-[#7A7D75] dark:text-stone-400 block">
-                        {isRTL ? "الموقع والدولة" : "Location"}
+                        {isRTL ? "تاريخ إنشاء الحساب" : "Account Creation Date"}
                       </span>
-                      <p className="text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2]">
-                        {selectedTeacher.location || "Not specified"}
+                      <p className="text-xs font-medium text-[#1F261F] dark:text-[#E2E8E2] font-mono">
+                        {selectedTeacher.createdAt
+                          ? new Date(selectedTeacher.createdAt).toLocaleDateString()
+                          : "N/A"}
                       </p>
                     </div>
                   </div>
 
-                  {/* Teaching Goal */}
+                  {/* Bio / Teaching Purpose */}
                   <div className="p-5 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-2">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-[#3E4D3E] dark:text-[#8BA888]">
-                      {isRTL ? "الهدف والغاية من التدريس" : "Teaching Purpose / Goal"}
+                      {isRTL ? "النبذة والهدف والغاية من التدريس" : "Teacher Bio / Purpose"}
                     </h4>
                     <p className="text-sm text-[#2D332D] dark:text-stone-300 leading-relaxed font-serif">
-                      {selectedTeacher.purpose || "No stated purpose provided."}
+                      {selectedTeacher.bio || selectedTeacher.purpose || "No bio or purpose provided."}
                     </p>
                   </div>
                 </div>

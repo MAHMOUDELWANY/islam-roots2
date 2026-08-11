@@ -1,5 +1,16 @@
 
 ALTER TABLE teachers ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS full_name TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS display_name TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS arabic_name TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS country TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS teaching_language TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS gender TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS years_experience INTEGER;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS specializations JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS profile_completed BOOLEAN DEFAULT false;
+ALTER TABLE teachers ADD COLUMN IF NOT EXISTS profile_completed_at TIMESTAMPTZ;
 
 -- Helper function to check super admin
 CREATE OR REPLACE FUNCTION is_super_admin()

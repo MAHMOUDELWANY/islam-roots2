@@ -352,7 +352,17 @@ const AppContent: React.FC = () => {
 
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} initialError={oAuthError} />
       <TeacherOnboardingModal
-        isOpen={isAuthenticated && !!teacher && !teacher.onboardingCompleted}
+        isOpen={
+          isAuthenticated &&
+          !!teacher &&
+          teacher.id !== "guest-ustadh-101" &&
+          !teacher.isGuest &&
+          (!teacher.profileCompleted ||
+            !teacher.fullName ||
+            !teacher.displayName ||
+            !teacher.country ||
+            !teacher.teachingLanguage)
+        }
         onCompleteOnboarding={() => setIsTourOpen(true)}
       />
       <JalilahTourModal
