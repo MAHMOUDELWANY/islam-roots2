@@ -109,6 +109,22 @@ useEffect(() => {
         
         sessionStorage.removeItem("islamroots_session_guest");
         localStorage.removeItem("islamroots_guest_teacher");
+
+        // STRICT AUTH BOUNDARY: Block unverified email/password users from creating or loading profile
+        const isGoogleUser = user.app_metadata?.provider === "google" ||
+          (Array.isArray(user.app_metadata?.providers) && user.app_metadata.providers.includes("google")) ||
+          (Array.isArray((user as any).identities) && (user as any).identities.some((id: any) => id.provider === "google"));
+
+        const isEmailUnverified = !isGoogleUser && !user.email_confirmed_at;
+
+        if (isEmailUnverified) {
+          console.log("[Auth Boundary] User email is unverified. Skipping teacher profile creation, load, and workspace access.");
+          if (isMounted) {
+            setTeacher(null);
+            setIsSuperAdminClaim(false);
+          }
+          return;
+        }
         
         const { data, error } = await supabase.from("teachers").select("*").eq("id", user.id).single();
         
@@ -297,9 +313,15 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     }
 
     if (data?.user && !data.user.email_confirmed_at) {
-      const unconfirmedErr = new Error("Please verify your email before signing in.");
-      (unconfirmedErr as any).code = "email_not_confirmed";
-      throw unconfirmedErr;
+      const isGoogleUser = data.user.app_metadata?.provider === "google" ||
+        (Array.isArray(data.user.app_metadata?.providers) && data.user.app_metadata.providers.includes("google")) ||
+        (Array.isArray((data.user as any).identities) && (data.user as any).identities.some((id: any) => id.provider === "google"));
+
+      if (!isGoogleUser) {
+        const unconfirmedErr = new Error("Please verify your email before signing in.");
+        (unconfirmedErr as any).code = "email_not_confirmed";
+        throw unconfirmedErr;
+      }
     }
 
     console.log("[Auth Diagnostic] Supabase signInWithPassword succeeded.");
