@@ -40,11 +40,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
 
   const handleUsernameAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (usernameSubmitting) {
+      console.warn("[Auth Diagnostic] handleUsernameAuth ignored duplicate submit click.");
+      return;
+    }
     setErrorMsg(null);
     setUsernameSubmitting(true);
     
     // Basic format validation
     const normalizedUsername = username.trim().toLowerCase();
+    console.log(`[Auth Diagnostic] handleUsernameAuth triggered. Mode: ${isSignUp ? 'signup' : 'login'}, NormalizedUsername: ${normalizedUsername}`);
+
     if (!normalizedUsername || normalizedUsername.length < 3 || normalizedUsername.length > 32 || !/^[a-z0-9_.-]+$/.test(normalizedUsername)) {
       setErrorMsg(isRTL ? "اسم المستخدم غير صالح" : "Invalid username. Must be 3-32 characters (a-z, 0-9, ., _, -).");
       setUsernameSubmitting(false);
@@ -154,20 +160,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
         {errorMsg && (
           <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs font-medium space-y-2.5">
             <p>{errorMsg}</p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                className="flex-1 py-1.5 px-3 rounded-lg bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs transition-colors cursor-pointer text-center"
-              >
-                {isRTL ? "إعادة المحاولة" : "Try Again"}
-              </button>
+            <div className="flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setErrorMsg(null)}
-                className="py-1.5 px-3 rounded-lg border border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-xs font-semibold cursor-pointer"
+                className="py-1.5 px-3 rounded-lg bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs transition-colors cursor-pointer text-center"
               >
-                {isRTL ? "إغلاق" : "Close"}
+                {isRTL ? "فهمت" : "Dismiss"}
               </button>
             </div>
           </div>

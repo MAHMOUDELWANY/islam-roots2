@@ -227,6 +227,8 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     const normalizedUsername = username.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
     const authEmail = `${normalizedUsername}@system.local`;
 
+    console.log(`[Auth Diagnostic] login() invoked for username: ${normalizedUsername}`);
+
     // Explicitly clear local state and sign out before attempting to sign in to avoid session conflicts
     setTeacher(null);
     setFirebaseUser(null);
@@ -239,15 +241,17 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
 
     const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password });
     if (error) {
+      console.warn(`[Auth Diagnostic] Supabase signInWithPassword error. Message: ${error.message}, Status: ${error.status}`);
       if (error.message.includes('email') || error.message.includes('credentials') || error.message.includes('Invalid login')) {
          throw new Error("Invalid username or password.");
       }
       throw error;
     }
+    console.log("[Auth Diagnostic] Supabase signInWithPassword succeeded.");
     return true;
   };
 
-const signup = async (name: string, username: string, password?: string): Promise<boolean> => {
+  const signup = async (name: string, username: string, password?: string): Promise<boolean> => {
     if (!password) {
       throw new Error("Password is required to sign up.");
     }
@@ -257,6 +261,8 @@ const signup = async (name: string, username: string, password?: string): Promis
     
     const normalizedUsername = username.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
     const authEmail = `${normalizedUsername}@system.local`;
+
+    console.log(`[Auth Diagnostic] signup() invoked for username: ${normalizedUsername}, AuthEmail: ${authEmail}, Time: ${new Date().toISOString()}`);
 
     // Explicitly clear local state and sign out before attempting to sign up to avoid session conflicts
     setTeacher(null);
@@ -275,9 +281,11 @@ const signup = async (name: string, username: string, password?: string): Promis
     });
 
     if (error) {
+       console.warn(`[Auth Diagnostic] Supabase signUp returned error. Code: ${error.code}, Status: ${error.status}, Message: ${error.message}`);
        throw error;
     }
     
+    console.log("[Auth Diagnostic] Supabase signUp succeeded.");
     return true;
   };
 
