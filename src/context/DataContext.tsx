@@ -342,9 +342,9 @@ const mapNotificationToDb = (n: Partial<AppNotification>) => {
 };
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { teacher, firebaseUser } = useAuth();
+  const { teacher, firebaseUser, isGuest } = useAuth();
   const teacherId = teacher?.id || "guest-ustadh-101";
-  const isGuestMode = !firebaseUser || teacherId === "guest-ustadh-101" || teacherId === "anon";
+  const isGuestMode = isGuest;
 
   // State initialized with localStorage or DEMO data
   const [students, setStudents] = useState<Student[]>(() =>

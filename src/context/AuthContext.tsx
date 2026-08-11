@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [googleTokens]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
+useEffect(() => {
     // Check if guest mode was explicitly chosen in session
     const isSessionGuest = sessionStorage.getItem("islamroots_session_guest");
     if (isSessionGuest) {
@@ -75,74 +75,89 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       const user = session?.user;
       console.log("[Auth] Auth state changed. Supabase User:", user ? user.id : "null");
       
       if (user) {
         const userWithUid: FirebaseUser = { ...user, uid: user.id } as FirebaseUser;
         setFirebaseUser(userWithUid);
-        console.log("[Auth] Supabase User ID received:", user.id);
+      } else {
+        setFirebaseUser(null);
+        setIsSuperAdminClaim(false);
+        if (!sessionStorage.getItem("islamroots_session_guest")) {
+          setTeacher(null);
+        }
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadProfile = async (user: FirebaseUser) => {
+      try {
+        setLoading(true);
+        console.log("[Auth] Supabase teacher lookup started for ID:", user.id);
+        
         sessionStorage.removeItem("islamroots_session_guest");
         localStorage.removeItem("islamroots_guest_teacher");
+        
+        const { data, error } = await supabase.from("teachers").select("*").eq("id", user.id).single();
+        
+        let teacherData = null;
+        if (data && !error) {
+          console.log("[Auth] Teacher lookup succeeded: Profile found in Supabase.");
+          teacherData = data;
+        } else {
+           console.log("[Auth] Teacher lookup: No profile document found or error. Creating teacher profile in Supabase.");
+           const fallbackTeacher = {
+             id: user.id,
+             name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Ustadh",
+             email: user.email || "",
+             preferred_language: "en",
+             onboarding_completed: true,
+             created_at: new Date().toISOString(),
+           };
+           
+           const { data: insertData, error: insertErr } = await supabase
+             .from("teachers")
+             .upsert(fallbackTeacher, { onConflict: 'id' })
+             .select()
+             .single();
+             
+           if (insertErr) {
+             console.warn("[Auth] Upsert for teacher row failed:", insertErr);
+             throw insertErr;
+           }
+           console.log("[Auth] Teacher profile row created/verified successfully in Supabase.");
+           teacherData = insertData || fallbackTeacher;
+        }
 
-        const fallbackTeacher: Teacher = {
-          id: user.id,
-          name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Ustadh",
-          email: user.email || "",
-          preferredLanguage: "en",
-          onboardingCompleted: true,
-          createdAt: new Date().toISOString(),
-        };
-
-        try {
-          console.log("[Auth] Supabase teacher lookup started for ID:", user.id);
-          const { data, error } = await supabase.from("teachers").select("*").eq("id", user.id).single();
-
-          if (data && !error) {
-            console.log("[Auth] Teacher lookup succeeded: Profile found in Supabase.");
+        if (isMounted) {
             setTeacher({
-              id: user.id,
-              name: data.name || user.user_metadata?.full_name || "Ustadh",
-              email: data.email || user.email || "",
-              preferredLanguage: data.preferred_language || "en",
-              age: data.age,
-              yearsOfExperience: data.years_of_experience,
-              purpose: data.purpose,
-              location: data.location,
-              onboardingCompleted: data.onboarding_completed ?? true,
-              tourCompleted: data.tour_completed ?? false,
-              timezone: data.timezone,
-              reminderMinutes: data.reminder_minutes,
-              reminderSoundEnabled: data.reminder_sound_enabled,
-              reminderVibrationEnabled: data.reminder_vibration_enabled,
-              createdAt: data.created_at || new Date().toISOString(),
+              id: teacherData.id,
+              name: teacherData.name || "Ustadh",
+              email: teacherData.email || "",
+              preferredLanguage: teacherData.preferred_language || "en",
+              age: teacherData.age,
+              yearsOfExperience: teacherData.years_of_experience,
+              purpose: teacherData.purpose,
+              location: teacherData.location,
+              onboardingCompleted: teacherData.onboarding_completed ?? true,
+              tourCompleted: teacherData.tour_completed ?? false,
+              timezone: teacherData.timezone,
+              reminderMinutes: teacherData.reminder_minutes,
+              reminderSoundEnabled: teacherData.reminder_sound_enabled,
+              reminderVibrationEnabled: teacherData.reminder_vibration_enabled,
+              createdAt: teacherData.created_at || new Date().toISOString(),
             });
-            setIsSuperAdminClaim(!!data.is_super_admin);
-          } else {
-            console.log("[Auth] Teacher lookup: No profile document found. Creating teacher profile in Supabase.");
-            setTeacher(fallbackTeacher);
-            setIsSuperAdminClaim(false);
-            
-            supabase.from("teachers").insert({
-              id: user.id,
-              name: fallbackTeacher.name,
-              email: fallbackTeacher.email,
-              preferred_language: fallbackTeacher.preferredLanguage,
-              onboarding_completed: fallbackTeacher.onboardingCompleted,
-              created_at: fallbackTeacher.createdAt
-            }).then(({ error: insertErr }) => {
-               if (insertErr) {
-                 console.warn("[Auth] Async insert for teacher row failed gracefully:", insertErr);
-               } else {
-                 console.log("[Auth] Teacher profile row created successfully in Supabase.");
-               }
-            });
-          }
-        } catch (err) {
-          console.warn("[Auth] Teacher lookup failed in Supabase, defaulting to Auth profile:", err);
-          setTeacher(fallbackTeacher);
-          setIsSuperAdminClaim(false);
+            setIsSuperAdminClaim(!!teacherData.is_super_admin);
         }
 
         // Trigger super admin claim if this is the admin email
@@ -157,7 +172,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
               });
               if (res.ok) {
-                setIsSuperAdminClaim(true);
+                if (isMounted) setIsSuperAdminClaim(true);
               } else {
                 console.warn("[Auth] Failed to claim admin status via API. Status:", res.status);
               }
@@ -166,22 +181,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error("Failed to claim admin status:", adminErr);
           }
         }
-
-      } else {
-        setFirebaseUser(null);
-        setIsSuperAdminClaim(false);
-        if (!sessionStorage.getItem("islamroots_session_guest")) {
-          setTeacher(null);
+      } catch (err) {
+        console.warn("[Auth] Teacher profile initialization failed:", err);
+        if (isMounted) {
+           setTeacher(null);
+           setIsSuperAdminClaim(false);
+        }
+      } finally {
+        if (isMounted) {
+           setLoading(false);
+           console.log("[Auth] Final authentication state updated.");
         }
       }
-      setLoading(false);
-      console.log("[Auth] Final authentication state updated. Authenticated:", !!user);
-    });
-
-    return () => {
-      subscription.unsubscribe();
     };
-  }, []);
+
+    if (firebaseUser) {
+       loadProfile(firebaseUser);
+    }
+  }, [firebaseUser]);
 
   const loginAsGuest = (name: string = "Ustadh Guest") => {
     const guestTeacher: Teacher = {
@@ -201,9 +218,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error("Password is required to sign in.");
     }
     if (!isSupabaseConfigured) {
-      loginAsGuest(email.split("@")[0] || "Ustadh");
-      return true;
+      throw new Error("Authentication service is not configured. Please contact the administrator.");
     }
+    
+    // Explicitly clear local state and sign out before attempting to sign in to avoid session conflicts
+    setTeacher(null);
+    setFirebaseUser(null);
+    setIsSuperAdminClaim(false);
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Silent signout failed during login step", e);
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     return true;
@@ -214,9 +241,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw new Error("Password is required to sign up.");
     }
     if (!isSupabaseConfigured) {
-      loginAsGuest(name || "Ustadh");
-      return true;
+      throw new Error("Authentication service is not configured. Please contact the administrator.");
     }
+
+    // Explicitly clear local state and sign out before attempting to sign up to avoid session conflicts
+    setTeacher(null);
+    setFirebaseUser(null);
+    setIsSuperAdminClaim(false);
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Silent signout failed during signup step", e);
+    }
+
     const { data, error } = await supabase.auth.signUp({ 
       email, 
       password,
@@ -224,27 +261,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     if (error) throw error;
     
-    if (data.user) {
-      const newTeacher: Teacher = {
-        id: data.user.id,
-        name: name || "Teacher",
-        email: email,
-        preferredLanguage: "en",
-        createdAt: new Date().toISOString(),
-      };
-      
-      const { error: insertErr } = await supabase.from("teachers").insert({
-        id: data.user.id,
-        name: newTeacher.name,
-        email: newTeacher.email,
-        preferred_language: newTeacher.preferredLanguage,
-        created_at: newTeacher.createdAt
-      });
-      if (insertErr) {
-        console.error("Failed to create teacher row", insertErr);
-      }
-      setTeacher(newTeacher);
-    }
     return true;
   };
 
@@ -258,11 +274,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithGoogle = async (): Promise<boolean> => {
     console.log("[Auth] Google sign-in started. Redirect URL:", getRedirectUrl());
     if (!isSupabaseConfigured) {
-      console.warn("[Auth] Supabase environment variables missing. Logging in as Guest Ustadh.");
-      loginAsGuest("Ustadh");
-      throw new Error(
-        "Supabase Authentication is not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your environment variables. You have been logged in as Guest Ustadh in the meantime."
-      );
+      console.warn("[Auth] Supabase environment variables missing.");
+      throw new Error("Authentication service is not configured. Please contact the administrator.");
     }
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({ 

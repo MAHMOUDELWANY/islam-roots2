@@ -64,7 +64,34 @@ const AppContent: React.FC = () => {
   const [quizModalSubject, setQuizModalSubject] = useState<SubjectType>("Tajweed");
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [oAuthError, setOAuthError] = useState<string | null>(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
+
+  // Parse Google OAuth Errors from URL
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      const search = window.location.search;
+      
+      const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.substring(1) : hash);
+      const searchParams = new URLSearchParams(search);
+      
+      const error = hashParams.get('error') || searchParams.get('error');
+      const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
+      const errorCode = hashParams.get('error_code') || searchParams.get('error_code');
+      
+      if (error) {
+        console.warn("[Auth] OAuth Error returned from provider:", { error, errorDescription, errorCode });
+        
+        const readableError = (errorDescription || error).replace(/\+/g, ' ');
+        setOAuthError(`Google Login Error: ${readableError}`);
+        setIsAuthOpen(true);
+        
+        // Clean up the URL
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }
+  }, []);
 
   // Legal Pages URL Routing
   const [legalView, setLegalView] = useState<"privacy" | "terms" | null>(() => {
@@ -161,7 +188,7 @@ const AppContent: React.FC = () => {
           onOpenPrivacy={() => setLegalView("privacy")}
           onOpenTerms={() => setLegalView("terms")}
         />
-        <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+        <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} initialError={oAuthError} />
       </>
     );
   }
@@ -323,7 +350,7 @@ const AppContent: React.FC = () => {
         initialSubject={quizModalSubject}
       />
 
-      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} initialError={oAuthError} />
       <TeacherOnboardingModal
         isOpen={isAuthenticated && !!teacher && !teacher.onboardingCompleted}
         onCompleteOnboarding={() => setIsTourOpen(true)}

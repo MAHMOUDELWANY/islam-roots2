@@ -41,8 +41,11 @@ async function startServer() {
       const adminEmail = "mhmwdlwany4222@gmail.com";
       if (user.email && user.email.toLowerCase() === adminEmail.toLowerCase() && user.email_verified) {
         const { supabaseAdmin } = await import("./src/lib/supabase-admin");
-        const { error } = await supabaseAdmin.from('teachers').update({ is_super_admin: true }).eq('id', user.uid);
+        const { data, error } = await supabaseAdmin.from('teachers').update({ is_super_admin: true }).eq('id', user.uid).select();
         if (error) throw error;
+        if (!data || data.length === 0) {
+          return res.status(404).json({ error: "Teacher profile not found" });
+        }
         return res.json({ success: true, message: "Super admin claim granted" });
       }
       

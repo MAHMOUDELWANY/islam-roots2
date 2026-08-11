@@ -6,14 +6,22 @@ import { X, LogIn, Loader2, Sparkles, Globe, User, Key, Eye, EyeOff } from "luci
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialError?: string | null;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialError }) => {
   const { loginWithGoogle, loginAsGuest } = useAuth();
   const { t, language } = useLanguage();
   const isRTL = language === "ar";
 
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(initialError || null);
+
+  React.useEffect(() => {
+    if (initialError) {
+      setErrorMsg(initialError);
+    }
+  }, [initialError]);
+
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [authMode, setAuthMode] = useState<"options" | "username">("options");
   const [username, setUsername] = useState("");
@@ -65,6 +73,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         setErrorMsg(isRTL ? "تسجيل الدخول معطل. يرجى تفعيله (Email/Password) في إعدادات Supabase." : "Username sign-in is disabled. Please enable Email/Password authentication in Supabase.");
       } else if (message.includes("Email not confirmed")) {
         setErrorMsg(isRTL ? "يرجى تعطيل (Confirm Email) في إعدادات Supabase." : "Email not confirmed. Please turn off 'Confirm Email' in Supabase Auth settings.");
+      } else if (message.includes("Authentication service is not configured")) {
+        setErrorMsg(isRTL ? "خدمة المصادقة غير مكوّنة. يرجى الاتصال بالمسؤول." : message);
       } else {
         setErrorMsg(isRTL ? "حدث خطأ أثناء المصادقة" : "An error occurred during authentication");
       }
@@ -92,14 +102,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       } else if (message.includes("blocked") || code === "auth/popup-blocked") {
         setErrorMsg(
           isRTL
-            ? "تم حظر النافذة المنبثقة. يرجى السماح بالنوافذ المنبثقة أو استكمال الدخول كمعلم زائر."
-            : "Sign-in popup was blocked. Please allow popups or continue as Guest Ustadh."
+            ? "تم حظر النافذة المنبثقة. يرجى السماح بالنوافذ المنبثقة لهذه الصفحة."
+            : "Sign-in popup was blocked. Please allow popups for this site."
         );
+      } else if (message.includes("Authentication service is not configured")) {
+        setErrorMsg(isRTL ? "خدمة المصادقة غير مكوّنة. يرجى الاتصال بالمسؤول." : message);
       } else {
         setErrorMsg(
           isRTL
-            ? "تعذر تسجيل الدخول عبر حساب جوجل حالياً. يمكنك الاستمرار مجاناً كمعلم زائر."
-            : "Google sign-in encountered an issue. You can continue as a Guest Ustadh."
+            ? `تعذر تسجيل الدخول عبر حساب جوجل حالياً. (${message || "Unknown Error"})`
+            : `Google sign-in encountered an issue: ${message || "Unknown error"}.`
         );
       }
     } finally {
