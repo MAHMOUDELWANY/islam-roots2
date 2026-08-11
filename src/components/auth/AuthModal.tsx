@@ -49,7 +49,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
     
     // Basic format validation
     const normalizedUsername = username.trim().toLowerCase();
-    console.log(`[Auth Diagnostic] handleUsernameAuth triggered. Mode: ${isSignUp ? 'signup' : 'login'}, NormalizedUsername: ${normalizedUsername}`);
+    console.log(`[Auth Diagnostic] handleUsernameAuth triggered. Mode: ${isSignUp ? 'signup' : 'login'}`);
 
     if (!normalizedUsername || normalizedUsername.length < 3 || normalizedUsername.length > 32 || !/^[a-z0-9_.-]+$/.test(normalizedUsername)) {
       setErrorMsg(isRTL ? "اسم المستخدم غير صالح" : "Invalid username. Must be 3-32 characters (a-z, 0-9, ., _, -).");
@@ -65,20 +65,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
       }
       onClose();
     } catch (err: any) {
-      console.warn("Username Auth error:", err);
+      console.warn("[Auth Diagnostic] Username Auth error:", err?.message || err);
       const message = err?.message || err?.error_description || "";
       const code = err?.code || "";
+      const status = err?.status;
       
       if (message.includes("Invalid username or password") || message.includes("Invalid login credentials") || code === "auth/user-not-found" || code === "auth/invalid-credential") {
         setErrorMsg(isRTL ? "اسم المستخدم أو كلمة المرور غير صحيحة" : "Invalid username or password");
-      } else if (message.includes("Username already exists") || message.includes("already exists") || message.includes("User already registered") || code === "auth/email-already-in-use") {
+      } else if (message.includes("Username already exists") || message.includes("already exists") || message.includes("User already registered") || code === "auth/email-already-in-use" || code === "user_already_exists") {
         setErrorMsg(isRTL ? "اسم المستخدم مستخدم بالفعل" : "Username already exists");
       } else if (message.includes("Password should be") || message.includes("weak") || code === "auth/weak-password") {
         setErrorMsg(isRTL ? "كلمة المرور ضعيفة جداً" : "Password is too weak");
       } else if (message.includes("Email signups are disabled") || code === "auth/operation-not-allowed") {
         setErrorMsg(isRTL ? "تسجيل الدخول معطل. يرجى تفعيله (Email/Password) في إعدادات Supabase." : "Username sign-in is disabled. Please enable Email/Password authentication in Supabase.");
-      } else if (message.includes("rate limit") || code === "over_email_send_rate_limit") {
-        setErrorMsg(isRTL ? "تم تجاوز حد المحاولات. يرجى المحاولة لاحقاً." : "Too many signup attempts. Please try again later.");
+      } else if (status === 429 || code === "over_email_send_rate_limit" || message.includes("rate limit") || message.includes("over_email_send_rate_limit") || message.includes("Too many")) {
+        setErrorMsg(
+          isRTL 
+            ? "تم تجاوز حد محاولات إنشاء الحساب. يرجى الانتظار بضع دقائق ثم المحاولة مرة أخرى."
+            : "Too many signup attempts. Please wait a few minutes and try again."
+        );
       } else if (message.includes("Authentication service is not configured")) {
         setErrorMsg(isRTL ? "خدمة المصادقة غير مكوّنة. يرجى الاتصال بالمسؤول." : message);
       } else {

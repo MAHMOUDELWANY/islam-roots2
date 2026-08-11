@@ -227,7 +227,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     const normalizedUsername = username.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
     const authEmail = `${normalizedUsername}@system.local`;
 
-    console.log(`[Auth Diagnostic] login() invoked for username: ${normalizedUsername}`);
+    console.log("[Auth Diagnostic] login() invoked");
 
     // Explicitly clear local state and sign out before attempting to sign in to avoid session conflicts
     setTeacher(null);
@@ -241,7 +241,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
 
     const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password });
     if (error) {
-      console.warn(`[Auth Diagnostic] Supabase signInWithPassword error. Message: ${error.message}, Status: ${error.status}`);
+      console.warn(`[Auth Diagnostic] Supabase signInWithPassword error status=${error.status}, code=${error.code || 'none'}`);
       if (error.message.includes('email') || error.message.includes('credentials') || error.message.includes('Invalid login')) {
          throw new Error("Invalid username or password.");
       }
@@ -262,7 +262,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     const normalizedUsername = username.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
     const authEmail = `${normalizedUsername}@system.local`;
 
-    console.log(`[Auth Diagnostic] signup() invoked for username: ${normalizedUsername}, AuthEmail: ${authEmail}, Time: ${new Date().toISOString()}`);
+    console.log("[Auth Diagnostic] signup() invoked");
 
     // Explicitly clear local state and sign out before attempting to sign up to avoid session conflicts
     setTeacher(null);
@@ -281,7 +281,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     });
 
     if (error) {
-       console.warn(`[Auth Diagnostic] Supabase signUp returned error. Code: ${error.code}, Status: ${error.status}, Message: ${error.message}`);
+       console.warn(`[Auth Diagnostic] Supabase signUp error status=${error.status}, code=${error.code || 'none'}`);
        throw error;
     }
     
