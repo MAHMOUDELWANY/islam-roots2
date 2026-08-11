@@ -58,26 +58,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
         await login(normalizedUsername, password);
       }
       onClose();
-    } catch (err: any) {
+} catch (err: any) {
       console.warn("Username Auth error:", err);
       const message = err?.message || err?.error_description || "";
       const code = err?.code || "";
-      if (message.includes("Invalid login credentials") || code === "auth/user-not-found" || code === "auth/invalid-credential") {
+      
+      if (message.includes("Invalid username or password") || message.includes("Invalid login credentials") || code === "auth/user-not-found" || code === "auth/invalid-credential") {
         setErrorMsg(isRTL ? "اسم المستخدم أو كلمة المرور غير صحيحة" : "Invalid username or password");
-      } else if (message.includes("User already registered") || code === "auth/email-already-in-use") {
+      } else if (message.includes("Username already exists") || message.includes("already exists") || message.includes("User already registered") || code === "auth/email-already-in-use") {
         setErrorMsg(isRTL ? "اسم المستخدم مستخدم بالفعل" : "Username already exists");
       } else if (message.includes("Password should be") || message.includes("weak") || code === "auth/weak-password") {
         setErrorMsg(isRTL ? "كلمة المرور ضعيفة جداً" : "Password is too weak");
       } else if (message.includes("Email signups are disabled") || code === "auth/operation-not-allowed") {
         setErrorMsg(isRTL ? "تسجيل الدخول معطل. يرجى تفعيله (Email/Password) في إعدادات Supabase." : "Username sign-in is disabled. Please enable Email/Password authentication in Supabase.");
-      } else if (message.includes("Email not confirmed")) {
-        setErrorMsg(isRTL ? "يرجى تعطيل (Confirm Email) في إعدادات Supabase." : "Email not confirmed. Please turn off 'Confirm Email' in Supabase Auth settings.");
       } else if (message.includes("Authentication service is not configured")) {
         setErrorMsg(isRTL ? "خدمة المصادقة غير مكوّنة. يرجى الاتصال بالمسؤول." : message);
       } else {
-        setErrorMsg(isRTL ? "حدث خطأ أثناء المصادقة" : "An error occurred during authentication");
+        setErrorMsg(isRTL ? "حدث خطأ أثناء المصادقة" : message || "An error occurred during authentication");
       }
     } finally {
+
       setUsernameSubmitting(false);
     }
   };

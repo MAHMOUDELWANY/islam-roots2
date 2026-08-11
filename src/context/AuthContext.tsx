@@ -116,11 +116,11 @@ useEffect(() => {
           teacherData = data;
         } else {
            console.log("[Auth] Teacher lookup: No profile document found or error. Creating teacher profile in Supabase.");
-           const fallbackTeacher = {
+const fallbackTeacher = {
              id: user.id,
-             username: user.user_metadata?.username || "",
+             username: user.user_metadata?.username || null,
              name: user.user_metadata?.full_name || "Ustadh",
-             email: user.email || "",
+             email: (user.email && user.email.includes("@system.local")) ? "" : (user.email || ""),
              preferred_language: "en",
              onboarding_completed: true,
              created_at: new Date().toISOString(),
@@ -202,22 +202,18 @@ useEffect(() => {
     }
   }, [firebaseUser]);
 
-  const loginAsGuest = (name: string = "Ustadh Guest") => {
+const loginAsGuest = (name: string = "Ustadh Guest") => {
     const guestTeacher: Teacher = {
       id: "guest-ustadh-101",
       username: "guest",
       name,
-      email: "guest@internal.islamroots.local",
+      email: "",
       preferredLanguage: "en",
       onboardingCompleted: true,
       createdAt: new Date().toISOString(),
     };
     setTeacher(guestTeacher);
     sessionStorage.setItem("islamroots_session_guest", JSON.stringify(guestTeacher));
-  };
-
-  const getInternalEmail = (username: string) => {
-    return `${username.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '')}@internal.islamroots.local`;
   };
 
   const login = async (username: string, password?: string): Promise<boolean> => {
@@ -228,8 +224,8 @@ useEffect(() => {
       throw new Error("Authentication service is not configured. Please contact the administrator.");
     }
     
-    // Normalize username to internal technical email
-    const email = getInternalEmail(username);
+    const normalizedUsername = username.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
+    const authEmail = `${normalizedUsername}@system.local`;
 
     // Explicitly clear local state and sign out before attempting to sign in to avoid session conflicts
     setTeacher(null);
@@ -241,10 +237,9 @@ useEffect(() => {
       console.warn("Silent signout failed during login step", e);
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password });
     if (error) {
-      // Clean up Supabase error message to not expose internal email
-      if (error.message.includes('email') || error.message.includes('credentials')) {
+      if (error.message.includes('email') || error.message.includes('credentials') || error.message.includes('Invalid login')) {
          throw new Error("Invalid username or password.");
       }
       throw error;
@@ -260,10 +255,10 @@ useEffect(() => {
       throw new Error("Authentication service is not configured. Please contact the administrator.");
     }
     
-    const email = getInternalEmail(username);
     const normalizedUsername = username.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
+    const authEmail = `${normalizedUsername}@system.local`;
 
-    // Check username uniqueness
+    // Check username uniqueness (Application Layer)
     const { data: existingUser } = await supabase
       .from('teachers')
       .select('username')
@@ -285,13 +280,12 @@ useEffect(() => {
     }
 
     const { data, error } = await supabase.auth.signUp({ 
-      email, 
+      email: authEmail, 
       password,
       options: { data: { full_name: name, username: normalizedUsername } }
     });
 
     if (error) {
-       // Clean up error message
        if (error.message.includes('email') || error.message.includes('address')) {
          throw new Error("Invalid username format or already exists.");
        }
@@ -302,6 +296,7 @@ useEffect(() => {
   };
 
   const getRedirectUrl = () => {
+
     let url = window.location.origin;
     // ensure no trailing slash
     url = url.endsWith('/') ? url.slice(0, -1) : url;

@@ -166,3 +166,4 @@ CREATE POLICY "Progress_records update policy" ON progress_records
   WITH CHECK (teacher_id = auth.uid() OR is_super_admin());
 CREATE POLICY "Progress_records delete policy" ON progress_records
   FOR DELETE USING (teacher_id = auth.uid() OR is_super_admin());
+ALTER TABLE teachers ALTER COLUMN email DROP NOT NULL;
