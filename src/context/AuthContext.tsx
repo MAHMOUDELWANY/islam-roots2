@@ -45,7 +45,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Ensure your OAuth Client ID matches the one in your environment variables.
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID;
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
@@ -144,6 +144,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTeacher(fallbackTeacher);
           setIsSuperAdminClaim(false);
         }
+
+        // Trigger super admin claim if this is the admin email
+        if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              const res = await fetch("/api/auth/claim-admin", {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${session.access_token}`
+                }
+              });
+              if (res.ok) {
+                setIsSuperAdminClaim(true);
+              } else {
+                console.warn("[Auth] Failed to claim admin status via API. Status:", res.status);
+              }
+            }
+          } catch (adminErr) {
+            console.error("Failed to claim admin status:", adminErr);
+          }
+        }
+
       } else {
         setFirebaseUser(null);
         setIsSuperAdminClaim(false);
@@ -225,8 +248,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  const getRedirectUrl = () => {
+    let url = window.location.origin;
+    // ensure no trailing slash
+    url = url.endsWith('/') ? url.slice(0, -1) : url;
+    return url; 
+  };
+
   const loginWithGoogle = async (): Promise<boolean> => {
-    console.log("[Auth] Google sign-in started");
+    console.log("[Auth] Google sign-in started. Redirect URL:", getRedirectUrl());
     if (!isSupabaseConfigured) {
       console.warn("[Auth] Supabase environment variables missing. Logging in as Guest Ustadh.");
       loginAsGuest("Ustadh");
@@ -235,19 +265,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       );
     }
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ 
+      const { data, error } = await supabase.auth.signInWithOAuth({ 
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}`,
+          redirectTo: getRedirectUrl(),
           queryParams: {
             prompt: 'select_account'
           }
         }
       });
-      if (error) throw error;
+      console.log("[Auth] Google sign-in initiated successfully. Data:", data ? "OAuth URL generated" : "No data");
+      if (error) {
+        console.warn("[Auth] Google sign-in OAuth error:", error.message, error.status);
+        throw error;
+      }
       return true;
     } catch (err: any) {
-      console.warn("[Auth] Google sign-in failed:", err);
+      console.warn("[Auth] Google sign-in failed:", err.message || err);
       throw err;
     }
   };
@@ -260,7 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       if (!GOOGLE_CLIENT_ID) {
-        reject(new Error("Missing VITE_GOOGLE_OAUTH_CLIENT_ID environment variable. Google Workspace integrations require an OAuth Client ID."));
+        reject(new Error("Missing VITE_GOOGLE_CLIENT_ID environment variable. Google Workspace integrations require an OAuth Client ID."));
         return;
       }
       const client = w.google.accounts.oauth2.initTokenClient({

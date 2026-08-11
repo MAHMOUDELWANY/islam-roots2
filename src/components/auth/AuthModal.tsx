@@ -62,7 +62,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       } else if (message.includes("Password should be") || message.includes("weak") || code === "auth/weak-password") {
         setErrorMsg(isRTL ? "كلمة المرور ضعيفة جداً" : "Password is too weak");
       } else if (message.includes("Email signups are disabled") || code === "auth/operation-not-allowed") {
-        setErrorMsg(isRTL ? "تسجيل الدخول باسم المستخدم معطل. يرجى تفعيله (Email/Password) في إعدادات Supabase." : "Username sign-in is disabled. Please enable Email/Password authentication in Supabase.");
+        setErrorMsg(isRTL ? "تسجيل الدخول معطل. يرجى تفعيله (Email/Password) في إعدادات Supabase." : "Username sign-in is disabled. Please enable Email/Password authentication in Supabase.");
+      } else if (message.includes("Email not confirmed")) {
+        setErrorMsg(isRTL ? "يرجى تعطيل (Confirm Email) في إعدادات Supabase." : "Email not confirmed. Please turn off 'Confirm Email' in Supabase Auth settings.");
       } else {
         setErrorMsg(isRTL ? "حدث خطأ أثناء المصادقة" : "An error occurred during authentication");
       }

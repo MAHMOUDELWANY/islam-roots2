@@ -215,11 +215,11 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Firebase Database & Authentication Status */}
+      {/* Supabase Database & Authentication Status */}
       <div className="p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 text-xs">
         <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
           <Database className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          <span>Firebase Database & Authentication</span>
+          <span>Supabase Database & Authentication</span>
         </h3>
         <p className="text-[#7A7D75] dark:text-stone-400">
           Supabase Postgres and Supabase Auth are integrated into IslamRoots to power live student progress tracking, cloud curriculum persistence, and secure teacher authentication.

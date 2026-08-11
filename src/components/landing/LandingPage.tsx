@@ -551,8 +551,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
               </h3>
               <p className="text-xs text-[#5A615A] dark:text-stone-300 leading-relaxed">
                 {isRTL
-                  ? "ربط آمن مع قاعدة بيانات Firebase Firestore مع لوحة مراقبة شاملة للمشرف العام لمتابعة النشاط التعليمي."
-                  : "Robust Firebase Firestore cloud persistence guaranteeing that your student records and lesson notes are safely stored."}
+                  ? "ربط آمن مع قاعدة بيانات Supabase Postgres مع لوحة مراقبة شاملة للمشرف العام لمتابعة النشاط التعليمي."
+                  : "Robust Supabase Postgres cloud persistence guaranteeing that your student records and lesson notes are safely stored."}
               </p>
             </div>
           </div>

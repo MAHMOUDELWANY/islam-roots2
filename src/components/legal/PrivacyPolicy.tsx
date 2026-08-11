@@ -137,7 +137,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               Data Storage & Security
             </h2>
             <p>
-              Your data is stored securely using cloud database infrastructure (Google Firebase Cloud Firestore / Cloud SQL) with end-to-end transport encryption (HTTPS/TLS) and strict access controls. Guest mode data is stored locally in your web browser (localStorage) and can be cleared by you at any time.
+              Your data is stored securely using cloud database infrastructure (Supabase Postgres) with end-to-end transport encryption (HTTPS/TLS) and strict access controls. Guest mode data is stored locally in your web browser (localStorage) and can be cleared by you at any time.
             </p>
           </section>
 
