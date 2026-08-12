@@ -611,6 +611,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
             }
           }
           if (updatedData.timezone !== undefined) dbData.timezone = updatedData.timezone;
+          if (updatedData.tourCompleted !== undefined) dbData.tour_completed = updatedData.tourCompleted;
           if (updatedData.reminderMinutes !== undefined) dbData.reminder_minutes = updatedData.reminderMinutes;
           if (updatedData.reminderSoundEnabled !== undefined) dbData.reminder_sound_enabled = updatedData.reminderSoundEnabled;
           if (updatedData.reminderVibrationEnabled !== undefined) dbData.reminder_vibration_enabled = updatedData.reminderVibrationEnabled;
@@ -626,6 +627,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
               if (dbData.years_of_experience || dbData.years_experience) fallbackDbData.years_of_experience = dbData.years_experience || dbData.years_of_experience;
               if (dbData.purpose || dbData.bio) fallbackDbData.purpose = dbData.bio || dbData.purpose;
               if (dbData.timezone) fallbackDbData.timezone = dbData.timezone;
+              if (dbData.tour_completed !== undefined) fallbackDbData.tour_completed = dbData.tour_completed;
               if (dbData.onboarding_completed !== undefined) fallbackDbData.onboarding_completed = dbData.onboarding_completed;
 
               const { error: fallbackErr } = await supabase.from("teachers").update(fallbackDbData).eq("id", firebaseUser.uid);

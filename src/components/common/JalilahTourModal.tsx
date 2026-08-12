@@ -32,9 +32,8 @@ export const JalilahTourModal: React.FC<JalilahTourModalProps> = ({
     }
 
     const handleCloseAndComplete = () => {
-      updateProfile({ tourCompleted: true });
-      if (teacher?.id) {
-        localStorage.setItem(`islamroots_tour_completed_${teacher.id}`, "true");
+      if (!teacher?.tourCompleted) {
+        updateProfile({ tourCompleted: true });
       }
       onClose();
     };
@@ -50,6 +49,7 @@ export const JalilahTourModal: React.FC<JalilahTourModalProps> = ({
       animate: true,
       smoothScroll: true,
       allowClose: true,
+      waitForElement: 2000,
       overlayColor: theme === "dark" ? "rgba(0, 0, 0, 0.8)" : "rgba(22, 29, 23, 0.6)", 
       nextBtnText: isAr ? "التالي" : "Next",
       prevBtnText: isAr ? "السابق" : "Previous",

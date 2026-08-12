@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { DataProvider } from "./context/DataContext";
@@ -127,23 +127,20 @@ const AppContent: React.FC = () => {
   // Auto-launch tour on user's first time after onboarding completed
   useEffect(() => {
     if (isAuthenticated && teacher && teacher.onboardingCompleted && !teacher.tourCompleted) {
-      const localCompleted = localStorage.getItem(`islamroots_tour_completed_${teacher.id}`);
-      if (!localCompleted) {
-        setIsTourOpen(true);
-      }
+      setIsTourOpen(true);
     }
-  }, [isAuthenticated, teacher?.id, teacher?.onboardingCompleted, teacher?.tourCompleted]);
+  }, [isAuthenticated, teacher]);
 
   // Navigation handlers
-  const handleSelectSection = (section: NavSection) => {
+  const handleSelectSection = useCallback((section: NavSection) => {
     setCurrentSection(section);
     setSelectedStudentProfileId(null);
-  };
+  }, []);
 
-  const handleSelectStudentProfile = (studentId: string) => {
+  const handleSelectStudentProfile = useCallback((studentId: string) => {
     setSelectedStudentProfileId(studentId);
     setCurrentSection("students");
-  };
+  }, []);
 
   if (legalView === "privacy") {
     return <PrivacyPolicy onBack={() => setLegalView(null)} />;
