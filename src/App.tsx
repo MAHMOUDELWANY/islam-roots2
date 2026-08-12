@@ -64,6 +64,12 @@ const AppContent: React.FC = () => {
   const [oAuthError, setOAuthError] = useState<string | null>(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
 
+  useEffect(() => {
+    if (isAuthenticated) {
+      setIsAuthOpen(false);
+    }
+  }, [isAuthenticated]);
+
   // Parse Google OAuth Errors or Password Reset from URL
   useEffect(() => {
     if (typeof window !== "undefined") {

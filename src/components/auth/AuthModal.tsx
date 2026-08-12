@@ -30,6 +30,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
   const [resendSubmitting, setResendSubmitting] = useState(false);
   const [checkingConfirmation, setCheckingConfirmation] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(60);
+  const [resendState, setResendState] = useState<"IDLE" | "SENDING" | "SENT" | "RATE_LIMITED" | "ERROR">("IDLE");
   
   const [errorMsg, setErrorMsg] = useState<string | null>(initialError || null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -120,6 +121,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
 
   const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     resetFormState();
 
     const cleanEmail = email.trim().toLowerCase();
@@ -141,26 +143,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
     setSubmitting(true);
     try {
       const res = await signup(cleanEmail, password);
-      console.log("[AuthModal] Signup completed, session created:", Boolean(res?.session));
 
-      // If session exists immediately, close modal
+      // If session exists immediately and email is confirmed, close modal
       if (res.session && res.user?.email_confirmed_at) {
         onClose();
       } else {
         // Pending email confirmation
         setUnverifiedEmail(cleanEmail);
+        setResendState("SENT");
         switchMode("verification_pending");
       }
     } catch (err: any) {
-      console.warn("[AuthModal] Signup error code:", err?.code || err?.status);
       const message = err?.message || "";
       const code = err?.code || "";
-      if (message.includes("already registered") || message.includes("User already exists") || code === "user_already_exists") {
-        setErrorMsg(isRTL ? "هذا البريد الإلكتروني مسجل بالفعل. يرجى تسجيل الدخول." : "This email address is already registered. Please sign in.");
+      if (
+        message.includes("already registered") ||
+        message.includes("User already exists") ||
+        code === "user_already_exists"
+      ) {
+        // Existing account unconfirmed: switch cleanly to verification pending mode without duplicate profile
+        setUnverifiedEmail(cleanEmail);
+        setResendState("IDLE");
+        switchMode("verification_pending");
+        setErrorMsg(
+          isRTL
+            ? "هذا البريد الإلكتروني مسجل بالفعل ولكنه غير مفعل. يمكنك طلب رابط تأكيد جديد من أسفل الشاشة."
+            : "This email address is already registered but unconfirmed. You can request a new confirmation link below."
+        );
       } else if (err?.status === 429 || code === "over_email_send_rate_limit" || message.includes("rate limit")) {
         setErrorMsg(isRTL ? "تم تجاوز حد الطلبات. يرجى الانتظار بضع دقائق والمحاولة مجدداً." : "Too many requests. Please wait a few minutes and try again.");
       } else {
-        setErrorMsg(message || (isRTL ? "تعذر إنشاء الحساب" : "Failed to create account."));
+        setErrorMsg(isRTL ? "تعذر إنشاء الحساب. يرجى المحاولة مرة أخرى." : "Failed to create account. Please try again.");
       }
     } finally {
       setSubmitting(false);
@@ -169,6 +182,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
 
   const handleSignInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     resetFormState();
 
     const cleanEmail = email.trim().toLowerCase();
@@ -187,17 +201,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
       await login(cleanEmail, password);
       onClose();
     } catch (err: any) {
-      console.warn("[AuthModal] Signin error code:", err?.code || err?.status);
       const message = err?.message || "";
       const code = err?.code || "";
       
       if (code === "email_not_confirmed" || message.includes("verify your email") || message.includes("not confirmed")) {
         setUnverifiedEmail(cleanEmail);
+        setResendState("IDLE");
         switchMode("verification_pending");
+        setErrorMsg(
+          isRTL
+            ? "بريدك الإلكتروني غير مفعل بعد. يرجى فتح بريد التفعيل أو إعادة إرسال رابط التأكيد."
+            : "Your email is not confirmed yet. Please check your inbox or resend the confirmation link."
+        );
       } else if (message.includes("Invalid email or password") || message.includes("Invalid login credentials") || code === "invalid_credentials") {
         setErrorMsg(t("invalidEmailOrPassword"));
       } else {
-        setErrorMsg(message || t("invalidEmailOrPassword"));
+        setErrorMsg(t("invalidEmailOrPassword"));
       }
     } finally {
       setSubmitting(false);
@@ -205,20 +224,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
   };
 
   const getEmailProviderLink = (emailAddress: string) => {
-    const lower = emailAddress.trim().toLowerCase();
-    if (lower.endsWith("@gmail.com") || lower.endsWith("@googlemail.com")) {
-      return { label: isRTL ? "فتح Gmail" : "Open Gmail", url: "https://mail.google.com" };
+    const clean = emailAddress.trim().toLowerCase();
+    const domain = clean.split("@")[1] || "";
+
+    if (domain === "gmail.com" || domain === "googlemail.com") {
+      return {
+        type: "gmail" as const,
+        label: isRTL ? "فتح Gmail" : "Open Gmail",
+        url: "https://mail.google.com/mail/u/0/#inbox",
+      };
     }
-    if (lower.endsWith("@outlook.com") || lower.endsWith("@hotmail.com") || lower.endsWith("@live.com")) {
-      return { label: isRTL ? "فتح Outlook" : "Open Outlook", url: "https://outlook.live.com" };
+    if (domain === "outlook.com" || domain === "hotmail.com" || domain === "live.com" || domain === "msn.com") {
+      return {
+        type: "outlook" as const,
+        label: isRTL ? "فتح Outlook" : "Open Outlook",
+        url: "https://outlook.live.com/mail/0/inbox",
+      };
     }
-    if (lower.endsWith("@yahoo.com")) {
-      return { label: isRTL ? "فتح Yahoo Mail" : "Open Yahoo Mail", url: "https://mail.yahoo.com" };
+    if (domain === "yahoo.com" || domain === "ymail.com" || domain === "myyahoo.com") {
+      return {
+        type: "yahoo" as const,
+        label: isRTL ? "فتح Yahoo Mail" : "Open Yahoo Mail",
+        url: "https://mail.yahoo.com",
+      };
     }
-    return { label: isRTL ? "فتح تطبيق البريد" : "Open Email App", url: "mailto:" };
+    return {
+      type: "generic" as const,
+      label: isRTL ? "فتح تطبيق البريد" : "Open your email",
+      url: "mailto:",
+    };
   };
 
   const handleCheckConfirmation = async () => {
+    if (checkingConfirmation) return;
     resetFormState();
     setCheckingConfirmation(true);
     try {
@@ -235,8 +273,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
       } else {
         setErrorMsg(
           isRTL
-            ? `لم يتم تأكيد البريد الإلكتروني بعد. يرجى فتح الرسالة المرسلة إلى ${unverifiedEmail || email} والضغط على "تأكيد البريد الإلكتروني"، ثم الضغط هنا مرة أخرى.`
-            : `Email is not confirmed yet. Please open the email sent to ${unverifiedEmail || email} and click "Confirm your email address", then click here again.`
+            ? "لم يتم تأكيد البريد الإلكتروني بعد. يرجى فتح الرسالة المطلوبة والضغط على رابط التأكيد، ثم الضغط هنا مجدداً."
+            : "Your email hasn't been confirmed yet. Please open the confirmation email, click the confirmation link, then try again."
         );
       }
     } catch (err: any) {
@@ -252,31 +290,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
 
   const handleResendVerification = async () => {
     if (resendCooldown > 0 || resendSubmitting) return;
-    const targetEmail = unverifiedEmail || email.trim().toLowerCase();
+    const targetEmail = (unverifiedEmail || email).trim().toLowerCase();
     if (!targetEmail) return;
 
     setResendSubmitting(true);
+    setResendState("SENDING");
     resetFormState();
     try {
       await resendVerificationEmail(targetEmail);
       setResendCooldown(60);
+      setResendState("SENT");
       setSuccessMsg(
         isRTL
-          ? "تم إرسال رابط تأكيد جديد إلى بريدك الإلكتروني. يرجى فحص صندوق الوارد."
-          : "A new confirmation link has been sent to your email address."
+          ? "تم طلب بريد التأكيد. إذا لم تجده خلال بضع دقائق، تحقق من مجلد الرسائل غير المرغوب فيها (Spam) أو حاول مجدداً عند انتهاء فترة الانتظار."
+          : "Confirmation email requested. If you don't see it within a few minutes, check Spam/Junk or try again when the resend button becomes available."
       );
     } catch (err: any) {
       const message = err?.message || "";
       const code = err?.code || "";
       if (err?.status === 429 || code === "over_email_send_rate_limit" || message.includes("rate limit")) {
+        setResendState("RATE_LIMITED");
+        setResendCooldown(60);
         setErrorMsg(
           isRTL
-            ? "تم تجاوز حد إرسال الرسائل. يرجى الانتظار بضع دقائق والمحاولة مجدداً."
+            ? "تم تجاوز حد الطلبات من خدمة البريد. يرجى الانتظار بضع دقائق والمحاولة مجدداً."
             : "Too many email requests. Please wait a few minutes before trying again."
         );
       } else {
+        setResendState("ERROR");
         setErrorMsg(
-          err?.message || (isRTL ? "تعذر إعادة إرسال البريد" : "Failed to resend verification email.")
+          isRTL ? "تعذر إعادة إرسال بريد التأكيد حالياً." : "Failed to resend verification email."
         );
       }
     } finally {
@@ -666,31 +709,40 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
           <div className="space-y-4 font-sans">
             <div className="p-4 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3 text-center">
               <div className="inline-flex p-3 rounded-full bg-[#EBF2EB] dark:bg-[#2A382A] text-[#3E4D3E] dark:text-[#8BA888]">
-                <Mail className="w-6 h-6 animate-pulse text-[#3E4D3E] dark:text-[#8BA888]" />
+                <Mail className="w-6 h-6 text-[#3E4D3E] dark:text-[#8BA888]" />
               </div>
 
-              <div className="space-y-1">
+              <div className="space-y-1.5">
+                <h4 className="text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2]">
+                  {t("checkYourEmail")}
+                </h4>
                 <p className="text-xs text-[#3E4D3E] dark:text-[#8BA888] font-medium leading-relaxed">
                   {t("verificationSentNotice")}{" "}
                   <strong className="text-[#1F261F] dark:text-[#E2E8E2] block sm:inline font-bold break-all">
                     {unverifiedEmail || email}
                   </strong>
                 </p>
-                <p className="text-[11px] text-[#7A7D75] dark:text-stone-300 leading-relaxed pt-1">
+                <p className="text-[11px] text-[#7A7D75] dark:text-stone-300 leading-relaxed pt-0.5">
                   {t("verificationSentNoticeEnd")}
                 </p>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-[#F5F2E9] dark:bg-[#1A221A] text-[11px] text-[#5A6B5A] dark:text-[#A2B8A2] border border-[#E8E5DB]/60 dark:border-[#2A352A] leading-relaxed">
+                {isRTL
+                  ? "لم تصلك الرسالة؟ تحقق من مجلد الرسائل غير المرغوب فيها (Spam) أو انتظر بضع دقائق قبل طلب رسالة جديدة."
+                  : "Didn't receive it? Check Spam/Junk or wait a few minutes before requesting another email."}
               </div>
             </div>
 
             <div className="space-y-2.5">
-              {/* Open Email Convenience Action */}
+              {/* Safe Open Email Convenience Action */}
               {(() => {
                 const provider = getEmailProviderLink(unverifiedEmail || email);
                 return (
                   <a
                     href={provider.url}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="w-full py-3 px-4 rounded-xl border border-[#3E4D3E]/30 bg-white dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] font-bold text-xs hover:bg-[#FCFAF5] dark:hover:bg-[#1C221C] transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
                   >
                     <ExternalLink className="w-4 h-4 text-[#5A6B5A]" />

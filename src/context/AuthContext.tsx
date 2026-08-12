@@ -283,7 +283,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     });
 
     if (error) {
-      console.warn(`[Auth Diagnostic] Supabase signInWithPassword error status=${error.status}, code=${error.code || 'none'}`);
+      console.warn("[Auth] Supabase signInWithPassword failed. Status:", error.status, "Code:", error.code || 'none');
       if (
         error.message?.toLowerCase().includes("email not confirmed") ||
         error.code === "email_not_confirmed"
@@ -315,7 +315,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       }
     }
 
-    console.log("[Auth Diagnostic] Supabase signInWithPassword succeeded.");
+    console.log("[Auth] Supabase signInWithPassword succeeded.");
     return true;
   };
 
@@ -341,6 +341,8 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       console.warn("Silent signout failed during signup step");
     }
 
+    console.log("[AUTH_SIGNUP_REQUEST]");
+
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
@@ -353,29 +355,37 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     });
 
     if (error) {
-      console.warn(`[Auth Diagnostic] Supabase signUp error status=${error.status}, code=${error.code || 'none'}`);
+      console.warn("[AUTH_SIGNUP_ERROR] Code:", error?.code || error?.status);
       throw error;
     }
 
-    console.log("[Auth Diagnostic] Supabase signUp succeeded.");
+    console.log("[AUTH_SIGNUP_SUCCESS]");
     return { user: data.user, session: data.session };
   };
 
   const resendVerificationEmail = async (email: string): Promise<void> => {
     if (!email) throw new Error("Email is required.");
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log("[AUTH_RESEND_REQUEST]");
     const { error } = await supabase.auth.resend({
       type: "signup",
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
       options: {
         emailRedirectTo: PRODUCTION_REDIRECT_URL,
       },
     });
     if (error) {
       if (error.status === 429 || error.message?.includes("rate limit") || error.code === "over_email_send_rate_limit") {
-        throw new Error("Too many email requests. Please wait a few minutes before trying again.");
+        console.warn("[AUTH_RESEND_RATE_LIMITED]");
+        const rateLimitErr = new Error("Too many email requests. Please wait a few minutes before trying again.");
+        (rateLimitErr as any).code = "over_email_send_rate_limit";
+        (rateLimitErr as any).status = 429;
+        throw rateLimitErr;
       }
+      console.warn("[AUTH_RESEND_ERROR] Code:", error?.code || error?.status);
       throw error;
     }
+    console.log("[AUTH_RESEND_SUCCESS]");
   };
 
   const checkEmailConfirmationStatus = async (): Promise<boolean> => {
@@ -385,21 +395,21 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
       if (error || !user) {
-        console.warn("[Auth Diagnostic] checkEmailConfirmationStatus getUser returned no user or error code=", error?.code || "none");
+        console.warn("[Auth] checkEmailConfirmationStatus getUser failed. Code:", error?.code || error?.status);
         return false;
       }
       const isConfirmed = Boolean(user.email_confirmed_at);
       if (isConfirmed) {
-        console.log("[Auth Diagnostic] User email confirmation verified with Supabase server.");
+        console.log("[AUTH_EMAIL_CONFIRMED]");
         const fbUser = { ...user, uid: user.id } as FirebaseUser;
         setFirebaseUser(fbUser);
         await loadProfile(fbUser);
         return true;
       }
-      console.log("[Auth Diagnostic] User email is unconfirmed on Supabase server.");
+      console.log("[Auth] User email is unconfirmed on Supabase server.");
       return false;
     } catch (err) {
-      console.warn("[Auth Diagnostic] checkEmailConfirmationStatus error occurred.");
+      console.warn("[Auth] checkEmailConfirmationStatus exception occurred.");
       return false;
     }
   };
