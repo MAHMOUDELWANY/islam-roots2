@@ -14,7 +14,7 @@ async function startServer() {
   app.use(express.json({ limit: "5mb" }));
 
   // Initialize Gemini AI Client
-  const getAi = () => {
+  const generateWithTimeout = async (ai: any, options: any) => { const timeoutMs = 8500; const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("VERCEL_TIMEOUT")), timeoutMs) ); return Promise.race([ ai.models.generateContent(options), timeoutPromise ]); }; const getAi = () => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.warn("GEMINI_API_KEY environment variable is not defined.");
@@ -130,7 +130,7 @@ ${customInstructions ? `4. Custom Instructions: ${customInstructions}` : ""}
 4. Structure the response in JSON. Keep content concise to ensure fast generation.`;
 
       console.log("[JAL_GENERATION_AI_REQUEST] Sending request to AI Provider");
-      const response = await ai.models.generateContent({
+      const response = await generateWithTimeout(ai, {
         model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {
@@ -233,7 +233,7 @@ Generate a structured, practical slide deck in ${isArabic ? "Arabic" : "English"
 Context: Subject: ${subject}, Topic: ${topic}, Student: ${studentName} (Age: ${studentAge}, Level: ${studentLevel}), Duration: ${duration} minutes, Style: ${teachingStyle || "Standard"}, Goal: ${learningGoal || "General"}, Notes: ${customInstructions || "None"}.\n
 The number of slides should be appropriate for a ${duration} minute lesson.\n
 Provide the title, bullet points, and speaker notes for each slide.`;
-      const response = await ai.models.generateContent({
+      const response = await generateWithTimeout(ai, {
         model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {
@@ -284,7 +284,7 @@ Difficulty: ${difficulty}
 Include a mix of multiple choice, true/false, and short answer questions.
 Provide the question, list of options (if applicable), correct answer, and a short explanation.`;
 
-      const response = await ai.models.generateContent({
+      const response = await generateWithTimeout(ai, {
         model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {
@@ -337,7 +337,7 @@ Language: ${isArabic ? "Arabic" : "English"}
 
 Keep it practical, encouraging, and clear.`;
 
-      const response = await ai.models.generateContent({
+      const response = await generateWithTimeout(ai, {
         model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {
@@ -394,7 +394,7 @@ Provide:
 2. Main strength
 3. Key recommendation/action item for next lesson`;
 
-      const response = await ai.models.generateContent({
+      const response = await generateWithTimeout(ai, {
         model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {

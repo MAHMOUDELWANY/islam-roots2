@@ -7,6 +7,3 @@ module.exports = async (req, res) => {
   }
   return appInstance(req, res);
 };
-module.exports.config = {
-  maxDuration: 60,
-};
