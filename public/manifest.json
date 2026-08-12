@@ -1,29 +1,57 @@
 {
-  "name": "Islam Roots Workspace",
-  "short_name": "IslamRoots",
-  "description": "Workspace for Quran, Tajweed, Hifz, and Islamic Studies educators",
+  "id": "https://islam-roots-workspace.vercel.app/",
+  "name": "ISLAM ROOTS",
+  "short_name": "ISLAM ROOTS",
+  "description": "Modern teaching workspace for Quran, Tajweed, Islamic Studies, and Arabic teachers.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "any",
-  "background_color": "#FAF7F2",
-  "theme_color": "#1E3A2B",
+  "background_color": "#EFF3EF",
+  "theme_color": "#16211A",
+  "categories": [
+    "education",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }

@@ -1,70 +1,104 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
-  <!-- Solid Black Background -->
-  <rect width="500" height="500" fill="#000000" />
+  <defs>
+    <!-- Dark Forest Green Badge Gradient -->
+    <linearGradient id="badgeBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A261D" />
+      <stop offset="50%" stop-color="#141E17" />
+      <stop offset="100%" stop-color="#0E1610" />
+    </linearGradient>
 
-  <!-- Crescent Moon at Top Center -->
-  <g transform="translate(250, 70)">
-    <path d="M -5, -25 A 22,22 0 1,0 22, 5 A 17,17 0 1,1 -5, -25 Z" fill="#FFFFFF" />
+    <!-- Subtle Emerald Gold Highlight Border -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3D5943" />
+      <stop offset="50%" stop-color="#8D5B28" />
+      <stop offset="100%" stop-color="#243829" />
+    </linearGradient>
+
+    <!-- Crescent Soft Glow -->
+    <radialGradient id="crescentGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95" />
+      <stop offset="35%" stop-color="#FAF4E8" stop-opacity="0.6" />
+      <stop offset="70%" stop-color="#E8DCB8" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#E8DCB8" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Emerald Calligraphy Gradient -->
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#229954" />
+      <stop offset="50%" stop-color="#1B8345" />
+      <stop offset="100%" stop-color="#126332" />
+    </linearGradient>
+
+    <!-- Wood Roots Gradient -->
+    <linearGradient id="woodGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#C2874C" />
+      <stop offset="50%" stop-color="#A26B36" />
+      <stop offset="100%" stop-color="#7F4E20" />
+    </linearGradient>
+  </defs>
+
+  <!-- Dark Botanical Container Card -->
+  <rect width="500" height="500" rx="80" fill="url(#badgeBg)" />
+  <rect x="6" y="6" width="488" height="488" rx="74" fill="none" stroke="url(#borderGrad)" stroke-width="3" opacity="0.8" />
+
+  <!-- CRESCENT MOON & GLOW (TOP CENTER) -->
+  <g id="crescent-group">
+    <circle cx="250" cy="65" r="38" fill="url(#crescentGlow)" />
+    <path d="M 238,46 A 22,22 0 1,0 264,72 A 17,17 0 1,1 238,46 Z" fill="#FAF5EB" opacity="0.95" />
   </g>
 
-  <!-- "Islam" Calligraphy (Emerald Green Cursive) -->
-  <g fill="none" stroke="#229954" stroke-linecap="round" stroke-linejoin="round">
-    <!-- I -->
-    <path d="M 155,115 C 170,105 185,125 180,155 C 175,180 165,200 155,215 C 150,222 160,225 168,218 C 180,205 190,175 195,150" stroke-width="8" />
-    <!-- s -->
-    <path d="M 200,180 C 210,165 228,170 222,185 C 218,198 200,200 208,212 C 215,220 232,212 238,202" stroke-width="7" />
-    <!-- l -->
-    <path d="M 245,110 C 255,105 262,120 258,155 C 255,190 250,212 262,210 C 270,208 280,195 285,182" stroke-width="8" />
-    <!-- a -->
-    <path d="M 290,190 C 280,182 272,195 280,206 C 288,215 300,205 302,192 C 304,180 292,175 290,190 Z" fill="#229954" stroke-width="5" />
-    <path d="M 300,192 C 305,202 310,212 318,210 C 324,208 328,198 332,188" stroke-width="7" />
-    <!-- m -->
-    <path d="M 335,188 C 342,180 352,182 350,196 C 348,206 345,212 352,210 C 358,206 366,184 374,182 C 382,180 386,192 382,206 C 378,216 390,212 398,200" stroke-width="7" />
+  <!-- ISLAM CALLIGRAPHY (EMERALD GREEN CURSIVE SCRIPT) -->
+  <g id="islam-text" fill="url(#emeraldGrad)" stroke="url(#emeraldGrad)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 148,120 C 130,105 155,85 178,102 C 192,112 188,132 176,155 C 165,178 152,202 142,222 C 138,230 148,235 158,228 C 172,218 185,198 194,172 C 198,160 206,165 202,178 C 196,198 184,218 174,232 C 170,238 178,242 186,234" stroke-width="7" fill="none" />
+    <path d="M 198,196 C 208,182 226,185 220,200 C 215,212 198,215 206,228 C 214,238 232,228 238,216" stroke-width="7" fill="none" />
+    <path d="M 242,115 C 254,108 264,125 258,162 C 252,198 246,225 260,222 C 270,218 282,202 288,188" stroke-width="8" fill="none" />
+    <path d="M 292,202 C 280,192 270,206 280,218 C 290,228 304,216 305,202 C 306,188 292,185 292,202 Z" stroke-width="5" fill="url(#emeraldGrad)" />
+    <path d="M 302,202 C 308,215 314,226 324,222 C 330,218 335,208 340,195" stroke-width="7" fill="none" />
+    <path d="M 342,195 C 350,185 362,188 358,205 C 354,220 350,228 360,224 C 368,218 378,192 388,190 C 398,188 402,202 398,218 C 394,232 408,228 418,212" stroke-width="7" fill="none" />
   </g>
 
-  <!-- "Roots" Calligraphy & Braided Trunk -->
-  <!-- 'R' -->
-  <path d="M 115,245 C 120,225 145,220 162,235 C 178,248 165,275 142,275 L 125,275 M 125,225 L 118,340 C 116,356 132,352 140,340 M 142,275 C 155,302 172,332 190,345" fill="none" stroke="#229954" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
-
-  <!-- Left 'o' -->
-  <path d="M 195,300 C 182,286 182,326 200,326 C 218,326 218,286 195,300 Z" fill="none" stroke="#229954" stroke-width="7" stroke-linecap="round" />
-
-  <!-- Right 'o' + Intertwined Loop -->
-  <path d="M 268,245 C 242,245 232,272 250,294 C 262,312 284,302 302,272 C 315,245 338,250 346,272 C 355,294 342,320 320,325 C 302,330 292,342 306,356" fill="none" stroke="#229954" stroke-width="7" stroke-linecap="round" />
-
-  <!-- 't' -->
-  <path d="M 360,238 L 354,325 C 352,342 368,342 380,328 M 342,272 L 378,268" fill="none" stroke="#229954" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
-
-  <!-- 's' -->
-  <path d="M 388,312 C 396,290 420,294 414,312 C 408,330 432,332 438,312" fill="none" stroke="#229954" stroke-width="7" stroke-linecap="round" />
-
-  <!-- Braided Trunk in Center (Wood Brown) -->
-  <g fill="none" stroke="#8D5B28" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M 252,280 C 282,308 238,342 268,378 C 282,394 255,418 264,440" stroke-width="10" />
-    <path d="M 278,280 C 248,308 292,342 262,378 C 248,394 275,418 264,440" stroke-width="10" />
-    <path d="M 264,315 C 242,338 286,360 264,388" stroke-width="7" />
+  <!-- ROOTS CALLIGRAPHY & TWISTED TRUNK -->
+  <g id="roots-text">
+    <path d="M 110,258 C 115,235 142,228 162,242 C 180,256 166,288 140,288 L 122,288 M 122,235 L 114,352 C 112,368 130,364 138,352 M 140,288 C 154,316 172,346 192,358" fill="none" stroke="url(#emeraldGrad)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M 198,310 C 184,294 182,338 202,338 C 222,338 220,294 198,310 Z" fill="none" stroke="url(#emeraldGrad)" stroke-width="8" stroke-linecap="round" />
+    <path d="M 302,292 C 288,276 286,320 306,320 C 324,320 322,278 302,292 Z" fill="none" stroke="url(#emeraldGrad)" stroke-width="8" stroke-linecap="round" />
+    <path d="M 362,245 L 354,338 C 352,356 370,354 382,338 M 342,282 L 382,278" fill="none" stroke="url(#emeraldGrad)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M 392,322 C 400,298 426,302 418,322 C 410,342 436,344 442,322" fill="none" stroke="url(#emeraldGrad)" stroke-width="7" stroke-linecap="round" />
   </g>
 
-  <!-- Spreading Organic Tree Roots at Bottom -->
-  <g fill="none" stroke="#8D5B28" stroke-linecap="round">
-    <!-- Main thick root branches -->
-    <path d="M 264,420 C 220,438 158,446 114,490" stroke-width="10" />
-    <path d="M 264,420 C 308,438 370,446 414,490" stroke-width="10" />
+  <!-- BRAIDED TRUNK (CENTER FIGURE-8 LOOP CONNECTING TO ROOTS) -->
+  <g id="central-trunk" fill="none" stroke="url(#woodGrad)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 250,240 C 220,260 220,295 250,315 C 280,335 280,370 250,390 L 250,420" stroke-width="10" />
+    <path d="M 250,240 C 280,260 280,295 250,315 C 220,335 220,370 250,390 L 250,420" stroke-width="10" />
+    <path d="M 244,250 C 228,268 228,288 244,305" stroke-width="4" stroke="#D29A5C" />
+    <path d="M 256,250 C 272,268 272,288 256,305" stroke-width="4" stroke="#D29A5C" />
+  </g>
 
-    <path d="M 264,432 C 202,454 140,468 88,508" stroke-width="8" />
-    <path d="M 264,432 C 326,454 388,468 440,508" stroke-width="8" />
-
-    <path d="M 264,445 C 238,462 194,480 158,515" stroke-width="6" />
-    <path d="M 264,445 C 290,462 334,480 370,515" stroke-width="6" />
-
-    <!-- Smaller tendrils -->
-    <path d="M 185,455 C 158,472 122,485 96,515" stroke-width="4" />
-    <path d="M 343,455 C 370,472 406,485 432,515" stroke-width="4" />
-
-    <path d="M 132,472 C 105,485 78,498 56,520" stroke-width="3" />
-    <path d="M 396,472 C 423,485 450,498 472,520" stroke-width="3" />
-
-    <path d="M 228,478 C 210,495 184,508 166,525" stroke-width="3" />
-    <path d="M 300,478 C 318,495 344,508 362,525" stroke-width="3" />
+  <!-- SPREADING TREE ROOT SYSTEM WITH LEAVES (BOTTOM) -->
+  <g id="spreading-roots">
+    <g fill="none" stroke="url(#woodGrad)" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 250,415 C 215,430 160,442 110,475" stroke-width="11" />
+      <path d="M 250,415 C 285,430 340,442 390,475" stroke-width="11" />
+      <path d="M 250,425 C 190,445 130,460 70,495" stroke-width="9" />
+      <path d="M 250,425 C 310,445 370,460 430,495" stroke-width="9" />
+      <path d="M 250,435 C 220,455 175,475 135,508" stroke-width="7" />
+      <path d="M 250,435 C 280,455 325,475 365,508" stroke-width="7" />
+      <path d="M 180,440 C 145,460 110,478 78,510" stroke-width="5" />
+      <path d="M 320,440 C 355,460 390,478 422,510" stroke-width="5" />
+      <path d="M 130,455 C 100,472 70,490 42,518" stroke-width="4" />
+      <path d="M 370,455 C 400,472 430,490 458,518" stroke-width="4" />
+      <path d="M 210,465 C 180,488 152,508 128,522" stroke-width="4" />
+      <path d="M 290,465 C 320,488 348,508 372,522" stroke-width="4" />
+    </g>
+    <g fill="url(#emeraldGrad)">
+      <path d="M 105,472 C 95,465 90,475 102,482 C 108,485 112,478 105,472 Z" />
+      <path d="M 72,492 C 60,486 58,498 70,504 C 76,506 80,498 72,492 Z" />
+      <path d="M 142,452 C 132,444 128,456 138,462 C 145,465 148,456 142,452 Z" />
+      <path d="M 175,432 C 165,425 160,435 172,440 C 178,442 180,435 175,432 Z" />
+      <path d="M 395,472 C 405,465 410,475 398,482 C 392,485 388,478 395,472 Z" />
+      <path d="M 428,492 C 440,486 442,498 430,504 C 424,506 420,498 428,492 Z" />
+      <path d="M 358,452 C 368,444 372,456 362,462 C 355,465 352,456 358,452 Z" />
+      <path d="M 325,432 C 335,425 340,435 328,440 C 322,442 320,435 325,432 Z" />
+    </g>
   </g>
 </svg>

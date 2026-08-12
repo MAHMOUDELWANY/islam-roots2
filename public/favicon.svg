@@ -1,30 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
-  <rect width="512" height="512" rx="100" fill="#FAF7F2"/>
-  <rect x="16" y="16" width="480" height="480" rx="84" fill="none" stroke="#1E3A2B" stroke-width="6" opacity="0.15"/>
-  <path d="M 256 70 A 30 30 0 1 0 286 100 A 24 24 0 1 1 256 70 Z" fill="#D4AF37"/>
-  <text x="256" y="180" font-family="'Georgia', 'Times New Roman', serif" font-weight="bold" font-style="italic" font-size="64" fill="#1E3A2B" text-anchor="middle">Islam</text>
-  <text x="256" y="250" font-family="'Georgia', 'Times New Roman', serif" font-weight="bold" font-style="italic" font-size="76" fill="#1E3A2B" text-anchor="middle">Roots</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <linearGradient id="favBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A261D" />
+      <stop offset="100%" stop-color="#0E1610" />
+    </linearGradient>
+    <radialGradient id="favGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#E8DCB8" stop-opacity="0" />
+    </radialGradient>
+  </defs>
 
-  <g fill="none" stroke="#3D2E1E" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M 256 270 L 256 340"/>
-    <path d="M 256 300 C 230 310 230 330 256 340 C 282 330 282 310 256 300 Z" fill="#3D2E1E" opacity="0.2"/>
-    <path d="M 256 300 C 230 310 230 330 256 340 C 282 330 282 310 256 300 Z"/>
-    <path d="M 256 340 Q 210 370 150 420"/>
-    <path d="M 256 340 Q 302 370 362 420"/>
-    <path d="M 256 350 Q 230 390 190 440"/>
-    <path d="M 256 350 Q 282 390 322 440"/>
-    <path d="M 256 360 Q 256 410 256 460"/>
-    <path d="M 200 385 Q 170 420 130 445"/>
-    <path d="M 312 385 Q 342 420 382 445"/>
+  <!-- Dark Botanical Container Card -->
+  <rect width="128" height="128" rx="28" fill="url(#favBg)" />
+  <rect x="2" y="2" width="124" height="124" rx="26" fill="none" stroke="#2D3F30" stroke-width="1.5" />
+
+  <!-- Crescent Moon at Top -->
+  <circle cx="64" cy="22" r="12" fill="url(#favGlow)" />
+  <path d="M 60,16 A 7,7 0 1,0 69,25 A 5.5,5.5 0 1,1 60,16 Z" fill="#FAF5EB" />
+
+  <!-- Simplified Emerald 'Islam Roots' Symbol (Calligraphy Loop & Tree Trunk) -->
+  <g fill="none" stroke="#229954" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 38,48 C 32,40 48,36 56,44 C 64,52 48,68 38,72 M 38,36 L 36,88 M 46,62 L 68,60" stroke-width="4" />
+    <path d="M 72,56 C 80,48 94,52 90,64 C 86,76 70,78 80,88 C 88,96 102,88 106,78" stroke-width="4" />
   </g>
 
-  <g fill="#1E3A2B">
-    <circle cx="150" cy="420" r="7"/>
-    <circle cx="362" cy="420" r="7"/>
-    <circle cx="190" cy="440" r="6"/>
-    <circle cx="322" cy="440" r="6"/>
-    <circle cx="256" cy="460" r="8"/>
-    <circle cx="130" cy="445" r="5"/>
-    <circle cx="382" cy="445" r="5"/>
+  <!-- Wood Trunk Loop -->
+  <path d="M 64,58 C 55,68 55,80 64,88 C 73,96 73,108 64,116" fill="none" stroke="#A26B36" stroke-width="4" stroke-linecap="round" />
+
+  <!-- Spreading Roots at Bottom -->
+  <g fill="none" stroke="#A26B36" stroke-linecap="round" stroke-width="3">
+    <path d="M 64,110 C 50,116 32,120 18,124" />
+    <path d="M 64,110 C 78,116 96,120 110,124" />
+    <path d="M 64,114 C 44,120 28,124 12,126" />
+    <path d="M 64,114 C 84,120 100,124 116,126" />
+  </g>
+
+  <!-- Leaf Accents -->
+  <g fill="#229954">
+    <circle cx="20" cy="122" r="2.5" />
+    <circle cx="108" cy="122" r="2.5" />
+    <circle cx="34" cy="118" r="2" />
+    <circle cx="94" cy="118" r="2" />
   </g>
 </svg>

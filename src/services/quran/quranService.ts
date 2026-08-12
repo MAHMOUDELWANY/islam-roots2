@@ -75,20 +75,38 @@ export async function getVerses(surahId: number, perPage: number = 50): Promise<
   return [];
 }
 
+export interface ScopeOptions {
+  scopeType?: "entire" | "page" | "ayah_range";
+  startAyah?: number;
+  endAyah?: number;
+}
+
 /**
  * Generates Memory Detective Questions Deterministically from Verified Quran Verses
  */
 export async function generateMemoryDetectiveQuestions(
   surahId: number,
   count: number = 5,
-  types: string[] = ["continue_ayah", "whats_next", "fill_gap", "identify"]
+  types: string[] = ["continue_ayah", "whats_next", "fill_gap", "identify"],
+  scope?: ScopeOptions
 ): Promise<any[]> {
   const surah = await getSurah(surahId);
   const surahs = await getSurahs();
-  const verses = await getVerses(surahId, 50);
+  const fetchedVerses = await getVerses(surahId, 300);
 
-  if (!surah || verses.length === 0) {
+  if (!surah || fetchedVerses.length === 0) {
     return [];
+  }
+
+  // Apply scope filtering if specified
+  let verses = fetchedVerses;
+  if (scope && scope.scopeType === "ayah_range") {
+    const start = scope.startAyah || 1;
+    const end = scope.endAyah || surah.versesCount;
+    verses = fetchedVerses.filter(
+      (v) => v.verseNumber >= start && v.verseNumber <= end
+    );
+    if (verses.length === 0) verses = fetchedVerses;
   }
 
   const questions: any[] = [];

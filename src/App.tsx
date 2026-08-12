@@ -152,8 +152,8 @@ const AppContent: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F7F3E9] dark:bg-[#131E18] flex flex-col items-center justify-center p-6 text-center space-y-4 font-sans">
-        <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft text-[#5A6B5A]">
+      <div className="min-h-screen bg-[#EFF3EF] dark:bg-[#121813] flex flex-col items-center justify-center p-6 text-center space-y-4 font-sans">
+        <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#D8E2D8] dark:border-[#2A352A] shadow-soft text-[#5A6B5A]">
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
         <h3 className="font-serif font-bold text-lg text-[#1F261F] dark:text-[#E2E8E2]">
@@ -178,7 +178,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F3E9] dark:bg-[#131E18] text-slate-800 dark:text-slate-100 font-sans transition-colors flex">
+    <div className="min-h-screen bg-[#EFF3EF] dark:bg-[#121813] text-stone-800 dark:text-stone-100 font-sans transition-colors flex">
       {/* Sidebar for Desktop & Tablet */}
       <Sidebar
         currentSection={currentSection}

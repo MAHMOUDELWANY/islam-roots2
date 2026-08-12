@@ -25,12 +25,12 @@ export const Header: React.FC<HeaderProps> = ({
   const [profileOpen, setProfileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-[#FCFAF5]/90 dark:bg-[#161D17]/90 backdrop-blur-md border-b border-[#E8E5DB] dark:border-[#2A352A] px-4 sm:px-8 py-3.5 transition-colors">
+    <header className="sticky top-0 z-30 w-full bg-[#EFF3EF]/90 dark:bg-[#121813]/90 backdrop-blur-md border-b border-[#D6E0D6] dark:border-[#2A352A] px-4 sm:px-8 py-3.5 transition-colors">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Brand Logo & Welcome Greeting */}
-        <div className="flex items-center gap-4">
-          <BrandLogo size="sm" showSubtitle={false} className="hidden sm:flex" />
-          <div className="h-8 w-px bg-[#E8E5DB] dark:bg-[#2A352A] hidden sm:block" />
+        <div className="flex items-center gap-3 sm:gap-4">
+          <BrandLogo size="sm" showSubtitle={false} className="flex" />
+          <div className="h-8 w-px bg-[#D2DDD2] dark:bg-[#2A352A] hidden sm:block" />
           <div className="flex flex-col">
             <h1 className="font-serif text-base sm:text-lg text-[#1F261F] dark:text-[#E2E8E2] italic font-semibold flex items-center gap-2 flex-wrap">
               <span>{t("welcomeBack")},</span>

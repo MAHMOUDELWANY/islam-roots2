@@ -89,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 xl:w-68 bg-[#FCFAF5] dark:bg-[#161D17] border-r border-[#E8E5DB] dark:border-[#2A352A] min-h-screen p-6 transition-colors select-none">
+    <aside className="hidden lg:flex flex-col w-64 xl:w-68 bg-[#F4F8F4] dark:bg-[#161D17] border-r border-[#D6E0D6] dark:border-[#2A352A] min-h-screen p-6 transition-colors select-none">
       {/* Brand Header */}
       <div className="mb-10">
         <BrandLogo size="md" showSubtitle />
