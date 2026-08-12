@@ -89,7 +89,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
       await loginWithGoogle();
       onClose();
     } catch (err: any) {
-      console.warn("Google Auth error details:", err);
+      console.warn("Google Auth error status:", err?.status || err?.code || "failed");
       const message = err?.message || err?.error_description || "";
       const code = err?.code || "";
       if (message.includes("closed") || code === "auth/popup-closed-by-user") {
@@ -141,7 +141,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
     setSubmitting(true);
     try {
       const res = await signup(cleanEmail, password);
-      console.log("[AuthModal] Signup response:", res);
+      console.log("[AuthModal] Signup completed, session created:", Boolean(res?.session));
 
       // If session exists immediately, close modal
       if (res.session && res.user?.email_confirmed_at) {
@@ -152,7 +152,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
         switchMode("verification_pending");
       }
     } catch (err: any) {
-      console.warn("[AuthModal] Signup error:", err);
+      console.warn("[AuthModal] Signup error code:", err?.code || err?.status);
       const message = err?.message || "";
       const code = err?.code || "";
       if (message.includes("already registered") || message.includes("User already exists") || code === "user_already_exists") {
@@ -187,7 +187,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
       await login(cleanEmail, password);
       onClose();
     } catch (err: any) {
-      console.warn("[AuthModal] Signin error:", err);
+      console.warn("[AuthModal] Signin error code:", err?.code || err?.status);
       const message = err?.message || "";
       const code = err?.code || "";
       

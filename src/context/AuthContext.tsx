@@ -29,7 +29,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string) => Promise<{ user: SupabaseUser | null; session: any }>;
   resendVerificationEmail: (email: string) => Promise<void>;
-  verifyOtp: (email: string, token: string) => Promise<boolean>;
   checkEmailConfirmationStatus: () => Promise<boolean>;
   updatePassword: (newPassword: string) => Promise<void>;
   loginWithGoogle: () => Promise<boolean>;
@@ -81,7 +80,7 @@ useEffect(() => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user;
-      console.log("[Auth] Auth state changed. Supabase User:", user ? user.id : "null");
+      console.log("[Auth] Auth state changed. Session active:", Boolean(user));
       
       if (user) {
         const userWithUid: FirebaseUser = { ...user, uid: user.id } as FirebaseUser;
@@ -104,7 +103,7 @@ useEffect(() => {
   const loadProfile = async (user: FirebaseUser) => {
     try {
       setLoading(true);
-      console.log("[Auth] Supabase teacher lookup started for ID:", user.id);
+      console.log("[Auth] Supabase teacher lookup started.");
       
       sessionStorage.removeItem("islamroots_session_guest");
       localStorage.removeItem("islamroots_guest_teacher");
@@ -158,7 +157,7 @@ useEffect(() => {
            .single();
            
          if (insertErr) {
-           console.warn("[Auth] Upsert for teacher row failed:", insertErr);
+           console.warn("[Auth] Upsert for teacher row failed. Code:", insertErr.code);
            throw insertErr;
          }
          console.log("[Auth] Teacher profile row created/verified successfully in Supabase.");
@@ -225,11 +224,11 @@ useEffect(() => {
             }
           }
         } catch (adminErr) {
-          console.error("Failed to claim admin status:", adminErr);
+          console.error("Failed to claim admin status.");
         }
       }
-    } catch (err) {
-      console.warn("[Auth] Teacher profile initialization failed:", err);
+    } catch (err: any) {
+      console.warn("[Auth] Teacher profile initialization failed. Code:", err?.code || err?.status);
       setTeacher(null);
       setIsSuperAdminClaim(false);
     } finally {
@@ -275,7 +274,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     try {
       await supabase.auth.signOut();
     } catch (e) {
-      console.warn("Silent signout failed during login step", e);
+      console.warn("Silent signout failed during login step");
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -284,7 +283,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     });
 
     if (error) {
-      console.warn(`[Auth Diagnostic] Supabase signInWithPassword error status=${error.status}, code=${error.code || 'none'}, message=${error.message}`);
+      console.warn(`[Auth Diagnostic] Supabase signInWithPassword error status=${error.status}, code=${error.code || 'none'}`);
       if (
         error.message?.toLowerCase().includes("email not confirmed") ||
         error.code === "email_not_confirmed"
@@ -339,7 +338,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     try {
       await supabase.auth.signOut();
     } catch (e) {
-      console.warn("Silent signout failed during signup step", e);
+      console.warn("Silent signout failed during signup step");
     }
 
     const { data, error } = await supabase.auth.signUp({
@@ -405,45 +404,6 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     }
   };
 
-  const verifyOtp = async (email: string, token: string): Promise<boolean> => {
-    if (!email || !token) {
-      throw new Error("Email and verification code are required.");
-    }
-    if (!isSupabaseConfigured) {
-      throw new Error("Authentication service is not configured. Please contact the administrator.");
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-    const cleanToken = token.trim();
-
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: normalizedEmail,
-      token: cleanToken,
-      type: "signup",
-    });
-
-    if (error) {
-      console.warn(`[Auth Diagnostic] Supabase verifyOtp error: status=${error.status}, code=${error.code || 'none'}, message=${error.message}`);
-      if (error.status === 429 || error.code === "over_email_send_rate_limit" || error.message?.includes("rate limit")) {
-        throw new Error("Too many verification attempts. Please wait a few minutes before trying again.");
-      }
-      if (error.message?.includes("expired") || error.code === "otp_expired") {
-        throw new Error("Verification code has expired. Please request a new code.");
-      }
-      throw new Error("Invalid verification code. Please check your email and try again.");
-    }
-
-    console.log("[Auth Diagnostic] Supabase verifyOtp succeeded.");
-
-    if (data?.user) {
-      const fbUser = { ...data.user, uid: data.user.id } as FirebaseUser;
-      setFirebaseUser(fbUser);
-      await loadProfile(fbUser);
-    }
-
-    return true;
-  };
-
   const getRedirectUrl = () => {
 
     let url = window.location.origin;
@@ -470,12 +430,12 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       });
       console.log("[Auth] Google sign-in initiated successfully. Data:", data ? "OAuth URL generated" : "No data");
       if (error) {
-        console.warn("[Auth] Google sign-in OAuth error:", error.message, error.status);
+        console.warn("[Auth] Google sign-in OAuth error. Status:", error.status, "Code:", error.code);
         throw error;
       }
       return true;
     } catch (err: any) {
-      console.warn("[Auth] Google sign-in failed:", err.message || err);
+      console.warn("[Auth] Google sign-in failed. Code:", err?.code || err?.status);
       throw err;
     }
   };
@@ -648,7 +608,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
           if (Object.keys(dbData).length > 0) {
             const { error } = await supabase.from("teachers").update(dbData).eq("id", firebaseUser.uid);
             if (error) {
-              console.warn("[Auth] Primary update returned error, attempting fallback update:", error.message);
+              console.warn("[Auth] Primary update returned error, attempting fallback update. Code:", error.code);
               const fallbackDbData: any = {};
               if (dbData.name || dbData.display_name || dbData.full_name) fallbackDbData.name = dbData.display_name || dbData.full_name || dbData.name;
               if (dbData.location || dbData.country) fallbackDbData.location = dbData.country || dbData.location;
@@ -662,8 +622,8 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
               if (fallbackErr) throw fallbackErr;
             }
           }
-        } catch (e) {
-          console.error("Failed to update teacher profile in Supabase:", e);
+        } catch (e: any) {
+          console.error("Failed to update teacher profile in Supabase. Code:", e?.code || e?.status);
           throw e;
         }
       }
@@ -696,7 +656,6 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
         login,
         signup,
         resendVerificationEmail,
-        verifyOtp,
         checkEmailConfirmationStatus,
         updatePassword,
         loginWithGoogle,
