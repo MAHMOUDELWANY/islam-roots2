@@ -448,7 +448,7 @@ Provide:
     }
   }
 
-  if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) { 
+  if (!process.env.IS_VERCEL) { 
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Islam Roots server listening on http://0.0.0.0:${PORT}`);
     });

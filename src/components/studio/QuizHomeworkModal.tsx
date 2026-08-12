@@ -71,7 +71,13 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
 
       clearTimeout(timeoutId);
 
-      const resJson = await response.json();
+      const text = await response.text();
+      let resJson;
+      try {
+        resJson = JSON.parse(text);
+      } catch (e) {
+        throw new Error(text.includes("504") ? "TIMEOUT_ERROR" : "VERCEL_SERVER_ERROR");
+      }
       
       if (!response.ok) {
          if (response.status === 401 || response.status === 403) throw new Error("AUTH_ERROR");
@@ -97,6 +103,10 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
         setError("Jaleela is temporarily busy. Please wait a moment and try again.");
       } else if (err.message === "INVALID_RESPONSE") {
         setError("Jaleela couldn't generate the content right now. Please try again.");
+      } else if (err.message === "TIMEOUT_ERROR") {
+        setError("The request timed out. Please try again.");
+      } else if (err.message === "VERCEL_SERVER_ERROR") {
+        setError("A server error occurred (Vercel Timeout or Crash).");
       } else {
         setError(`Error: ${err.message}`);
       }

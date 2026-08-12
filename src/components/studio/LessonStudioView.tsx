@@ -224,7 +224,13 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
 
       clearTimeout(timeoutId);
 
-      const resJson = await response.json();
+      const text = await response.text();
+      let resJson;
+      try {
+        resJson = JSON.parse(text);
+      } catch (e) {
+        throw new Error(text.includes("504") ? "TIMEOUT_ERROR" : "VERCEL_SERVER_ERROR");
+      }
       
       if (!response.ok) {
          if (response.status === 401 || response.status === 403) throw new Error("AUTH_ERROR");
@@ -251,6 +257,10 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
         setError(language === "ar" ? "جليلة مشغولة حالياً. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى." : "Jaleela is temporarily busy. Please wait a moment and try again.");
       } else if (err.message === "INVALID_RESPONSE") {
         setError(language === "ar" ? "لم تتمكن جليلة من إنشاء الدرس الآن. يرجى المحاولة مرة أخرى." : "Jaleela couldn't generate the lesson right now. Please try again.");
+      } else if (err.message === "TIMEOUT_ERROR") {
+        setError(language === "ar" ? "استغرق إنشاء الدرس وقتاً أطول من المتوقع." : "The request timed out. Please try again.");
+      } else if (err.message === "VERCEL_SERVER_ERROR") {
+        setError(language === "ar" ? "حدث خطأ في الخادم (Vercel). يرجى التحقق من السجلات." : "A server error occurred (Vercel Timeout or Crash).");
       } else {
         setError((language === "ar" ? "خطأ: " : "Error: ") + err.message);
       }
