@@ -59,7 +59,9 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   const handleExportToGoogleSlides = async () => {
     if (!generatedPlan) return;
     setIsExportingSlides(true);
-    setSlidesStatusMsg("");
+    setSlidesStatusMsg(
+      language === "ar" ? "جارٍ بدء إنشاء العرض..." : "Starting presentation creation..."
+    );
     setCreatedSlidesLink(null);
 
     try {
@@ -74,6 +76,9 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
           const { data: { session } } = await supabase.auth.getSession();
           const fbToken = session?.access_token;
           if (fbToken) {
+            setSlidesStatusMsg(
+              language === "ar" ? "جارٍ بناء هيكل السلايدات..." : "Generating AI slide structure..."
+            );
             const planRes = await fetch("/api/gemini/slides-plan", {
               method: "POST",
               headers: {
@@ -92,15 +97,22 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
             });
             if (planRes.ok) {
               const planData = await planRes.json();
-              if (planData.data && planData.data.slides && planData.data.slides.length > 0) {
+              if (planData.data && Array.isArray(planData.data.slides) && planData.data.slides.length > 0) {
                 aiSlides = planData.data.slides;
                 const presTitle = planData.data.title || `[IslamRoots Deck] ${subject} - ${topic}`;
-                const result = await createGoogleSlidesPresentation(token, presTitle, aiSlides);
+                const result = await createGoogleSlidesPresentation(
+                  token,
+                  presTitle,
+                  aiSlides,
+                  {
+                    onProgress: (msg) => setSlidesStatusMsg(msg)
+                  }
+                );
                 setCreatedSlidesLink(result.webViewLink);
                 setSlidesStatusMsg(
                   language === "ar"
-                    ? "تم إنشاء عرض Google Slides بنجاح!"
-                    : "Google Presentation created successfully!"
+                    ? "تم إنشاء عرض Google Slides بنجاح وتصدير جميع العناصر!"
+                    : "Google Presentation created and populated successfully!"
                 );
                 setIsExportingSlides(false);
                 return;
@@ -108,30 +120,41 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
             }
           }
         } catch (e) {
-          console.warn("AI slide generation failed, falling back to basic template", e);
+          console.warn("[SLIDES_EXPORT_ERROR] AI slide plan endpoint failed, falling back to full lesson normalizer:", e);
         }
 
-        const result = await exportLessonToGoogleSlides(token, {
-          title: topic,
-          subject,
-          level,
-          description: generatedPlan.lessonGoal,
-          keyPoints: generatedPlan.keyPoints,
-          vocabulary: generatedPlan.vocabulary,
-          teachingTips: generatedPlan.teachingTips
-            ? `Emphasize: ${generatedPlan.teachingTips.whatToEmphasize}. Common Confusion: ${generatedPlan.teachingTips.commonConfusion}`
-            : undefined,
-        });
+        const result = await exportLessonToGoogleSlides(
+          token,
+          {
+            title: topic,
+            subject,
+            level,
+            lessonGoal: generatedPlan.lessonGoal,
+            description: generatedPlan.lessonGoal,
+            warmup: generatedPlan.warmup,
+            keyPoints: generatedPlan.keyPoints,
+            vocabulary: generatedPlan.vocabulary,
+            questionsToAsk: generatedPlan.questionsToAsk,
+            examples: generatedPlan.examples,
+            miniActivity: generatedPlan.miniActivity,
+            quickQuiz: generatedPlan.quickQuiz,
+            homework: generatedPlan.homework,
+            teachingTips: generatedPlan.teachingTips,
+          },
+          {
+            onProgress: (msg) => setSlidesStatusMsg(msg)
+          }
+        );
 
         setCreatedSlidesLink(result.webViewLink);
         setSlidesStatusMsg(
           language === "ar"
-            ? "تم إنشاء عرض Google Slides بنجاح!"
-            : "Google Presentation created successfully!"
+            ? "تم إنشاء عرض Google Slides بنجاح وتصدير جميع العناصر!"
+            : "Google Presentation created and populated successfully!"
         );
       }
     } catch (err: any) {
-      console.error("Failed to export Google Slides:", err);
+      console.error("[SLIDES_EXPORT_ERROR] Failed to export Google Slides:", err);
       setSlidesStatusMsg(
         language === "ar"
           ? "فشل إنشاء عرض Google Slides. حاول مرة أخرى."
