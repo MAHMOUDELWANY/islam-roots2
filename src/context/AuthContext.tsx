@@ -30,6 +30,7 @@ interface AuthContextType {
   signup: (email: string, password: string) => Promise<{ user: SupabaseUser | null; session: any }>;
   resendVerificationEmail: (email: string) => Promise<void>;
   verifyOtp: (email: string, token: string) => Promise<boolean>;
+  checkEmailConfirmationStatus: () => Promise<boolean>;
   updatePassword: (newPassword: string) => Promise<void>;
   loginWithGoogle: () => Promise<boolean>;
   connectGoogleCalendar: () => Promise<string | null>;
@@ -319,6 +320,8 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     return true;
   };
 
+  const PRODUCTION_REDIRECT_URL = "https://islam-roots-workspace.vercel.app";
+
   const signup = async (email: string, password: string): Promise<{ user: SupabaseUser | null; session: any }> => {
     if (!email || !password) {
       throw new Error("Email and password are required.");
@@ -343,7 +346,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       email: normalizedEmail,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}`,
+        emailRedirectTo: PRODUCTION_REDIRECT_URL,
         data: {
           full_name: normalizedEmail.split('@')[0],
         },
@@ -365,7 +368,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       type: "signup",
       email: email.trim().toLowerCase(),
       options: {
-        emailRedirectTo: `${window.location.origin}`,
+        emailRedirectTo: PRODUCTION_REDIRECT_URL,
       },
     });
     if (error) {
@@ -373,6 +376,32 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
         throw new Error("Too many email requests. Please wait a few minutes before trying again.");
       }
       throw error;
+    }
+  };
+
+  const checkEmailConfirmationStatus = async (): Promise<boolean> => {
+    if (!isSupabaseConfigured) {
+      throw new Error("Authentication service is not configured.");
+    }
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        console.warn("[Auth Diagnostic] checkEmailConfirmationStatus getUser returned no user or error code=", error?.code || "none");
+        return false;
+      }
+      const isConfirmed = Boolean(user.email_confirmed_at);
+      if (isConfirmed) {
+        console.log("[Auth Diagnostic] User email confirmation verified with Supabase server.");
+        const fbUser = { ...user, uid: user.id } as FirebaseUser;
+        setFirebaseUser(fbUser);
+        await loadProfile(fbUser);
+        return true;
+      }
+      console.log("[Auth Diagnostic] User email is unconfirmed on Supabase server.");
+      return false;
+    } catch (err) {
+      console.warn("[Auth Diagnostic] checkEmailConfirmationStatus error occurred.");
+      return false;
     }
   };
 
@@ -668,6 +697,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
         signup,
         resendVerificationEmail,
         verifyOtp,
+        checkEmailConfirmationStatus,
         updatePassword,
         loginWithGoogle,
         connectGoogleCalendar,

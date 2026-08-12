@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
-import { X, LogIn, Loader2, Sparkles, User, Key, Eye, EyeOff, Mail, CheckCircle2, ArrowLeft, RefreshCw } from "lucide-react";
+import { X, LogIn, Loader2, Sparkles, User, Key, Eye, EyeOff, Mail, CheckCircle2, ArrowLeft, RefreshCw, ExternalLink } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialError, initialMode }) => {
-  const { loginWithGoogle, loginAsGuest, login, signup, resendVerificationEmail, verifyOtp, resetPassword, updatePassword } = useAuth();
+  const { loginWithGoogle, loginAsGuest, login, signup, resendVerificationEmail, checkEmailConfirmationStatus, resetPassword, updatePassword } = useAuth();
   const { t, language } = useLanguage();
   const isRTL = language === "ar";
 
@@ -24,15 +24,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState("");
-  const [otpCode, setOtpCode] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
   const [googleSubmitting, setGoogleSubmitting] = useState(false);
   const [resendSubmitting, setResendSubmitting] = useState(false);
+  const [checkingConfirmation, setCheckingConfirmation] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(60);
   
   const [errorMsg, setErrorMsg] = useState<string | null>(initialError || null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showUnverifiedResend, setShowUnverifiedResend] = useState(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
 
   useEffect(() => {
     if (initialError) {
@@ -58,11 +67,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
     setErrorMsg(null);
     setSuccessMsg(null);
     setShowUnverifiedResend(false);
-    setOtpCode("");
   };
 
   const switchMode = (mode: "options" | "signup" | "signin" | "verification_pending" | "forgot_password" | "reset_password") => {
     resetFormState();
+    if (mode === "verification_pending") {
+      setResendCooldown(60);
+    }
     setAuthMode(mode);
   };
 
@@ -182,8 +193,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
       
       if (code === "email_not_confirmed" || message.includes("verify your email") || message.includes("not confirmed")) {
         setUnverifiedEmail(cleanEmail);
-        setErrorMsg(t("pleaseVerifyEmailBeforeSignIn"));
-        setShowUnverifiedResend(true);
+        switchMode("verification_pending");
       } else if (message.includes("Invalid email or password") || message.includes("Invalid login credentials") || code === "invalid_credentials") {
         setErrorMsg(t("invalidEmailOrPassword"));
       } else {
@@ -194,51 +204,83 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
     }
   };
 
+  const getEmailProviderLink = (emailAddress: string) => {
+    const lower = emailAddress.trim().toLowerCase();
+    if (lower.endsWith("@gmail.com") || lower.endsWith("@googlemail.com")) {
+      return { label: isRTL ? "فتح Gmail" : "Open Gmail", url: "https://mail.google.com" };
+    }
+    if (lower.endsWith("@outlook.com") || lower.endsWith("@hotmail.com") || lower.endsWith("@live.com")) {
+      return { label: isRTL ? "فتح Outlook" : "Open Outlook", url: "https://outlook.live.com" };
+    }
+    if (lower.endsWith("@yahoo.com")) {
+      return { label: isRTL ? "فتح Yahoo Mail" : "Open Yahoo Mail", url: "https://mail.yahoo.com" };
+    }
+    return { label: isRTL ? "فتح تطبيق البريد" : "Open Email App", url: "mailto:" };
+  };
+
+  const handleCheckConfirmation = async () => {
+    resetFormState();
+    setCheckingConfirmation(true);
+    try {
+      const isConfirmed = await checkEmailConfirmationStatus();
+      if (isConfirmed) {
+        setSuccessMsg(
+          isRTL
+            ? "تم تأكيد البريد الإلكتروني بنجاح! جاري الانتقال إلى بيئة العمل..."
+            : "Email confirmed successfully! Entering workspace..."
+        );
+        setTimeout(() => {
+          onClose();
+        }, 800);
+      } else {
+        setErrorMsg(
+          isRTL
+            ? `لم يتم تأكيد البريد الإلكتروني بعد. يرجى فتح الرسالة المرسلة إلى ${unverifiedEmail || email} والضغط على "تأكيد البريد الإلكتروني"، ثم الضغط هنا مرة أخرى.`
+            : `Email is not confirmed yet. Please open the email sent to ${unverifiedEmail || email} and click "Confirm your email address", then click here again.`
+        );
+      }
+    } catch (err: any) {
+      setErrorMsg(
+        isRTL
+          ? "عذراً، تعذر التحقق من حالة التأكيد حالياً. يرجى المحاولة مرة أخرى."
+          : "Could not verify confirmation status right now. Please try again."
+      );
+    } finally {
+      setCheckingConfirmation(false);
+    }
+  };
+
   const handleResendVerification = async () => {
+    if (resendCooldown > 0 || resendSubmitting) return;
     const targetEmail = unverifiedEmail || email.trim().toLowerCase();
     if (!targetEmail) return;
 
     setResendSubmitting(true);
-    setErrorMsg(null);
+    resetFormState();
     try {
       await resendVerificationEmail(targetEmail);
-      setSuccessMsg(t("resendSuccess"));
+      setResendCooldown(60);
+      setSuccessMsg(
+        isRTL
+          ? "تم إرسال رابط تأكيد جديد إلى بريدك الإلكتروني. يرجى فحص صندوق الوارد."
+          : "A new confirmation link has been sent to your email address."
+      );
     } catch (err: any) {
-      setErrorMsg(err?.message || (isRTL ? "تعذر إعادة إرسال البريد" : "Failed to resend verification email."));
+      const message = err?.message || "";
+      const code = err?.code || "";
+      if (err?.status === 429 || code === "over_email_send_rate_limit" || message.includes("rate limit")) {
+        setErrorMsg(
+          isRTL
+            ? "تم تجاوز حد إرسال الرسائل. يرجى الانتظار بضع دقائق والمحاولة مجدداً."
+            : "Too many email requests. Please wait a few minutes before trying again."
+        );
+      } else {
+        setErrorMsg(
+          err?.message || (isRTL ? "تعذر إعادة إرسال البريد" : "Failed to resend verification email.")
+        );
+      }
     } finally {
       setResendSubmitting(false);
-    }
-  };
-
-  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    resetFormState();
-
-    const targetEmail = unverifiedEmail || email.trim().toLowerCase();
-    const cleanOtp = otpCode.trim();
-
-    if (!targetEmail) {
-      setErrorMsg(isRTL ? "يرجى إدخال البريد الإلكتروني" : "Email address is missing. Please try signing in again.");
-      return;
-    }
-
-    if (!cleanOtp || cleanOtp.length < 6) {
-      setErrorMsg(isRTL ? "يرجى إدخال رمز التفعيل المكون من 6 أرقام" : "Please enter the 6-digit verification code.");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      await verifyOtp(targetEmail, cleanOtp);
-      setSuccessMsg(isRTL ? "تم تفعيل البريد الإلكتروني بنجاح!" : "Email verified successfully!");
-      setTimeout(() => {
-        onClose();
-      }, 500);
-    } catch (err: any) {
-      console.warn("[AuthModal] Verify OTP error:", err);
-      setErrorMsg(err?.message || (isRTL ? "رمز التفعيل غير صحيح أو منتهي الصلاحية" : "Invalid or expired verification code."));
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -619,72 +661,95 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, initialEr
           </form>
         )}
 
-        {/* MODE 4: EMAIL VERIFICATION PENDING (6-DIGIT OTP) */}
+        {/* MODE 4: EMAIL VERIFICATION PENDING (CONFIRMATION LINK FLOW) */}
         {authMode === "verification_pending" && (
-          <form onSubmit={handleVerifyOtpSubmit} className="space-y-4 font-sans">
-            <div className="p-3.5 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-2 text-center">
-              <p className="text-xs text-[#3E4D3E] dark:text-[#8BA888] font-medium leading-relaxed">
-                {t("verificationSentNotice")}{" "}
-                <strong className="text-[#1F261F] dark:text-[#E2E8E2]">{unverifiedEmail || email}</strong>
-              </p>
-              <p className="text-[11px] text-[#7A7D75] dark:text-stone-400">
-                {t("verificationSentNoticeEnd")}
-              </p>
-            </div>
+          <div className="space-y-4 font-sans">
+            <div className="p-4 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3 text-center">
+              <div className="inline-flex p-3 rounded-full bg-[#EBF2EB] dark:bg-[#2A382A] text-[#3E4D3E] dark:text-[#8BA888]">
+                <Mail className="w-6 h-6 animate-pulse text-[#3E4D3E] dark:text-[#8BA888]" />
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-[#1F261F] dark:text-[#E2E8E2] text-center">
-                {t("enterVerificationCode")}
-              </label>
-              <div className="relative max-w-xs mx-auto">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={6}
-                  value={otpCode}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9]/g, '');
-                    setOtpCode(val);
-                    if (errorMsg) setErrorMsg(null);
-                  }}
-                  className="w-full text-center text-xl font-mono tracking-[0.5em] px-4 py-3 rounded-xl border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#1C221C] text-[#1F261F] dark:text-[#E2E8E2] focus:outline-none focus:ring-2 focus:ring-[#8BA888]/50 placeholder:tracking-normal placeholder:font-sans placeholder:text-xs"
-                  placeholder="123456"
-                  required
-                  autoFocus
-                />
+              <div className="space-y-1">
+                <p className="text-xs text-[#3E4D3E] dark:text-[#8BA888] font-medium leading-relaxed">
+                  {t("verificationSentNotice")}{" "}
+                  <strong className="text-[#1F261F] dark:text-[#E2E8E2] block sm:inline font-bold break-all">
+                    {unverifiedEmail || email}
+                  </strong>
+                </p>
+                <p className="text-[11px] text-[#7A7D75] dark:text-stone-300 leading-relaxed pt-1">
+                  {t("verificationSentNoticeEnd")}
+                </p>
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={submitting || otpCode.trim().length < 6}
-              className="w-full py-3 px-4 rounded-xl bg-[#3E4D3E] text-white font-bold text-sm hover:bg-[#2D332D] transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
-            >
-              {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              <span>{t("verifyCode")}</span>
-            </button>
+            <div className="space-y-2.5">
+              {/* Open Email Convenience Action */}
+              {(() => {
+                const provider = getEmailProviderLink(unverifiedEmail || email);
+                return (
+                  <a
+                    href={provider.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full py-3 px-4 rounded-xl border border-[#3E4D3E]/30 bg-white dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] font-bold text-xs hover:bg-[#FCFAF5] dark:hover:bg-[#1C221C] transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+                  >
+                    <ExternalLink className="w-4 h-4 text-[#5A6B5A]" />
+                    <span>{provider.label}</span>
+                  </a>
+                );
+              })()}
 
-            <div className="flex items-center justify-between text-xs text-[#7A7D75] pt-1">
+              {/* Security Rule Check Confirmation Button */}
+              <button
+                type="button"
+                onClick={handleCheckConfirmation}
+                disabled={checkingConfirmation}
+                className="w-full py-3.5 px-4 rounded-xl bg-[#3E4D3E] hover:bg-[#2D332D] text-white font-bold text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-98 disabled:opacity-50"
+              >
+                {checkingConfirmation ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{t("checkConfirmationChecking")}</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-[#8BA888]" />
+                    <span>{t("checkConfirmationButton")}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-[#7A7D75] pt-2 border-t border-[#E8E5DB] dark:border-[#2A352A]">
               <button
                 type="button"
                 onClick={handleResendVerification}
-                disabled={resendSubmitting}
-                className="hover:text-[#3E4D3E] dark:hover:text-[#8BA888] font-medium cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                disabled={resendSubmitting || resendCooldown > 0}
+                className="hover:text-[#3E4D3E] dark:hover:text-[#8BA888] font-medium cursor-pointer flex items-center gap-1.5 disabled:opacity-50 text-[11px]"
               >
-                {resendSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                <span>{t("resendVerificationEmail")}</span>
+                {resendSubmitting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3.5 h-3.5" />
+                )}
+                <span>
+                  {resendCooldown > 0
+                    ? isRTL
+                      ? `إعادة الإرسال بعد ${resendCooldown} ثانية`
+                      : `Resend in ${resendCooldown}s`
+                    : t("resendVerificationEmail")}
+                </span>
               </button>
 
               <button
                 type="button"
                 onClick={() => switchMode("signin")}
-                className="hover:text-[#3E4D3E] underline cursor-pointer"
+                className="hover:text-[#3E4D3E] underline cursor-pointer text-[11px]"
               >
-                {isRTL ? "تسجيل الدخول" : "Sign in instead"}
+                {isRTL ? "تسجيل الدخول" : "Back to Sign In"}
               </button>
             </div>
-          </form>
+          </div>
         )}
 
         {/* MODE 5: FORGOT PASSWORD */}
