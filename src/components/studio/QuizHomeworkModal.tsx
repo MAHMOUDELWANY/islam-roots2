@@ -95,10 +95,10 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
         setError("Your session has expired. Please sign in again.");
       } else if (err.message === "RATE_LIMITED") {
         setError("Jaleela is temporarily busy. Please wait a moment and try again.");
-      } else if (err.message === "INVALID_RESPONSE" || err.message === "SERVER_ERROR") {
+      } else if (err.message === "INVALID_RESPONSE") {
         setError("Jaleela couldn't generate the content right now. Please try again.");
       } else {
-        setError("We couldn't connect to Jaleela. Check your connection and try again.");
+        setError(`Error: ${err.message}`);
       }
     } finally {
       setLoading(false);

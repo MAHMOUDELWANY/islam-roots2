@@ -249,10 +249,10 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
         setError(language === "ar" ? "انتهت صلاحية الجلسة الخاصة بك. يرجى تسجيل الدخول مرة أخرى." : "Your session has expired. Please sign in again.");
       } else if (err.message === "RATE_LIMITED") {
         setError(language === "ar" ? "جليلة مشغولة حالياً. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى." : "Jaleela is temporarily busy. Please wait a moment and try again.");
-      } else if (err.message === "INVALID_RESPONSE" || err.message === "SERVER_ERROR") {
+      } else if (err.message === "INVALID_RESPONSE") {
         setError(language === "ar" ? "لم تتمكن جليلة من إنشاء الدرس الآن. يرجى المحاولة مرة أخرى." : "Jaleela couldn't generate the lesson right now. Please try again.");
       } else {
-        setError(language === "ar" ? "لم نتمكن من الاتصال بجليلة. تحقق من اتصالك وحاول مرة أخرى." : "We couldn't connect to Jaleela. Check your connection and try again.");
+        setError((language === "ar" ? "خطأ: " : "Error: ") + err.message);
       }
     } finally {
       setLoading(false);
