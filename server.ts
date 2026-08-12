@@ -9,7 +9,7 @@ dotenv.config();
 
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const PORT = 3000;
 
   app.use(express.json({ limit: "5mb" }));
 
@@ -127,11 +127,11 @@ Important Rules:
 2. For Quranic or Tajweed topics, ensure 100% accurate Arabic text and accurate explanations.
 3. Provide key terms with clear explanations for foreign/international students.
 ${customInstructions ? `4. Custom Instructions: ${customInstructions}` : ""}
-4. Structure the response in JSON matching the exact schema.`;
+4. Structure the response in JSON. Keep content concise to ensure fast generation.`;
 
       console.log("[JAL_GENERATION_AI_REQUEST] Sending request to AI Provider");
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -234,7 +234,7 @@ Context: Subject: ${subject}, Topic: ${topic}, Student: ${studentName} (Age: ${s
 The number of slides should be appropriate for a ${duration} minute lesson.\n
 Provide the title, bullet points, and speaker notes for each slide.`;
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -285,7 +285,7 @@ Include a mix of multiple choice, true/false, and short answer questions.
 Provide the question, list of options (if applicable), correct answer, and a short explanation.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -338,7 +338,7 @@ Language: ${isArabic ? "Arabic" : "English"}
 Keep it practical, encouraging, and clear.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -395,7 +395,7 @@ Provide:
 3. Key recommendation/action item for next lesson`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.5-flash-lite",
         contents: prompt,
         config: {
           responseMimeType: "application/json",

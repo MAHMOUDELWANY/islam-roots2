@@ -1,1 +1,12 @@
-process.env.IS_VERCEL = "true"; const server = require("../dist/server.cjs"); let appInstance; module.exports = async (req, res) => { if (!appInstance) { appInstance = await server.appPromise; } return appInstance(req, res); };
+process.env.IS_VERCEL = "true";
+const server = require("../dist/server.cjs");
+let appInstance;
+module.exports = async (req, res) => {
+  if (!appInstance) {
+    appInstance = await server.appPromise;
+  }
+  return appInstance(req, res);
+};
+module.exports.config = {
+  maxDuration: 60,
+};
