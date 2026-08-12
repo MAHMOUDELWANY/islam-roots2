@@ -78,6 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Jalilah Guide Tour Button */}
           {onOpenTour && (
             <button
+              id="tour-jalilah-guide"
               onClick={onOpenTour}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] hover:bg-[#F2EFE6] dark:hover:bg-[#2A352A] text-[#8B5A2B] dark:text-[#C49A6C] text-xs font-bold border border-[#D4D1C5] dark:border-[#2A352A] shadow-xs transition-all active:scale-95 cursor-pointer"
               title={t("jalilahGuideTitle")}

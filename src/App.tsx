@@ -186,7 +186,6 @@ const AppContent: React.FC = () => {
       <Sidebar
         currentSection={currentSection}
         onSelectSection={handleSelectSection}
-        isTourActive={isTourOpen}
       />
 
       {/* Main Content Area */}

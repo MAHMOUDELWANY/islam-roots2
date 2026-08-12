@@ -51,6 +51,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ currentSection, onSelectSe
           return (
             <button
               key={item.id}
+              id={`mobile-tour-nav-${item.id}`}
               onClick={() => onSelectSection(item.id)}
               className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-medium min-w-[58px] transition-all cursor-pointer ${
                 isActive

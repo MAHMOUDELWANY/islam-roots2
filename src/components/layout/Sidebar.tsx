@@ -28,10 +28,9 @@ export type NavSection =
 interface SidebarProps {
   currentSection: NavSection;
   onSelectSection: (section: NavSection) => void;
-  isTourActive?: boolean;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSection, isTourActive }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSection }) => {
   const { t } = useLanguage();
   const { teacher, isAdmin } = useAuth();
 
@@ -103,6 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
           return (
             <button
               key={item.id}
+              id={`desktop-tour-nav-${item.id}`}
               onClick={() => onSelectSection(item.id)}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer ${
                 isActive
@@ -113,18 +113,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
               <div className="flex items-center gap-3">
                 <span className={`relative ${isActive ? "text-[#5A6B5A] dark:text-[#8BA888]" : "text-[#7A7D75] dark:text-stone-400"}`}>
                   {item.icon}
-                  {isTourActive && isActive && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                  )}
                 </span>
                 <span>{t(item.labelKey)}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                {isTourActive && isActive && (
-                  <span className="text-[10px] text-[#5A6B5A] dark:text-[#8BA888] font-bold px-1.5 py-0.5 rounded bg-[#5A6B5A]/10 animate-bounce">
-                    👈
-                  </span>
-                )}
                 {item.badge && (
                   <span
                     className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
@@ -159,4 +151,5 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
     </aside>
   );
 };
+
 
