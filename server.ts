@@ -92,6 +92,7 @@ async function startServer() {
 
   // API: AI Lesson Generator
   app.post("/api/gemini/lesson-plan", requireAuth, async (req, res) => {
+    console.log("[JAL_GENERATION_REQUEST] Received lesson-plan request");
     try {
       const {
         subject,
@@ -108,7 +109,9 @@ async function startServer() {
 
       const ai = getAi();
       const isArabic = language === "ar";
-
+      
+      console.log("[JAL_GENERATION_AUTH_OK] User authenticated. Topic:", topic, "Subject:", subject);
+      
       const prompt = `You are a world-class Islamic & Arabic educator designing a lesson plan for an international student.
 Generate a structured, practical, teacher-friendly lesson plan in ${isArabic ? "Arabic" : "English"}.
 
@@ -126,8 +129,9 @@ Important Rules:
 ${customInstructions ? `4. Custom Instructions: ${customInstructions}` : ""}
 4. Structure the response in JSON matching the exact schema.`;
 
+      console.log("[JAL_GENERATION_AI_REQUEST] Sending request to AI Provider");
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -210,9 +214,10 @@ ${customInstructions ? `4. Custom Instructions: ${customInstructions}` : ""}
 
       const text = response.text || "{}";
       const result = JSON.parse(text);
+      console.log("[JAL_GENERATION_AI_SUCCESS] Successfully generated lesson plan.");
       res.json({ success: true, data: result });
     } catch (err: any) {
-      console.error("Error generating lesson plan:", err);
+      console.error("[JAL_GENERATION_ERROR] Error generating lesson plan:", err.message);
       res.status(500).json({ success: false, error: err.message || "Failed to generate lesson plan" });
     }
   });
@@ -229,7 +234,7 @@ Context: Subject: ${subject}, Topic: ${topic}, Student: ${studentName} (Age: ${s
 The number of slides should be appropriate for a ${duration} minute lesson.\n
 Provide the title, bullet points, and speaker notes for each slide.`;
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -280,7 +285,7 @@ Include a mix of multiple choice, true/false, and short answer questions.
 Provide the question, list of options (if applicable), correct answer, and a short explanation.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -333,7 +338,7 @@ Language: ${isArabic ? "Arabic" : "English"}
 Keep it practical, encouraging, and clear.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -390,7 +395,7 @@ Provide:
 3. Key recommendation/action item for next lesson`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",

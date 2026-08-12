@@ -29,6 +29,7 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
   const [questionCount] = useState(4);
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [generatedData, setGeneratedData] = useState<any | null>(null);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -37,14 +38,19 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!lessonTitle.trim()) return;
+    if (!lessonTitle.trim() || loading) return;
 
     setLoading(true);
     setSaved(false);
+    setError(null);
+
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 35000);
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      if (!token) throw new Error("Not authenticated with Supabase.");
+      if (!token) throw new Error("AUTH_ERROR");
 
       const endpoint = type === "quiz" ? "/api/gemini/quiz" : "/api/gemini/homework";
       const response = await fetch(endpoint, {
@@ -60,15 +66,40 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
           count: questionCount,
           difficulty: level,
         }),
+        signal: abortController.signal
       });
 
+      clearTimeout(timeoutId);
+
       const resJson = await response.json();
+      
+      if (!response.ok) {
+         if (response.status === 401 || response.status === 403) throw new Error("AUTH_ERROR");
+         if (response.status === 429) throw new Error("RATE_LIMITED");
+         throw new Error(resJson.error || "SERVER_ERROR");
+      }
+
       const output = resJson.data || resJson.quiz || resJson.homework;
       if (output) {
         setGeneratedData(output);
+      } else {
+        throw new Error("INVALID_RESPONSE");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error generating quiz/homework:", err);
+      clearTimeout(timeoutId);
+      
+      if (err.name === 'AbortError') {
+        setError(t("timeoutError") || "Generation is taking longer than expected. Please try again.");
+      } else if (err.message === "AUTH_ERROR") {
+        setError("Your session has expired. Please sign in again.");
+      } else if (err.message === "RATE_LIMITED") {
+        setError("Jaleela is temporarily busy. Please wait a moment and try again.");
+      } else if (err.message === "INVALID_RESPONSE" || err.message === "SERVER_ERROR") {
+        setError("Jaleela couldn't generate the content right now. Please try again.");
+      } else {
+        setError("We couldn't connect to Jaleela. Check your connection and try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -187,6 +218,13 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
                 </>
               )}
             </button>
+            
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 mt-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-xs text-center font-medium animate-fade-in">
+                {error}
+              </div>
+            )}
           </div>
         </form>
 

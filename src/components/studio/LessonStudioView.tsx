@@ -42,6 +42,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   const [customInstructions, setCustomInstructions] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [generatedPlan, setGeneratedPlan] = useState<AILessonPlan | null>(null);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -190,14 +191,19 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!topic.trim()) return;
+    if (!topic.trim() || loading) return;
 
     setLoading(true);
     setSaved(false);
+    setError(null);
+    
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => abortController.abort(), 35000); // 35 second timeout
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      if (!token) throw new Error("Not authenticated with Supabase.");
+      if (!token) throw new Error("AUTH_ERROR");
 
       const response = await fetch("/api/gemini/lesson-plan", {
         method: "POST",
@@ -213,17 +219,41 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
           language: explanationLanguage === "Arabic" ? "ar" : "en",
           customInstructions,
         }),
+        signal: abortController.signal
       });
 
+      clearTimeout(timeoutId);
+
       const resJson = await response.json();
+      
+      if (!response.ok) {
+         if (response.status === 401 || response.status === 403) throw new Error("AUTH_ERROR");
+         if (response.status === 429) throw new Error("RATE_LIMITED");
+         throw new Error(resJson.error || "SERVER_ERROR");
+      }
+
       const plan = resJson.data || resJson.lessonPlan;
       if (plan) {
         setGeneratedPlan(plan);
       } else {
         console.error("No plan returned:", resJson);
+        throw new Error("INVALID_RESPONSE");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error generating lesson plan:", err);
+      clearTimeout(timeoutId);
+      
+      if (err.name === 'AbortError') {
+        setError(language === "ar" ? "استغرق إنشاء الدرس وقتاً أطول من المتوقع. يرجى المحاولة مرة أخرى." : "The lesson is taking longer than expected. Please try again.");
+      } else if (err.message === "AUTH_ERROR") {
+        setError(language === "ar" ? "انتهت صلاحية الجلسة الخاصة بك. يرجى تسجيل الدخول مرة أخرى." : "Your session has expired. Please sign in again.");
+      } else if (err.message === "RATE_LIMITED") {
+        setError(language === "ar" ? "جليلة مشغولة حالياً. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى." : "Jaleela is temporarily busy. Please wait a moment and try again.");
+      } else if (err.message === "INVALID_RESPONSE" || err.message === "SERVER_ERROR") {
+        setError(language === "ar" ? "لم تتمكن جليلة من إنشاء الدرس الآن. يرجى المحاولة مرة أخرى." : "Jaleela couldn't generate the lesson right now. Please try again.");
+      } else {
+        setError(language === "ar" ? "لم نتمكن من الاتصال بجليلة. تحقق من اتصالك وحاول مرة أخرى." : "We couldn't connect to Jaleela. Check your connection and try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -424,6 +454,13 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                   </>
                 )}
               </button>
+
+              {/* Error Message */}
+              {error && (
+                <div className="p-3 mt-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-xs text-center font-medium animate-fade-in">
+                  {error}
+                </div>
+              )}
             </form>
           </div>
         </div>
