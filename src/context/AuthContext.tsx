@@ -80,7 +80,6 @@ useEffect(() => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user;
-      console.log("[Auth] Auth state changed. Session active:", Boolean(user));
       
       if (user) {
         const userWithUid: FirebaseUser = { ...user, uid: user.id } as FirebaseUser;
@@ -103,7 +102,6 @@ useEffect(() => {
   const loadProfile = async (user: FirebaseUser) => {
     try {
       setLoading(true);
-      console.log("[Auth] Supabase teacher lookup started.");
       
       sessionStorage.removeItem("islamroots_session_guest");
       localStorage.removeItem("islamroots_guest_teacher");
@@ -116,7 +114,6 @@ useEffect(() => {
       const isEmailUnverified = !isGoogleUser && !user.email_confirmed_at;
 
       if (isEmailUnverified) {
-        console.log("[Auth Boundary] User email is unverified. Skipping teacher profile creation, load, and workspace access.");
         setTeacher(null);
         setIsSuperAdminClaim(false);
         return;
@@ -126,16 +123,13 @@ useEffect(() => {
       
       let teacherData = null;
       if (data && !error) {
-        console.log("[Auth] Teacher lookup succeeded: Profile found in Supabase.");
         teacherData = data;
         // Synchronize email in teachers table if user email exists and differs
         if (user.email && teacherData.email !== user.email) {
           supabase.from("teachers").update({ email: user.email }).eq("id", user.id).then(() => {
-            console.log("[Auth] Updated teacher email in database to match auth email.");
           });
         }
       } else {
-         console.log("[Auth] Teacher lookup: No profile document found or error. Creating teacher profile in Supabase.");
          const initialDisplayName = user.user_metadata?.full_name || user.user_metadata?.name || (user.email ? user.email.split('@')[0] : "Ustadh");
          const fallbackTeacher = {
            id: user.id,
@@ -160,7 +154,6 @@ useEffect(() => {
            console.warn("[Auth] Upsert for teacher row failed. Code:", insertErr.code);
            throw insertErr;
          }
-         console.log("[Auth] Teacher profile row created/verified successfully in Supabase.");
          teacherData = insertData || fallbackTeacher;
       }
 
@@ -233,7 +226,6 @@ useEffect(() => {
       setIsSuperAdminClaim(false);
     } finally {
       setLoading(false);
-      console.log("[Auth] Final authentication state updated.");
     }
   };
 
@@ -315,7 +307,6 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       }
     }
 
-    console.log("[Auth] Supabase signInWithPassword succeeded.");
     return true;
   };
 
@@ -341,7 +332,6 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       console.warn("Silent signout failed during signup step");
     }
 
-    console.log("[AUTH_SIGNUP_REQUEST]");
 
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
@@ -359,14 +349,12 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       throw error;
     }
 
-    console.log("[AUTH_SIGNUP_SUCCESS]");
     return { user: data.user, session: data.session };
   };
 
   const resendVerificationEmail = async (email: string): Promise<void> => {
     if (!email) throw new Error("Email is required.");
     const normalizedEmail = email.trim().toLowerCase();
-    console.log("[AUTH_RESEND_REQUEST]");
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: normalizedEmail,
@@ -385,7 +373,6 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       console.warn("[AUTH_RESEND_ERROR] Code:", error?.code || error?.status);
       throw error;
     }
-    console.log("[AUTH_RESEND_SUCCESS]");
   };
 
   const checkEmailConfirmationStatus = async (): Promise<boolean> => {
@@ -400,13 +387,11 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       }
       const isConfirmed = Boolean(user.email_confirmed_at);
       if (isConfirmed) {
-        console.log("[AUTH_EMAIL_CONFIRMED]");
         const fbUser = { ...user, uid: user.id } as FirebaseUser;
         setFirebaseUser(fbUser);
         await loadProfile(fbUser);
         return true;
       }
-      console.log("[Auth] User email is unconfirmed on Supabase server.");
       return false;
     } catch (err) {
       console.warn("[Auth] checkEmailConfirmationStatus exception occurred.");
@@ -423,7 +408,6 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
   };
 
   const loginWithGoogle = async (): Promise<boolean> => {
-    console.log("[Auth] Google sign-in started. Redirect URL:", getRedirectUrl());
     if (!isSupabaseConfigured) {
       console.warn("[Auth] Supabase environment variables missing.");
       throw new Error("Authentication service is not configured. Please contact the administrator.");
@@ -438,7 +422,6 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
           }
         }
       });
-      console.log("[Auth] Google sign-in initiated successfully. Data:", data ? "OAuth URL generated" : "No data");
       if (error) {
         console.warn("[Auth] Google sign-in OAuth error. Status:", error.status, "Code:", error.code);
         throw error;
@@ -473,7 +456,8 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
           }
         },
         error_callback: (error: any) => {
-          reject(error);
+          console.error("[Google OAuth] Authorization failed. Type:", error?.type || "unknown");
+          reject(new Error("Google OAuth authorization failed."));
         },
       });
       client.requestAccessToken();
