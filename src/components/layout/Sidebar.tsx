@@ -96,7 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 space-y-2.5 my-2">
         {navItems.map((item) => {
           const isActive = currentSection === item.id;
           return (
@@ -104,19 +104,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
               key={item.id}
               id={`desktop-tour-nav-${item.id}`}
               onClick={() => onSelectSection(item.id)}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all duration-150 cursor-pointer ${
+              className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer ${
                 isActive
-                  ? "bg-[#E8E5DB] dark:bg-[#2A352A] text-[#3E4D3E] dark:text-[#E2E8E2] border-l-4 border-[#5A6B5A] font-semibold"
-                  : "text-[#7A7D75] dark:text-stone-400 hover:text-[#3E4D3E] dark:hover:text-[#E2E8E2] hover:bg-[#F2EFE6]/70 dark:hover:bg-[#232B23]"
+                  ? "bg-[#E8E5DB] dark:bg-[#2A352A] text-[#3E4D3E] dark:text-[#E2E8E2] border-l-4 border-[#5A6B5A] font-semibold shadow-xs"
+                  : "text-[#7A7D75] dark:text-stone-400 hover:text-[#3E4D3E] dark:hover:text-[#E2E8E2] hover:bg-[#F2EFE6]/80 dark:hover:bg-[#232B23]"
               }`}
             >
-              <div className="flex items-center gap-3">
-                <span className={`relative ${isActive ? "text-[#5A6B5A] dark:text-[#8BA888]" : "text-[#7A7D75] dark:text-stone-400"}`}>
+              <div className="flex items-center gap-3.5 min-w-0">
+                <span className={`relative shrink-0 ${isActive ? "text-[#5A6B5A] dark:text-[#8BA888]" : "text-[#7A7D75] dark:text-stone-400"}`}>
                   {item.icon}
                 </span>
-                <span>{t(item.labelKey)}</span>
+                <span className="truncate">{t(item.labelKey)}</span>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0 ml-2">
                 {item.badge && (
                   <span
                     className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${

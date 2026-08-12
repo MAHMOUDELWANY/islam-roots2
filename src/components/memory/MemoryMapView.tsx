@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useData } from "../../context/DataContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { SubjectType, MemoryMapNode } from "../../types";
-import { Network, CheckCircle2, Clock, AlertCircle, Lock } from "lucide-react";
+import { captureAndDownloadScreenshot } from "../../lib/screenshot";
+import { Network, CheckCircle2, Clock, AlertCircle, Lock, Camera } from "lucide-react";
 
 export const MemoryMapView: React.FC = () => {
   const { students, curriculums, studentCurriculums, memoryMapNodes, updateMemoryMapNode } = useData();
@@ -42,7 +43,7 @@ export const MemoryMapView: React.FC = () => {
   const progressPct = dynamicNodes.length > 0 ? Math.round((completedCount / dynamicNodes.length) * 100) : 0;
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12 font-sans">
+    <div id="memory-map-container" className="space-y-6 animate-fade-in pb-12 font-sans p-2">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -56,6 +57,20 @@ export const MemoryMapView: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() =>
+              captureAndDownloadScreenshot("memory-map-container", {
+                filename: `IslamRoots_MemoryMap_${activeCategory}.png`,
+                watermarkText: "IslamRoots Memory Map Visualization • https://islamroots.app",
+              })
+            }
+            className="px-3.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+            title="Take Screenshot of Memory Map (PNG)"
+          >
+            <Camera className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Save Screenshot</span>
+          </button>
+
           {activeStudents.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-[#7A7D75]">Student:</span>

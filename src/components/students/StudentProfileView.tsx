@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useData } from "../../context/DataContext";
 import { useLanguage } from "../../context/LanguageContext";
+import { captureAndDownloadScreenshot } from "../../lib/screenshot";
 import {
   ArrowLeft,
   BookOpen,
@@ -12,6 +13,7 @@ import {
   AlertCircle,
   Play,
   Calendar,
+  Camera,
 } from "lucide-react";
 
 interface StudentProfileViewProps {
@@ -69,17 +71,33 @@ export const StudentProfileView: React.FC<StudentProfileViewProps> = ({
           <span>{t("students")}</span>
         </button>
 
-        <button
-          onClick={() => onStartLesson(student.id)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer"
-        >
-          <Play className="w-3.5 h-3.5 fill-current" />
-          <span>{t("startLesson")}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() =>
+              captureAndDownloadScreenshot("student-profile-container", {
+                filename: `IslamRoots_StudentProfile_${student.name.replace(/\s+/g, "_")}.png`,
+                watermarkText: `IslamRoots Student Report: ${student.name} • https://islamroots.app`,
+              })
+            }
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition-all cursor-pointer shadow-xs"
+            title="Save Student Profile Screenshot (PNG)"
+          >
+            <Camera className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Screenshot Report</span>
+          </button>
+
+          <button
+            onClick={() => onStartLesson(student.id)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer"
+          >
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span>{t("startLesson")}</span>
+          </button>
+        </div>
       </div>
 
       {/* Student Profile Banner */}
-      <div className="p-6 sm:p-8 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-6">
+      <div id="student-profile-container" className="p-6 sm:p-8 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-6">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#5A6B5A] text-white font-serif font-bold text-2xl sm:text-3xl flex items-center justify-center shadow-xs shrink-0">

@@ -5,6 +5,7 @@ import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
 import { exportLessonToGoogleDoc } from "../../lib/googleDocs";
 import { exportLessonToGoogleSlides, createGoogleSlidesPresentation } from "../../lib/googleSlides";
+import { captureAndDownloadScreenshot } from "../../lib/screenshot";
 import { SubjectType, LevelType, AILessonPlan } from "../../types";
 import {
   Sparkles,
@@ -18,6 +19,11 @@ import {
   FileText,
   Presentation,
   ExternalLink,
+  Camera,
+  Search,
+  Trash2,
+  X,
+  FolderHeart,
 } from "lucide-react";
 
 interface LessonStudioViewProps {
@@ -26,7 +32,7 @@ interface LessonStudioViewProps {
 
 export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizModal }) => {
   const { t, language } = useLanguage();
-  const { saveAIContent } = useData();
+  const { saveAIContent, savedContents, deleteSavedAIContent } = useData();
   const { googleTokens, connectGoogleDocs, connectGoogleSlides } = useAuth();
 
   // Generator inputs
@@ -46,6 +52,12 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   const [generatedPlan, setGeneratedPlan] = useState<AILessonPlan | null>(null);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveToast, setSaveToast] = useState<string | null>(null);
+
+  // Saved Library Modal State
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [libraryFilter, setLibraryFilter] = useState<"all" | "lesson_plan" | "quiz" | "homework">("all");
+  const [librarySearch, setLibrarySearch] = useState("");
 
   // Google Docs & Slides export state
   const [isExportingDoc, setIsExportingDoc] = useState(false);
@@ -55,6 +67,38 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   const [isExportingSlides, setIsExportingSlides] = useState(false);
   const [createdSlidesLink, setCreatedSlidesLink] = useState<string | null>(null);
   const [slidesStatusMsg, setSlidesStatusMsg] = useState<string>("");
+
+  const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
+  const [screenshotStatusMsg, setScreenshotStatusMsg] = useState<string>("");
+
+  const handleTakeScreenshot = async () => {
+    if (!generatedPlan) return;
+    setIsCapturingScreenshot(true);
+    setScreenshotStatusMsg(
+      language === "ar" ? "جارٍ التقاط صورة الدرس..." : "Capturing lesson plan screenshot..."
+    );
+
+    try {
+      await captureAndDownloadScreenshot("lesson-plan-container", {
+        filename: `IslamRoots_Lesson_${topic.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, "_")}.png`,
+        watermarkText: "IslamRoots AI Educator Network • https://islamroots.app",
+        onSuccess: () => {
+          setScreenshotStatusMsg(
+            language === "ar" ? "تم تحميل صورة الدرس بنجاح!" : "Lesson screenshot downloaded successfully!"
+          );
+        },
+        onError: () => {
+          setScreenshotStatusMsg(
+            language === "ar" ? "فشل التقاط الصورة. حاول مرة أخرى." : "Failed to capture screenshot."
+          );
+        },
+      });
+    } catch (e) {
+      console.error("Screenshot error:", e);
+    } finally {
+      setIsCapturingScreenshot(false);
+    }
+  };
 
   const handleExportToGoogleSlides = async () => {
     if (!generatedPlan) return;
@@ -186,11 +230,18 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
         const result = await exportLessonToGoogleDoc(token, {
           title: topic,
           subject,
+          level,
+          lessonGoal: generatedPlan.lessonGoal,
           description: generatedPlan.lessonGoal,
-          notes: `${keyPointsText || ""}\n\nVocabulary:\n${vocabText || ""}`,
-          homework: generatedPlan.teachingTips
-            ? `Tips: ${generatedPlan.teachingTips.whatToEmphasize}`
-            : undefined,
+          warmup: generatedPlan.warmup,
+          keyPoints: generatedPlan.keyPoints,
+          vocabulary: generatedPlan.vocabulary,
+          questionsToAsk: generatedPlan.questionsToAsk,
+          examples: generatedPlan.examples,
+          miniActivity: generatedPlan.miniActivity,
+          quickQuiz: generatedPlan.quickQuiz,
+          homework: generatedPlan.homework,
+          teachingTips: generatedPlan.teachingTips,
         });
 
         setCreatedDocLink(result.webViewLink);
@@ -309,7 +360,8 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
         content: generatedPlan,
       });
       setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      setSaveToast("Saved to your Saved Library! Click 'Saved Library' at the top anytime to view, re-export, or manage.");
+      setTimeout(() => setSaveToast(null), 5000);
     } catch (err) {
       console.error("Error saving lesson plan:", err);
     }
@@ -318,22 +370,40 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in pb-12 font-sans">
       {/* Header Banner */}
-      <div className="p-6 sm:p-8 rounded-xl bg-[#2D332D] text-[#E2E8E2] shadow-soft space-y-2 border border-[#3E4D3E]">
-        <div className="flex items-center gap-2">
-          <span className="p-2 rounded-lg bg-white/10 backdrop-blur-xs">
-            <Sparkles className="w-5 h-5 text-[#8BA888]" />
-          </span>
-          <span className="text-xs font-semibold uppercase tracking-wider text-[#8BA888]">
-            Jalilah AI Assistant | المساعد الذكي جليلة
-          </span>
+      <div className="p-6 sm:p-8 rounded-xl bg-[#2D332D] text-[#E2E8E2] shadow-soft space-y-3 border border-[#3E4D3E] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-lg bg-white/10 backdrop-blur-xs">
+              <Sparkles className="w-5 h-5 text-[#8BA888]" />
+            </span>
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#8BA888]">
+              Jalilah AI Assistant | المساعد الذكي جليلة
+            </span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-serif italic font-bold">
+            {t("aiLessonStudio")}
+          </h2>
+          <p className="text-xs sm:text-sm text-stone-300 max-w-2xl font-sans">
+            {t("aiStudioSubtitle")}
+          </p>
         </div>
-        <h2 className="text-xl sm:text-2xl font-serif italic font-bold">
-          {t("aiLessonStudio")}
-        </h2>
-        <p className="text-xs sm:text-sm text-stone-300 max-w-2xl font-sans">
-          {t("aiStudioSubtitle")}
-        </p>
+
+        <button
+          onClick={() => setIsLibraryOpen(true)}
+          className="px-4 py-2.5 rounded-lg bg-[#8BA888] hover:bg-[#789675] text-[#1C221C] font-bold text-xs shadow-md transition-all cursor-pointer flex items-center gap-2 shrink-0 self-start sm:self-center"
+        >
+          <FolderHeart className="w-4 h-4 text-[#1C221C]" />
+          <span>Saved Library ({savedContents.length})</span>
+        </button>
       </div>
+
+      {/* Save Toast Notification */}
+      {saveToast && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-xs font-medium text-center animate-fade-in flex items-center justify-center gap-2 shadow-xs">
+          <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span>{saveToast}</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Generator Controls Panel (5 cols) */}
@@ -513,7 +583,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
               </p>
             </div>
           ) : (
-            <div className="p-6 sm:p-8 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-6 animate-fade-in">
+            <div id="lesson-plan-container" className="p-6 sm:p-8 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-6 animate-fade-in">
               {/* Header Bar */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E8E5DB] dark:border-[#2A352A]">
                 <div className="space-y-1">
@@ -533,14 +603,28 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
 
                 <div className="flex flex-wrap items-center gap-2">
                   <button
+                    onClick={handleTakeScreenshot}
+                    disabled={isCapturingScreenshot}
+                    className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+                    title={language === "ar" ? "التقاط صورة للدرس (PNG)" : "Take Lesson Screenshot (PNG)"}
+                  >
+                    {isCapturingScreenshot ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                    ) : (
+                      <Camera className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    )}
+                    <span>{language === "ar" ? "حفظ كصورة" : "Screenshot"}</span>
+                  </button>
+
+                  <button
                     onClick={handleExportToGoogleDoc}
                     disabled={isExportingDoc}
-                    className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-100 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+                    className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     {isExportingDoc ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#5A6B5A]" />
                     ) : (
-                      <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <FileText className="w-3.5 h-3.5 text-[#5A6B5A] dark:text-[#8BA888]" />
                     )}
                     <span>{language === "ar" ? "تصدير إلى Docs" : "Export Doc"}</span>
                   </button>
@@ -586,9 +670,9 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
 
               {/* Google Docs Status Banner */}
               {docStatusMsg && (
-                <div className="p-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-xs font-semibold text-blue-800 dark:text-blue-300 flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-xs font-semibold text-emerald-900 dark:text-emerald-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <FileText className="w-4 h-4 text-[#5A6B5A] dark:text-[#8BA888]" />
                     <span>{docStatusMsg}</span>
                   </div>
                   {createdDocLink && (
@@ -596,7 +680,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                       href={createdDocLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-600 text-white text-[11px] font-bold hover:bg-blue-700 transition-all"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#5A6B5A] text-white text-[11px] font-bold hover:bg-[#495749] transition-all"
                     >
                       <span>{language === "ar" ? "فتح المستند" : "Open Google Doc"}</span>
                       <ExternalLink className="w-3 h-3" />
@@ -623,6 +707,16 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
+                </div>
+              )}
+
+              {/* Screenshot Status Banner */}
+              {screenshotStatusMsg && (
+                <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-xs font-semibold text-emerald-900 dark:text-emerald-300 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>{screenshotStatusMsg}</span>
+                  </div>
                 </div>
               )}
 
@@ -692,6 +786,139 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
           )}
         </div>
       </div>
+
+      {/* Saved Library Modal */}
+      {isLibraryOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1C221C]/60 backdrop-blur-xs animate-fade-in font-sans">
+          <div className="relative w-full max-w-4xl rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft overflow-hidden p-6 space-y-6 max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-[#E8E5DB] dark:border-[#2A352A] shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] text-[#5A6B5A] border border-[#E8E5DB] dark:border-[#2A352A]">
+                  <FolderHeart className="w-5 h-5 text-[#5A6B5A]" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2]">
+                    Saved Library
+                  </h3>
+                  <p className="text-xs text-[#7A7D75] dark:text-stone-400">
+                    Your saved AI Lesson Plans, Quizzes, and Homework assessments ({savedContents.length} saved).
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsLibraryOpen(false)}
+                className="p-2 rounded-lg text-[#7A7D75] hover:text-[#2D332D] dark:hover:text-[#E2E8E2] transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-1.5 p-1 bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] rounded-lg w-full sm:w-auto">
+                {(["all", "lesson_plan", "quiz", "homework"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setLibraryFilter(f)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-semibold capitalize transition-all cursor-pointer ${
+                      libraryFilter === f
+                        ? "bg-[#5A6B5A] text-white shadow-xs"
+                        : "text-[#7A7D75] hover:text-[#2D332D] dark:hover:text-[#E2E8E2]"
+                    }`}
+                  >
+                    {f === "all" ? "All Items" : f.replace("_", " ")}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <Search className="w-4 h-4 text-[#7A7D75] absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Search saved items..."
+                  value={librarySearch}
+                  onChange={(e) => setLibrarySearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-xs text-[#1F261F] dark:text-[#E2E8E2] focus:outline-none focus:border-[#5A6B5A]"
+                />
+              </div>
+            </div>
+
+            {/* Saved Items List */}
+            <div className="space-y-3 overflow-y-auto pr-1 flex-1">
+              {savedContents.length === 0 ? (
+                <div className="p-12 text-center rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] text-stone-500 space-y-2">
+                  <Bookmark className="w-8 h-8 text-[#5A6B5A] mx-auto opacity-40" />
+                  <p className="text-sm font-semibold text-[#1F261F] dark:text-[#E2E8E2]">No saved items yet</p>
+                  <p className="text-xs text-[#7A7D75]">
+                    Generate a lesson plan, quiz, or homework, then click "Save" to keep it in your library!
+                  </p>
+                </div>
+              ) : (
+                savedContents
+                  .filter((item) => libraryFilter === "all" || item.type === libraryFilter)
+                  .filter(
+                    (item) =>
+                      item.title.toLowerCase().includes(librarySearch.toLowerCase()) ||
+                      item.type.toLowerCase().includes(librarySearch.toLowerCase())
+                  )
+                  .map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-4 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-[#5A6B5A] transition-all"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-md bg-[#E8E5DB] dark:bg-[#2A352A] text-[10px] font-bold uppercase tracking-wider text-[#3E4D3E] dark:text-[#8BA888]">
+                            {item.type.replace("_", " ")}
+                          </span>
+                          <span className="text-[11px] text-[#7A7D75]">
+                            {new Date(item.createdAt).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        </div>
+                        <h4 className="font-serif font-bold text-sm text-[#1F261F] dark:text-[#E2E8E2]">
+                          {item.title}
+                        </h4>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {item.type === "lesson_plan" && (
+                          <button
+                            onClick={() => {
+                              setGeneratedPlan(item.content);
+                              setTopic(item.title);
+                              setIsLibraryOpen(false);
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <BookOpen className="w-3.5 h-3.5" />
+                            <span>Load Plan</span>
+                          </button>
+                        )}
+
+                        <button
+                          onClick={async () => {
+                            if (window.confirm(`Delete "${item.title}" from your library?`)) {
+                              await deleteSavedAIContent(item.id);
+                            }
+                          }}
+                          className="p-2 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-600 hover:bg-red-100 transition-all cursor-pointer"
+                          title="Delete from Library"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

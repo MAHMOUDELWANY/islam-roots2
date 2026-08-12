@@ -358,9 +358,9 @@ export const AdminDashboard: React.FC = () => {
 
         {/* Total Curriculums */}
         <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-2">
-          <div className="flex items-center justify-between text-blue-600 dark:text-blue-400">
+          <div className="flex items-center justify-between text-[#5A6B5A] dark:text-[#8BA888]">
             <BookOpen className="w-5 h-5" />
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300">
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300">
               Plans
             </span>
           </div>

@@ -355,17 +355,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
 
                 {/* Card 3: Memory Detective Quiz */}
                 <div className="p-4 rounded-2xl bg-[#FCFAF5] dark:bg-[#1C251D] border border-[#E8E5DB] dark:border-[#2A352A] space-y-2">
-                  <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                  <div className="flex items-center gap-2 text-[#5A6B5A] dark:text-[#8BA888]">
                     <Search className="w-4 h-4" />
                     <span className="text-xs font-bold uppercase tracking-wider">
                       {isRTL ? "مكتشف حفظ القرآن" : "Memory Detective"}
                     </span>
                   </div>
-                  <p className="text-xs text-[#2D332D] dark:text-stone-300">
-                    Q: Complete Ayah: «وَٱﻟﺸَّﻤْﺲِ وَﺿُﺤَﻯٰﻫَﺎ ...»
+                  <p className="text-xs text-[#2D332D] dark:text-stone-300 font-serif leading-relaxed dir-rtl">
+                    س: أْكْمِلِ الآيَةَ: «وَالشَّمْسِ وَضُحَاهَا ...»
                   </p>
-                  <div className="p-2 rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold">
-                    Correct: «وَٱﻟْﻘَﻤَرِ إِذَا ﺗَﻠَﻯٰﻫَﺎ»
+                  <div className="p-2 rounded bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold font-serif dir-rtl">
+                    الصَّحِيحُ: «وَالْقَمَرِ إِذَا تَلَاهَا»
                   </div>
                 </div>
               </div>
@@ -424,7 +424,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
 
             {/* Target 3 */}
             <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 hover:border-[#5A6B5A] transition-all group">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 rounded-xl bg-[#5A6B5A]/10 text-[#5A6B5A] dark:text-[#8BA888] flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Users className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2]">
@@ -475,7 +475,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
 
             {/* Feature 2 */}
             <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-3">
-              <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 w-fit">
+              <div className="p-3 rounded-xl bg-[#5A6B5A]/10 text-[#5A6B5A] dark:text-[#8BA888] w-fit">
                 <Search className="w-5 h-5" />
               </div>
               <h3 className="font-serif font-bold text-base text-[#1F261F] dark:text-[#E2E8E2]">
@@ -680,21 +680,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
                   exit={{ opacity: 0, y: -10 }}
                   className="w-full space-y-4 text-left rtl:text-right"
                 >
-                  <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                  <div className="flex items-center gap-2 text-[#5A6B5A] dark:text-[#8BA888]">
                     <Search className="w-5 h-5" />
                     <h4 className="font-serif font-bold text-lg text-[#1F261F] dark:text-[#E2E8E2]">
                       {isRTL ? "مكتشف الحفظ التفاعلي" : "Quran Memory Detective Challenge"}
                     </h4>
                   </div>
-                  <div className="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 space-y-2">
-                    <p className="text-xs font-bold text-blue-900 dark:text-blue-200">
+                  <div className="p-4 rounded-xl bg-[#F2EFE6] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-2">
+                    <p className="text-xs font-bold text-[#3E4D3E] dark:text-[#8BA888]">
                       Surah Al-Mulk (Aya 1 to 5 Test)
                     </p>
-                    <p className="text-xs text-stone-700 dark:text-stone-300">
-                      Prompt: «ٱﻟَّﺬِﻯ ﺧَﻠَﻖَ ٱﻟْﻤَﻮْتَ وَٱﻟْﺤَﻴَﻮٰةَ لِيَبْلُوَكُمْ أَيُّكُمْ ...»
+                    <p className="text-xs text-stone-700 dark:text-stone-300 font-serif dir-rtl leading-relaxed">
+                      السُّؤَالُ: «الَّذِي خَلَقَ الْمَوْتَ وَالْحَيَاةَ لِيَبْلُوَكُمْ أَيُّكُمْ ...»
                     </p>
-                    <span className="inline-block px-2.5 py-1 rounded bg-blue-600 text-white text-[11px] font-bold">
-                      Correct Answer: «أَحْسَنُ عَمَلًا»
+                    <span className="inline-block px-2.5 py-1 rounded bg-[#5A6B5A] text-white text-[11px] font-bold font-serif">
+                      الإِجَابَةُ الصَّحِيحَةُ: «أَحْسَنُ عَمَلًا»
                     </span>
                   </div>
                 </motion.div>

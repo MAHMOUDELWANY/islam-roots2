@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
+  <defs>
+    <!-- Foliage / Green Text Gradient -->
+    <linearGradient id="green-grad-trans" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D6A3E" />
+      <stop offset="100%" stop-color="#1E482A" />
+    </linearGradient>
+
+    <!-- Wood Trunk & Root Gradient -->
+    <linearGradient id="wood-grad-trans" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#8B5A2B" />
+      <stop offset="100%" stop-color="#583718" />
+    </linearGradient>
+  </defs>
+
+  <!-- 1. CRESCENT MOON (Top Center) -->
+  <g transform="translate(300, 75)">
+    <path d="M -2, -28 A 26,26 0 1,0 28, 4 A 20,20 0 1,1 -2, -28 Z" fill="#8B5A2B" />
+  </g>
+
+  <!-- 2. "Islam" CALLIGRAPHIC TEXT (Upper Row) -->
+  <g fill="url(#green-grad-trans)" stroke="url(#green-grad-trans)" stroke-linejoin="round" stroke-linecap="round">
+    <!-- 'I' -->
+    <path d="M 175,130 C 190,120 200,140 195,170 C 190,195 180,215 170,230 C 165,238 175,242 182,235 C 195,220 205,190 210,165" stroke-width="8" fill="none" />
+    
+    <!-- 's' -->
+    <path d="M 215,195 C 225,180 245,185 240,202 C 235,218 215,220 225,235 C 235,245 255,235 260,225" stroke-width="7" fill="none" />
+    
+    <!-- 'l' -->
+    <path d="M 268,125 C 278,120 285,135 282,170 C 278,210 272,235 285,232 C 295,230 305,215 310,200" stroke-width="8" fill="none" />
+    
+    <!-- 'a' -->
+    <path d="M 315,208 C 305,200 295,215 305,228 C 315,238 330,225 332,210 C 334,195 320,190 315,208 Z" stroke-width="6" fill="url(#green-grad-trans)" />
+    <path d="M 330,210 C 335,220 340,232 348,230 C 355,228 360,218 365,205" stroke-width="7" fill="none" />
+
+    <!-- 'm' -->
+    <path d="M 368,205 C 375,195 388,198 385,215 C 382,228 380,235 388,232 C 395,228 405,200 415,198 C 425,196 430,210 425,228 C 420,240 435,235 445,220" stroke-width="7" fill="none" />
+  </g>
+
+  <!-- 3. "Roots" CALLIGRAPHIC TEXT (Lower Row) & BRAIDED TRUNK -->
+  <!-- 'R' -->
+  <path d="M 125,270 C 130,250 160,245 180,260 C 198,275 185,305 160,305 L 140,305 M 140,250 L 132,380 C 130,398 148,395 158,382 M 160,305 C 175,335 195,370 215,385" fill="none" stroke="url(#green-grad-trans)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- 'o' Left Loop -->
+  <path d="M 220,335 C 205,320 205,365 225,365 C 245,365 245,320 220,335 Z" fill="none" stroke="url(#green-grad-trans)" stroke-width="8" stroke-linecap="round" />
+
+  <!-- 'o' Right Loop / Intertwined Double Ribbon forming Trunk -->
+  <path d="M 300,270 C 270,270 260,300 280,325 C 295,345 320,335 340,300 C 355,270 380,275 390,300 C 400,325 385,355 360,360 C 340,365 330,380 345,395" fill="none" stroke="url(#green-grad-trans)" stroke-width="8" stroke-linecap="round" />
+
+  <!-- 't' -->
+  <path d="M 405,260 L 398,360 C 396,380 415,380 428,365 M 385,300 L 425,295" fill="none" stroke="url(#green-grad-trans)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- 's' -->
+  <path d="M 435,345 C 445,320 472,325 465,345 C 458,365 485,368 492,345" fill="none" stroke="url(#green-grad-trans)" stroke-width="8" stroke-linecap="round" />
+
+  <!-- 4. BRAIDED TREE TRUNK -->
+  <g fill="none" stroke="url(#wood-grad-trans)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 285,310 C 320,340 270,380 305,420 C 320,438 290,465 300,490" stroke-width="12" />
+    <path d="M 315,310 C 280,340 330,380 295,420 C 280,438 310,465 300,490" stroke-width="12" />
+    <path d="M 300,350 C 275,375 325,400 300,430" stroke-width="8" />
+  </g>
+
+  <!-- 5. ORGANIC TREE ROOTS -->
+  <g fill="none" stroke="url(#wood-grad-trans)" stroke-linecap="round">
+    <path d="M 300,470 C 250,490 180,500 130,550" stroke-width="12" />
+    <path d="M 300,470 C 350,490 420,500 470,550" stroke-width="12" />
+
+    <path d="M 300,485 C 230,510 160,525 100,570" stroke-width="9" />
+    <path d="M 300,485 C 370,510 440,525 500,570" stroke-width="9" />
+
+    <path d="M 300,500 C 270,520 220,540 180,580" stroke-width="7" />
+    <path d="M 300,500 C 330,520 380,540 420,580" stroke-width="7" />
+
+    <path d="M 210,510 C 180,530 140,545 110,580" stroke-width="5" />
+    <path d="M 390,510 C 420,530 460,545 490,580" stroke-width="5" />
+
+    <path d="M 150,530 C 120,545 90,560 65,585" stroke-width="4" />
+    <path d="M 450,530 C 480,545 510,560 535,585" stroke-width="4" />
+
+    <path d="M 260,535 C 240,555 210,570 190,590" stroke-width="4" />
+    <path d="M 340,535 C 360,555 390,570 410,590" stroke-width="4" />
+  </g>
+</svg>

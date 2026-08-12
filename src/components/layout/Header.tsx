@@ -53,49 +53,16 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Action Bar */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Quick Schedule Button */}
-          {onOpenSchedule && (
-            <button
-              onClick={onOpenSchedule}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#E8E5DB] dark:bg-[#232B23] hover:bg-[#D4D1C5] dark:hover:bg-[#2A352A] text-[#3E4D3E] dark:text-stone-200 text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer border border-[#D4D1C5] dark:border-[#2A352A]"
-            >
-              <Calendar className="w-3.5 h-3.5 text-[#5A6B5A] dark:text-[#8BA888]" />
-              <span>{t("schedule")}</span>
-            </button>
-          )}
-
-          {/* Quick Add Student Button */}
-          {onOpenAddStudent && (
-            <button
-              onClick={onOpenAddStudent}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>{t("addStudent")}</span>
-            </button>
-          )}
-
           {/* Jalilah Guide Tour Button */}
           {onOpenTour && (
             <button
               id="tour-jalilah-guide"
               onClick={onOpenTour}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] hover:bg-[#F2EFE6] dark:hover:bg-[#2A352A] text-[#8B5A2B] dark:text-[#C49A6C] text-xs font-bold border border-[#D4D1C5] dark:border-[#2A352A] shadow-xs transition-all active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] hover:bg-[#F2EFE6] dark:hover:bg-[#2A352A] text-[#8B5A2B] dark:text-[#C49A6C] text-xs font-bold border border-[#D4D1C5] dark:border-[#2A352A] shadow-xs transition-all active:scale-95 cursor-pointer"
               title={t("jalilahGuideTitle")}
             >
               <Sparkles className="w-3.5 h-3.5 text-[#8B5A2B] dark:text-[#C49A6C]" />
               <span className="hidden sm:inline">{t("jalilahGuide")}</span>
-            </button>
-          )}
-
-          {/* Quick AI Lesson Button */}
-          {onOpenNewLesson && (
-            <button
-              onClick={onOpenNewLesson}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#8B5A2B] hover:bg-[#724822] text-white text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{t("lessonStudio")}</span>
             </button>
           )}
 

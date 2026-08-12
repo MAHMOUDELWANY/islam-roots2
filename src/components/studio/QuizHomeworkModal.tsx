@@ -3,7 +3,8 @@ import React, { useState } from "react";
 import { SubjectType, LevelType } from "../../types";
 import { useLanguage } from "../../context/LanguageContext";
 import { useData } from "../../context/DataContext";
-import { X, FileQuestion, Sparkles, Loader2, CheckCircle2, Copy, Check, Bookmark } from "lucide-react";
+import { captureAndDownloadScreenshot } from "../../lib/screenshot";
+import { X, FileQuestion, Sparkles, Loader2, CheckCircle2, Copy, Check, Bookmark, Camera } from "lucide-react";
 
 interface QuizHomeworkModalProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
   const [lessonTitle, setLessonTitle] = useState(initialLessonTitle || "Rule of Noon Sakinah & Tanween");
   const [subject] = useState<SubjectType>(initialSubject || "Tajweed");
   const [level, setLevel] = useState<LevelType>("Beginner");
-  const [questionCount] = useState(4);
+  const [questionCount, setQuestionCount] = useState<number>(10);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +35,27 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Interactive Quiz State
+  const [quizMode, setQuizMode] = useState<"interactive" | "teacher">("interactive");
+  const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
+  const [saveNotification, setSaveNotification] = useState<string | null>(null);
+
   if (!isOpen) return null;
+
+  const handleOptionSelect = (qIdx: number, option: string) => {
+    setUserAnswers((prev) => ({ ...prev, [qIdx]: option }));
+  };
+
+  const calculateScore = () => {
+    if (!generatedData?.questions) return { score: 0, total: 0 };
+    let score = 0;
+    generatedData.questions.forEach((q: any, idx: number) => {
+      if (userAnswers[idx] === q.correctAnswer) {
+        score++;
+      }
+    });
+    return { score, total: generatedData.questions.length };
+  };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,7 +169,8 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
         content: generatedData,
       });
       setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      setSaveNotification("Saved to your Saved Library! Open 'Saved Library' at the top of Studio to view anytime.");
+      setTimeout(() => setSaveNotification(null), 5000);
     } catch (e) {
       console.error("Failed to save AI content:", e);
     }
@@ -156,7 +178,7 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1C221C]/60 backdrop-blur-xs animate-fade-in font-sans">
-      <div className="relative w-full max-w-2xl rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft overflow-hidden p-6 space-y-6 max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-3xl rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft overflow-hidden p-6 space-y-6 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-[#E8E5DB] dark:border-[#2A352A]">
           <div className="flex items-center gap-2.5">
@@ -168,7 +190,7 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
                 {type === "quiz" ? t("generateQuiz") : t("generateHomework")}
               </h3>
               <p className="text-xs text-[#7A7D75] dark:text-stone-400">
-                AI-powered assessment generator with answer key & explanations.
+                Interactive student test generator with instant feedback & explanations.
               </p>
             </div>
           </div>
@@ -180,8 +202,16 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
           </button>
         </div>
 
+        {/* Save Notification Banner */}
+        {saveNotification && (
+          <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-xs font-medium text-center animate-fade-in flex items-center justify-center gap-2">
+            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{saveNotification}</span>
+          </div>
+        )}
+
         {/* Form Controls */}
-        <form onSubmit={handleGenerate} className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-sans">
+        <form onSubmit={handleGenerate} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs font-sans">
           <div className="sm:col-span-2 space-y-1">
             <label className="font-semibold text-[#2D332D] dark:text-[#E2E8E2]">
               {t("lessonTopic")}
@@ -210,7 +240,22 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
             </select>
           </div>
 
-          <div className="sm:col-span-3 pt-2">
+          <div className="space-y-1">
+            <label className="font-semibold text-[#2D332D] dark:text-[#E2E8E2]">
+              Questions Count
+            </label>
+            <select
+              value={questionCount}
+              onChange={(e) => setQuestionCount(Number(e.target.value))}
+              className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] font-medium focus:outline-none focus:border-[#5A6B5A]"
+            >
+              <option value={5}>5 Questions</option>
+              <option value={10}>10 Questions (Recommended)</option>
+              <option value={15}>15 Questions</option>
+            </select>
+          </div>
+
+          <div className="sm:col-span-4 pt-1">
             <button
               type="submit"
               disabled={loading}
@@ -219,12 +264,12 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Generating Questions...</span>
+                  <span>Generating Interactive Assessment ({questionCount} Questions)...</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4 text-amber-200" />
-                  <span>Generate Questions Now</span>
+                  <span>Generate {questionCount} Interactive Questions Now</span>
                 </>
               )}
             </button>
@@ -240,18 +285,68 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
 
         {/* Output */}
         {generatedData && (
-          <div className="space-y-4 pt-4 border-t border-[#E8E5DB] dark:border-[#2A352A] animate-fade-in">
-            <div className="flex items-center justify-between">
-              <h4 className="font-serif font-bold text-sm text-[#1F261F] dark:text-[#E2E8E2]">
-                {generatedData.title || lessonTitle}
-              </h4>
+          <div id="quiz-homework-container" className="space-y-4 pt-4 border-t border-[#E8E5DB] dark:border-[#2A352A] animate-fade-in p-4 rounded-xl bg-white dark:bg-[#161D17]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E8E5DB] dark:border-[#2A352A]">
+              <div>
+                <h4 className="font-serif font-bold text-base text-[#1F261F] dark:text-[#E2E8E2]">
+                  {generatedData.title || lessonTitle}
+                </h4>
+                {generatedData.questions && (
+                  <p className="text-xs text-[#7A7D75] dark:text-stone-400">
+                    {Object.keys(userAnswers).length} of {generatedData.questions.length} Answered
+                  </p>
+                )}
+              </div>
+
+              {type === "quiz" && (
+                <div className="flex items-center gap-1.5 p-1 bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] rounded-lg">
+                  <button
+                    onClick={() => setQuizMode("interactive")}
+                    className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                      quizMode === "interactive"
+                        ? "bg-[#5A6B5A] text-white shadow-xs"
+                        : "text-[#7A7D75] hover:text-[#2D332D] dark:hover:text-[#E2E8E2]"
+                    }`}
+                  >
+                    🎮 Student Interactive Test
+                  </button>
+                  <button
+                    onClick={() => setQuizMode("teacher")}
+                    className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                      quizMode === "teacher"
+                        ? "bg-[#5A6B5A] text-white shadow-xs"
+                        : "text-[#7A7D75] hover:text-[#2D332D] dark:hover:text-[#E2E8E2]"
+                    }`}
+                  >
+                    📋 Teacher Answer Key
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() =>
+                    captureAndDownloadScreenshot("quiz-homework-container", {
+                      filename: `IslamRoots_${type}_${lessonTitle.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, "_")}.png`,
+                      watermarkText: `IslamRoots ${type.toUpperCase()} Card • https://islamroots.app`,
+                    })
+                  }
+                  className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+                  title="Take Screenshot (PNG)"
+                >
+                  <Camera className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Screenshot</span>
+                </button>
+                <button
                   onClick={handleSaveToFirestore}
-                  className="px-3 py-1.5 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] text-[#2D332D] dark:text-[#E2E8E2] hover:bg-[#F2EFE6] text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    saved
+                      ? "bg-emerald-100 dark:bg-emerald-900/50 border-emerald-300 text-emerald-800 dark:text-emerald-200"
+                      : "bg-[#FCFAF5] dark:bg-[#232B23] border-[#E8E5DB] text-[#2D332D] dark:text-[#E2E8E2] hover:bg-[#F2EFE6]"
+                  }`}
                 >
                   <Bookmark className="w-3.5 h-3.5 text-[#5A6B5A]" />
-                  <span>{saved ? "Saved!" : "Save"}</span>
+                  <span>{saved ? "Saved in Library ✓" : "Save"}</span>
                 </button>
                 <button
                   onClick={handleCopyText}
@@ -263,45 +358,142 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
               </div>
             </div>
 
-            {generatedData.questions && (
-              <div className="space-y-3 font-sans">
-                {generatedData.questions.map((q: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] text-xs space-y-2"
-                  >
-                    <p className="font-semibold text-[#1F261F] dark:text-[#E2E8E2]">
-                      {idx + 1}. {q.question}
-                    </p>
-
-                    {q.options && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                        {q.options.map((opt: string, oIdx: number) => {
-                          const isCorrect = opt === q.correctAnswer;
-                          return (
-                            <div
-                              key={oIdx}
-                              className={`p-2 rounded-lg border text-xs font-medium flex items-center justify-between ${
-                                isCorrect
-                                  ? "bg-white dark:bg-[#161D17] border-[#5A6B5A] text-[#3E4D3E] dark:text-[#8BA888] font-semibold"
-                                  : "bg-white dark:bg-[#161D17] border-[#E8E5DB] dark:border-[#2A352A] text-[#2D332D] dark:text-[#E2E8E2]"
-                              }`}
-                            >
-                              <span>
-                                [{String.fromCharCode(65 + oIdx)}] {opt}
-                              </span>
-                              {isCorrect && <CheckCircle2 className="w-3.5 h-3.5 text-[#5A6B5A]" />}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    <p className="text-[11px] text-[#7A7D75] italic pt-1 border-t border-[#E8E5DB] dark:border-[#2A352A]">
-                      Correct: {q.correctAnswer} — Explanation: {q.explanation}
-                    </p>
+            {/* Score Summary Bar in Interactive Mode */}
+            {type === "quiz" && quizMode === "interactive" && generatedData.questions && (
+              <div className="p-3.5 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-[#1F261F] dark:text-[#E2E8E2]">
+                    Score: {calculateScore().score} / {calculateScore().total}
+                  </span>
+                  <div className="w-32 h-2.5 rounded-full bg-[#E8E5DB] dark:bg-[#2A352A] overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-600 transition-all duration-300"
+                      style={{
+                        width: `${calculateScore().total > 0 ? (calculateScore().score / calculateScore().total) * 100 : 0}%`,
+                      }}
+                    />
                   </div>
-                ))}
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                    {calculateScore().total > 0
+                      ? `${Math.round((calculateScore().score / calculateScore().total) * 100)}%`
+                      : "0%"}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => setUserAnswers({})}
+                  className="text-xs font-medium text-[#5A6B5A] hover:underline cursor-pointer"
+                >
+                  Reset / Retake Quiz
+                </button>
+              </div>
+            )}
+
+            {/* Questions List */}
+            {generatedData.questions && (
+              <div className="space-y-4 font-sans">
+                {generatedData.questions.map((q: any, idx: number) => {
+                  const selectedOpt = userAnswers[idx];
+                  const hasAnswered = selectedOpt !== undefined;
+
+                  return (
+                    <div
+                      key={idx}
+                      className="p-4.5 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] text-xs space-y-3 shadow-2xs"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="font-bold text-sm text-[#1F261F] dark:text-[#E2E8E2]">
+                          {idx + 1}. {q.question}
+                        </p>
+                        {quizMode === "interactive" && hasAnswered && (
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 ${
+                              selectedOpt === q.correctAnswer
+                                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
+                            }`}
+                          >
+                            {selectedOpt === q.correctAnswer ? "✓ Correct!" : "✗ Incorrect"}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Options */}
+                      {q.options && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                          {q.options.map((opt: string, oIdx: number) => {
+                            const isCorrectOpt = opt === q.correctAnswer;
+                            const isSelected = selectedOpt === opt;
+
+                            if (quizMode === "interactive") {
+                              let optionStyle =
+                                "bg-white dark:bg-[#161D17] border-[#E8E5DB] dark:border-[#2A352A] text-[#2D332D] dark:text-[#E2E8E2] hover:border-[#5A6B5A]";
+
+                              if (hasAnswered) {
+                                if (isCorrectOpt) {
+                                  optionStyle =
+                                    "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-bold ring-1 ring-emerald-500";
+                                } else if (isSelected && !isCorrectOpt) {
+                                  optionStyle =
+                                    "bg-rose-50 dark:bg-rose-950/60 border-rose-400 text-rose-900 dark:text-rose-200 font-semibold";
+                                } else {
+                                  optionStyle =
+                                    "bg-white dark:bg-[#161D17] border-[#E8E5DB] dark:border-[#2A352A] opacity-60";
+                                }
+                              }
+
+                              return (
+                                <button
+                                  key={oIdx}
+                                  type="button"
+                                  onClick={() => handleOptionSelect(idx, opt)}
+                                  className={`p-3 rounded-lg border text-xs font-medium text-left flex items-center justify-between transition-all cursor-pointer ${optionStyle}`}
+                                >
+                                  <span>
+                                    <strong className="mr-1.5">[{String.fromCharCode(65 + oIdx)}]</strong>
+                                    {opt}
+                                  </span>
+                                  {hasAnswered && isCorrectOpt && (
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                  )}
+                                </button>
+                              );
+                            } else {
+                              // Teacher Answer Key Mode
+                              return (
+                                <div
+                                  key={oIdx}
+                                  className={`p-2.5 rounded-lg border text-xs font-medium flex items-center justify-between ${
+                                    isCorrectOpt
+                                      ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-900 dark:text-emerald-200 font-bold"
+                                      : "bg-white dark:bg-[#161D17] border-[#E8E5DB] dark:border-[#2A352A] text-[#2D332D] dark:text-[#E2E8E2]"
+                                  }`}
+                                >
+                                  <span>
+                                    [{String.fromCharCode(65 + oIdx)}] {opt}
+                                  </span>
+                                  {isCorrectOpt && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                                </div>
+                              );
+                            }
+                          })}
+                        </div>
+                      )}
+
+                      {/* Explanation Box */}
+                      {(quizMode === "teacher" || hasAnswered) && (
+                        <div className="p-3 rounded-lg bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-amber-900 dark:text-amber-200 text-xs space-y-1 animate-fade-in">
+                          <p className="font-bold">
+                            Correct Answer: <span className="underline">{q.correctAnswer}</span>
+                          </p>
+                          <p className="text-[11.5px] leading-relaxed opacity-90">
+                            <strong>Why it's right:</strong> {q.explanation}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
 

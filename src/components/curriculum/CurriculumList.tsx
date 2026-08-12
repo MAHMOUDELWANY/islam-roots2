@@ -215,11 +215,11 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
             onClick={handleConnectDocs}
             className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs font-semibold shadow-xs transition-all cursor-pointer ${
               googleTokens.docs
-                ? "bg-blue-50 dark:bg-blue-950/40 border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-300"
+                ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
                 : "bg-white dark:bg-[#232B23] border-[#D4D1C5] dark:border-[#2A352A] text-[#1F261F] dark:text-[#E2E8E2] hover:bg-[#FCFAF5]"
             }`}
           >
-            <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <FileText className="w-4 h-4 text-[#5A6B5A] dark:text-[#8BA888]" />
             <span>
               {googleTokens.docs
                 ? language === "ar"
@@ -243,9 +243,9 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
 
       {/* Google Docs Banner / Alert */}
       {docStatusMsg && (
-        <div className="p-4 rounded-xl bg-blue-50/90 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 text-xs font-semibold text-blue-900 dark:text-blue-200 flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-xs font-semibold text-emerald-900 dark:text-emerald-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+            <Sparkles className="w-4 h-4 text-[#5A6B5A] dark:text-[#8BA888] shrink-0" />
             <span>{docStatusMsg}</span>
           </div>
           {lastCreatedLink && (
@@ -253,7 +253,7 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
               href={lastCreatedLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-all shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#5A6B5A] text-white text-xs font-bold hover:bg-[#495749] transition-all shadow-xs"
             >
               <span>{language === "ar" ? "فتح المستند" : "Open Google Doc"}</span>
               <ExternalLink className="w-3.5 h-3.5" />
@@ -386,12 +386,12 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
                 <button
                   onClick={() => handleExportCurriculumToDoc(curr)}
                   disabled={exportingCurrId === curr.id}
-                  className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 font-semibold hover:bg-blue-100 transition-all flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 font-semibold hover:bg-emerald-100 transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   {exportingCurrId === curr.id ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#5A6B5A]" />
                   ) : (
-                    <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    <FileText className="w-3.5 h-3.5 text-[#5A6B5A] dark:text-[#8BA888]" />
                   )}
                   <span>{language === "ar" ? "تصدير إلى Docs" : "Export to Docs"}</span>
                 </button>
@@ -409,7 +409,7 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
       <div className="bg-white dark:bg-[#161D17] p-6 rounded-2xl border border-[#E8E5DB] dark:border-[#2A352A] space-y-4 shadow-xs mt-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E8E5DB] dark:border-[#2A352A]">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300">
+            <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
               <FolderOpen className="w-5 h-5" />
             </div>
             <div>
@@ -438,7 +438,7 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
 
             <button
               onClick={() => setIsNewDocModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>{language === "ar" ? "مستند جديد" : "New Document"}</span>
@@ -448,7 +448,7 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
 
         {!googleTokens.docs ? (
           <div className="p-8 text-center bg-[#FCFAF5] dark:bg-[#161D17] rounded-xl border border-dashed border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
-            <FileText className="w-10 h-10 text-blue-600 mx-auto opacity-80" />
+            <FileText className="w-10 h-10 text-[#5A6B5A] mx-auto opacity-80" />
             <p className="text-xs text-[#7A7D75] dark:text-stone-400 max-w-md mx-auto">
               {language === "ar"
                 ? "قم بربط حساب Google الخاص بك لاستعراض وتصدير مستندات Google Docs."
@@ -456,14 +456,14 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
             </p>
             <button
               onClick={handleConnectDocs}
-              className="px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-all cursor-pointer inline-flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-[#5A6B5A] text-white text-xs font-semibold hover:bg-[#495749] transition-all cursor-pointer inline-flex items-center gap-1.5"
             >
               <span>{language === "ar" ? "ربط Google Docs الآن" : "Connect Google Docs Now"}</span>
             </button>
           </div>
         ) : isLoadingDocs ? (
           <div className="p-8 text-center space-y-2">
-            <Loader2 className="w-6 h-6 text-blue-600 animate-spin mx-auto" />
+            <Loader2 className="w-6 h-6 text-[#5A6B5A] animate-spin mx-auto" />
             <p className="text-xs text-[#7A7D75] dark:text-stone-400">
               {language === "ar" ? "جاري تحميل المستندات..." : "Loading Google Docs..."}
             </p>
@@ -477,10 +477,10 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
             {googleDocs.map((doc) => (
               <div
                 key={doc.id}
-                className="p-3.5 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] flex items-center justify-between gap-2 hover:border-blue-300 transition-all"
+                className="p-3.5 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] flex items-center justify-between gap-2 hover:border-[#5A6B5A] transition-all"
               >
                 <div className="flex items-center gap-2.5 truncate">
-                  <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                  <FileText className="w-4 h-4 text-[#5A6B5A] shrink-0" />
                   <div className="truncate">
                     <p className="font-semibold text-xs text-[#1F261F] dark:text-[#E2E8E2] truncate">
                       {doc.name}
@@ -499,7 +499,7 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
                       href={doc.webViewLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-950/50"
+                      className="p-1.5 rounded-lg text-[#5A6B5A] hover:bg-emerald-100 dark:hover:bg-emerald-950/50"
                       title="Open in Google Docs"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -525,7 +525,7 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
           <div className="bg-white dark:bg-[#1C221C] border border-[#E8E5DB] dark:border-[#2A352A] w-full max-w-md rounded-2xl shadow-xl overflow-hidden p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-serif font-bold text-lg text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
-                <FileText className="w-5 h-5 text-blue-600" />
+                <FileText className="w-5 h-5 text-[#5A6B5A]" />
                 <span>{language === "ar" ? "إنشاء مستند Google Docs جديد" : "Create New Google Doc"}</span>
               </h3>
             </div>
@@ -540,7 +540,7 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
                   value={newDocTitle}
                   onChange={(e) => setNewDocTitle(e.target.value)}
                   placeholder="e.g. Surah Al-Mulk Study Guide & Vocabulary"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#D4D1C5] dark:border-[#2A352A] text-xs text-[#1F261F] dark:text-[#E2E8E2] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#D4D1C5] dark:border-[#2A352A] text-xs text-[#1F261F] dark:text-[#E2E8E2] focus:outline-none focus:ring-1 focus:ring-[#5A6B5A]"
                   required
                 />
               </div>
@@ -554,7 +554,7 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
                   onChange={(e) => setNewDocContent(e.target.value)}
                   rows={4}
                   placeholder="Type initial notes, verses, or student guidelines..."
-                  className="w-full px-3.5 py-2 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#D4D1C5] dark:border-[#2A352A] text-xs text-[#1F261F] dark:text-[#E2E8E2] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#D4D1C5] dark:border-[#2A352A] text-xs text-[#1F261F] dark:text-[#E2E8E2] focus:outline-none focus:ring-1 focus:ring-[#5A6B5A]"
                 />
               </div>
 
@@ -569,7 +569,7 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
                 <button
                   type="submit"
                   disabled={isCreatingDoc}
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-[#5A6B5A] hover:bg-[#495749] text-white font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   {isCreatingDoc && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{language === "ar" ? "إنشاء" : "Create Doc"}</span>

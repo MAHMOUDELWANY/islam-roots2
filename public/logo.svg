@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <!-- Solid Black Background -->
+  <rect width="500" height="500" fill="#000000" />
+
+  <!-- Crescent Moon at Top Center -->
+  <g transform="translate(250, 70)">
+    <path d="M -5, -25 A 22,22 0 1,0 22, 5 A 17,17 0 1,1 -5, -25 Z" fill="#FFFFFF" />
+  </g>
+
+  <!-- "Islam" Calligraphy (Emerald Green Cursive) -->
+  <g fill="none" stroke="#229954" stroke-linecap="round" stroke-linejoin="round">
+    <!-- I -->
+    <path d="M 155,115 C 170,105 185,125 180,155 C 175,180 165,200 155,215 C 150,222 160,225 168,218 C 180,205 190,175 195,150" stroke-width="8" />
+    <!-- s -->
+    <path d="M 200,180 C 210,165 228,170 222,185 C 218,198 200,200 208,212 C 215,220 232,212 238,202" stroke-width="7" />
+    <!-- l -->
+    <path d="M 245,110 C 255,105 262,120 258,155 C 255,190 250,212 262,210 C 270,208 280,195 285,182" stroke-width="8" />
+    <!-- a -->
+    <path d="M 290,190 C 280,182 272,195 280,206 C 288,215 300,205 302,192 C 304,180 292,175 290,190 Z" fill="#229954" stroke-width="5" />
+    <path d="M 300,192 C 305,202 310,212 318,210 C 324,208 328,198 332,188" stroke-width="7" />
+    <!-- m -->
+    <path d="M 335,188 C 342,180 352,182 350,196 C 348,206 345,212 352,210 C 358,206 366,184 374,182 C 382,180 386,192 382,206 C 378,216 390,212 398,200" stroke-width="7" />
+  </g>
+
+  <!-- "Roots" Calligraphy & Braided Trunk -->
+  <!-- 'R' -->
+  <path d="M 115,245 C 120,225 145,220 162,235 C 178,248 165,275 142,275 L 125,275 M 125,225 L 118,340 C 116,356 132,352 140,340 M 142,275 C 155,302 172,332 190,345" fill="none" stroke="#229954" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Left 'o' -->
+  <path d="M 195,300 C 182,286 182,326 200,326 C 218,326 218,286 195,300 Z" fill="none" stroke="#229954" stroke-width="7" stroke-linecap="round" />
+
+  <!-- Right 'o' + Intertwined Loop -->
+  <path d="M 268,245 C 242,245 232,272 250,294 C 262,312 284,302 302,272 C 315,245 338,250 346,272 C 355,294 342,320 320,325 C 302,330 292,342 306,356" fill="none" stroke="#229954" stroke-width="7" stroke-linecap="round" />
+
+  <!-- 't' -->
+  <path d="M 360,238 L 354,325 C 352,342 368,342 380,328 M 342,272 L 378,268" fill="none" stroke="#229954" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- 's' -->
+  <path d="M 388,312 C 396,290 420,294 414,312 C 408,330 432,332 438,312" fill="none" stroke="#229954" stroke-width="7" stroke-linecap="round" />
+
+  <!-- Braided Trunk in Center (Wood Brown) -->
+  <g fill="none" stroke="#8D5B28" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 252,280 C 282,308 238,342 268,378 C 282,394 255,418 264,440" stroke-width="10" />
+    <path d="M 278,280 C 248,308 292,342 262,378 C 248,394 275,418 264,440" stroke-width="10" />
+    <path d="M 264,315 C 242,338 286,360 264,388" stroke-width="7" />
+  </g>
+
+  <!-- Spreading Organic Tree Roots at Bottom -->
+  <g fill="none" stroke="#8D5B28" stroke-linecap="round">
+    <!-- Main thick root branches -->
+    <path d="M 264,420 C 220,438 158,446 114,490" stroke-width="10" />
+    <path d="M 264,420 C 308,438 370,446 414,490" stroke-width="10" />
+
+    <path d="M 264,432 C 202,454 140,468 88,508" stroke-width="8" />
+    <path d="M 264,432 C 326,454 388,468 440,508" stroke-width="8" />
+
+    <path d="M 264,445 C 238,462 194,480 158,515" stroke-width="6" />
+    <path d="M 264,445 C 290,462 334,480 370,515" stroke-width="6" />
+
+    <!-- Smaller tendrils -->
+    <path d="M 185,455 C 158,472 122,485 96,515" stroke-width="4" />
+    <path d="M 343,455 C 370,472 406,485 432,515" stroke-width="4" />
+
+    <path d="M 132,472 C 105,485 78,498 56,520" stroke-width="3" />
+    <path d="M 396,472 C 423,485 450,498 472,520" stroke-width="3" />
+
+    <path d="M 228,478 C 210,495 184,508 166,525" stroke-width="3" />
+    <path d="M 300,478 C 318,495 344,508 362,525" stroke-width="3" />
+  </g>
+</svg>

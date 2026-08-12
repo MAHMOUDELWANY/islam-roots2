@@ -487,7 +487,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold text-[10px]">
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">
                           Google Calendar
                         </span>
                         {evt.htmlLink && (
