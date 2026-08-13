@@ -6,7 +6,14 @@ export type AiClientErrorCode =
   | "TIMEOUT_ERROR"
   | "VERCEL_SERVER_ERROR"
   | "INVALID_RESPONSE"
-  | "SERVER_ERROR";
+  | "SERVER_ERROR"
+  | "VALIDATION_ERROR"
+  | "CONFIG_ERROR"
+  | "MODEL_ERROR"
+  | "SCHEMA_ERROR"
+  | "PROVIDER_ERROR"
+  | "DATABASE_ERROR"
+  | "SAVE_ERROR";
 
 export class AiClientError extends Error {
   constructor(public readonly code: AiClientErrorCode, message?: string) {
@@ -21,6 +28,7 @@ interface AiResponse {
   quiz?: unknown;
   homework?: unknown;
   error?: string;
+  category?: string;
 }
 
 function isAiResponse(value: unknown): value is AiResponse {
@@ -64,7 +72,12 @@ export async function requestAuthenticatedAi<T>(
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) throw new AiClientError("AUTH_ERROR");
       if (response.status === 429) throw new AiClientError("RATE_LIMITED");
-      throw new AiClientError("SERVER_ERROR", payload.error || "The AI request failed.");
+      const category = payload.category;
+      const knownCodes: AiClientErrorCode[] = ["VALIDATION_ERROR", "CONFIG_ERROR", "MODEL_ERROR", "SCHEMA_ERROR", "PROVIDER_ERROR", "DATABASE_ERROR", "SAVE_ERROR", "TIMEOUT_ERROR", "SERVER_ERROR"];
+      if (category && knownCodes.includes(category as AiClientErrorCode)) {
+        throw new AiClientError(category as AiClientErrorCode);
+      }
+      throw new AiClientError("SERVER_ERROR");
     }
 
     const selected = select(payload);

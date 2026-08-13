@@ -193,6 +193,25 @@ export interface MemoryMapNode {
 
 export interface AILessonPlan {
   lessonGoal: string;
+  learningObjectives: string[];
+  teacherExplanation: string;
+  guidedPractice: string[];
+  studentPractice: string[];
+  checkpointQuestions: string[];
+  differentiatedActivities: {
+    beginner: string;
+    intermediate: string;
+    advanced: string;
+  };
+  assessment: string[];
+  estimatedTiming: {
+    warmupMinutes: number;
+    explanationMinutes: number;
+    guidedPracticeMinutes: number;
+    studentPracticeMinutes: number;
+    assessmentMinutes: number;
+    totalMinutes: number;
+  };
   warmup: {
     durationMinutes: number;
     instructions: string;

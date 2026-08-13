@@ -23,6 +23,8 @@ type AllowedTeachingStyle = (typeof TEACHING_STYLES)[number];
 export interface LessonPlanInput {
   subject: AllowedSubject;
   topic: string;
+  studentId: string;
+  curriculumId: string | null;
   studentName: string;
   studentAge: number;
   studentLevel: AllowedLevel;
@@ -33,6 +35,7 @@ export interface LessonPlanInput {
   customInstructions: string;
   studentProfile: RecordValue;
   learningHistory: RecordValue;
+  curriculumContext: RecordValue | null;
 }
 
 export interface SlidesPlanInput extends LessonPlanInput {
@@ -123,13 +126,15 @@ function optionalString(
 
 function boundedInteger(
   value: unknown,
-  fallback: number,
+  fallback: number | undefined,
   fieldName: string,
   min: number,
   max: number,
 ): ValidationResult<number> {
   if (value === undefined || value === null || value === "") {
-    return { ok: true, value: fallback };
+    return fallback === undefined
+      ? { ok: false, error: `${fieldName} is required.` }
+      : { ok: true, value: fallback };
   }
 
   const parsed = typeof value === "number" ? value : Number(value);
@@ -142,12 +147,14 @@ function boundedInteger(
 
 function allowedValue<T extends readonly string[]>(
   value: unknown,
-  fallback: T[number],
+  fallback: T[number] | undefined,
   fieldName: string,
   values: T,
 ): ValidationResult<T[number]> {
   if (value === undefined || value === null || value === "") {
-    return { ok: true, value: fallback };
+    return fallback === undefined
+      ? { ok: false, error: `${fieldName} is required.` }
+      : { ok: true, value: fallback };
   }
 
   if (typeof value !== "string" || !hasValue(values, value)) {
@@ -157,25 +164,66 @@ function allowedValue<T extends readonly string[]>(
   return { ok: true, value };
 }
 
+function validateStudentProfile(value: unknown): ValidationResult<RecordValue> {
+  if (!isRecord(value) || !isBoundedModelValue(value)) {
+    return { ok: false, error: "studentProfile is required and invalid." };
+  }
+
+  const name = requiredString(value.name, "studentProfile.name");
+  const age = boundedInteger(value.age, undefined, "studentProfile.age", 4, 100);
+  const level = allowedValue(value.level, undefined, "studentProfile.level", LEVELS);
+  const subjects = Array.isArray(value.subjects) && value.subjects.every((subject) => typeof subject === "string" && hasValue(SUBJECTS, subject))
+    ? value.subjects
+    : null;
+  const values = [name, age, level];
+  const failure = values.find((result): result is ValidationFailure => "error" in result);
+  if (failure) return failure;
+  if (!subjects) return { ok: false, error: "studentProfile.subjects is invalid." };
+
+  return { ok: true, value };
+}
+
+function validateCurriculumContext(value: unknown): ValidationResult<RecordValue | null> {
+  if (value === undefined || value === null) return { ok: true, value: null };
+  if (!isRecord(value) || !isBoundedModelValue(value)) {
+    return { ok: false, error: "curriculumContext is invalid." };
+  }
+
+  const name = requiredString(value.name, "curriculumContext.name");
+  const subject = allowedValue(value.subject, undefined, "curriculumContext.subject", SUBJECTS);
+  const level = allowedValue(value.level, undefined, "curriculumContext.level", LEVELS);
+  const progressPercentage = boundedInteger(value.progressPercentage, undefined, "curriculumContext.progressPercentage", 0, 100);
+  const values = [name, subject, level, progressPercentage];
+  const failure = values.find((result): result is ValidationFailure => "error" in result);
+  return failure || { ok: true, value };
+}
+
 function buildLessonPlanInput(body: unknown): ValidationResult<LessonPlanInput> {
   if (!isRecord(body)) {
     return { ok: false, error: "Request body must be an object." };
   }
 
-  const subject = allowedValue(body.subject, "Tajweed", "subject", SUBJECTS);
+  const subject = allowedValue(body.subject, undefined, "subject", SUBJECTS);
   const topic = requiredString(body.topic, "topic");
-  const studentName = optionalString(body.studentName, "Student", "studentName");
-  const studentAge = boundedInteger(body.studentAge, 10, "studentAge", 4, 100);
-  const studentLevel = allowedValue(body.studentLevel ?? body.level, "Beginner", "studentLevel", LEVELS);
+  const studentId = requiredString(body.studentId, "studentId", 200);
+  const curriculumId = body.curriculumId === undefined || body.curriculumId === null || body.curriculumId === ""
+    ? { ok: true as const, value: null }
+    : requiredString(body.curriculumId, "curriculumId", 200);
+  const studentName = requiredString(body.studentName, "studentName");
+  const studentAge = boundedInteger(body.studentAge, undefined, "studentAge", 4, 100);
+  const studentLevel = allowedValue(body.studentLevel ?? body.level, undefined, "studentLevel", LEVELS);
   const duration = boundedInteger(body.duration, 45, "duration", 5, 240);
   const teachingStyle = allowedValue(body.teachingStyle, "Interactive", "teachingStyle", TEACHING_STYLES);
   const language = allowedValue(body.language, "en", "language", LANGUAGES);
   const learningGoal = optionalString(body.learningGoal, "", "learningGoal", MAX_INSTRUCTION_LENGTH);
   const customInstructions = optionalString(body.customInstructions, "", "customInstructions", MAX_INSTRUCTION_LENGTH);
-  const studentProfile = isRecord(body.studentProfile) && isBoundedModelValue(body.studentProfile) ? body.studentProfile : {};
-  const learningHistory = isRecord(body.learningHistory) && isBoundedModelValue(body.learningHistory) ? body.learningHistory : {};
+  const studentProfile = validateStudentProfile(body.studentProfile);
+  const learningHistory = isRecord(body.learningHistory) && isBoundedModelValue(body.learningHistory)
+    ? { ok: true as const, value: body.learningHistory }
+    : { ok: false as const, error: "learningHistory is invalid." };
+  const curriculumContext = validateCurriculumContext(body.curriculumContext);
 
-  const values = [subject, topic, studentName, studentAge, studentLevel, duration, teachingStyle, language, learningGoal, customInstructions];
+  const values = [subject, topic, studentId, curriculumId, studentName, studentAge, studentLevel, duration, teachingStyle, language, learningGoal, customInstructions, studentProfile, learningHistory, curriculumContext];
   const failure = values.find((result): result is ValidationFailure => "error" in result);
   if (failure) {
     return failure;
@@ -186,6 +234,8 @@ function buildLessonPlanInput(body: unknown): ValidationResult<LessonPlanInput> 
     value: {
       subject: valueOf(subject),
       topic: valueOf(topic),
+      studentId: valueOf(studentId),
+      curriculumId: valueOf(curriculumId),
       studentName: valueOf(studentName),
       studentAge: valueOf(studentAge),
       studentLevel: valueOf(studentLevel),
@@ -194,8 +244,9 @@ function buildLessonPlanInput(body: unknown): ValidationResult<LessonPlanInput> 
       language: valueOf(language),
       learningGoal: valueOf(learningGoal),
       customInstructions: valueOf(customInstructions),
-      studentProfile,
-      learningHistory,
+      studentProfile: valueOf(studentProfile),
+      learningHistory: valueOf(learningHistory),
+      curriculumContext: valueOf(curriculumContext),
     },
   };
 }
@@ -375,9 +426,9 @@ export function aiRateLimiter(req: AuthRequest, res: Response, next: NextFunctio
 }
 
 export function sendInvalidRequest(res: Response, details: string) {
-  return res.status(400).json({ error: "Invalid request.", details });
+  return res.status(400).json({ error: "Invalid request.", category: "VALIDATION_ERROR", details });
 }
 
-export function sendServerError(res: Response) {
-  return res.status(500).json({ error: "The request could not be completed. Please try again." });
+export function sendServerError(res: Response, category = "SERVER_ERROR") {
+  return res.status(500).json({ error: "The request could not be completed. Please try again.", category });
 }

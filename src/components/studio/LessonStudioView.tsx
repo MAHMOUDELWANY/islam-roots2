@@ -6,7 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { exportLessonToGoogleDoc } from "../../lib/googleDocs";
 import { exportLessonToGoogleSlides, createGoogleSlidesPresentation } from "../../lib/googleSlides";
 import { captureAndDownloadScreenshot } from "../../lib/screenshot";
-import { requestAuthenticatedAi } from "../../lib/aiClient";
+import { AiClientError, requestAuthenticatedAi } from "../../lib/aiClient";
 import { SubjectType, LevelType, AILessonPlan } from "../../types";
 import {
   Sparkles,
@@ -31,10 +31,25 @@ interface LessonStudioViewProps {
   onOpenQuizModal: (type: "quiz" | "homework", lessonTitle: string, subject: SubjectType) => void;
 }
 
+function normalizeSavedLessonPlan(content: unknown): AILessonPlan {
+  const value = (content && typeof content === "object" ? content : {}) as Partial<AILessonPlan>;
+  return {
+    ...value,
+    learningObjectives: Array.isArray(value.learningObjectives) ? value.learningObjectives : [],
+    teacherExplanation: typeof value.teacherExplanation === "string" ? value.teacherExplanation : "",
+    guidedPractice: Array.isArray(value.guidedPractice) ? value.guidedPractice : [],
+    studentPractice: Array.isArray(value.studentPractice) ? value.studentPractice : [],
+    checkpointQuestions: Array.isArray(value.checkpointQuestions) ? value.checkpointQuestions : [],
+    differentiatedActivities: value.differentiatedActivities || { beginner: "", intermediate: "", advanced: "" },
+    assessment: Array.isArray(value.assessment) ? value.assessment : [],
+    estimatedTiming: value.estimatedTiming || { warmupMinutes: 0, explanationMinutes: 0, guidedPracticeMinutes: 0, studentPracticeMinutes: 0, assessmentMinutes: 0, totalMinutes: 0 },
+  } as AILessonPlan;
+}
+
 export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizModal }) => {
   const { t, language } = useLanguage();
   const { students, getStudentSessions, getStudentCurriculum, saveAIContent, savedContents, deleteSavedAIContent } = useData();
-  const { googleTokens, connectGoogleDocs, connectGoogleSlides } = useAuth();
+  const { googleTokens, connectGoogleDocs, connectGoogleSlides, isGuest } = useAuth();
 
   // Generator inputs
   const [studentName, setStudentName] = useState("");
@@ -97,8 +112,11 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
         setActiveSavedItemId(savedItem.id);
         setSaved(true);
       } catch (autosaveError) {
-        console.error("Lesson autosave failed:", autosaveError);
+        console.error("[Lesson] Lesson autosave failed.", autosaveError);
         setSaved(false);
+        const message = language === "ar" ? "تم إنشاء الدرس، لكن تعذر حفظه في المكتبة." : "Lesson generated, but it could not be saved to the library.";
+        setSaveToast(import.meta.env.DEV ? `${message} [SAVE_ERROR]` : message);
+        window.setTimeout(() => setSaveToast(null), 5000);
       } finally {
         setIsAutoSaving(false);
       }
@@ -167,15 +185,33 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
               body: JSON.stringify({
                 subject,
                 topic,
-                level,
+                studentId: selectedStudent?.id,
+                curriculumId: selectedStudentAssignment.studentCurriculum?.curriculumId || null,
+                level: selectedStudent?.level || level,
                 duration: durationMinutes,
                 language: explanationLanguage === "Arabic" ? "ar" : "en",
                 customInstructions,
-                studentName,
-                studentAge,
-                studentLevel: level,
+                studentName: selectedStudent?.name || studentName,
+                studentAge: selectedStudent?.age || studentAge,
+                studentLevel: selectedStudent?.level || level,
                 teachingStyle,
                 learningGoal,
+                studentProfile: selectedStudent ? {
+                  id: selectedStudent.id,
+                  name: selectedStudent.name,
+                  age: selectedStudent.age,
+                  level: selectedStudent.level,
+                  subjects: selectedStudent.subjects,
+                } : null,
+                learningHistory: {
+                  sessions: selectedStudentSessions.map((session) => ({ lessonTitle: session.lessonTitle, date: session.date, quizScore: session.quizScore ?? null })),
+                },
+                curriculumContext: selectedStudentAssignment.curriculum ? {
+                  name: selectedStudentAssignment.curriculum.name,
+                  subject: selectedStudentAssignment.curriculum.subject,
+                  level: selectedStudentAssignment.curriculum.level,
+                  progressPercentage: selectedStudentAssignment.studentCurriculum?.progressPercentage || 0,
+                } : null,
                 lessonPlan: generatedPlan
               })
             });
@@ -305,7 +341,28 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!topic.trim() || loading) return;
+    if (loading) return;
+
+    if (!topic.trim()) {
+      setError(language === "ar" ? "أدخل موضوع الدرس أولاً." : "Enter a lesson topic before generating.");
+      return;
+    }
+    if (!selectedStudent) {
+      setError(language === "ar" ? "اختر طالباً مسجلاً قبل إنشاء الدرس." : "Select a real student before generating the lesson.");
+      return;
+    }
+    if (!selectedStudent.level) {
+      setError(language === "ar" ? "أكمل مستوى الطالب قبل إنشاء الدرس." : "Complete the student's level before generating the lesson.");
+      return;
+    }
+    if (!selectedStudent.subjects.includes(subject)) {
+      setError(language === "ar" ? "المادة المختارة غير مسندة إلى هذا الطالب." : "The selected subject is not assigned to this student.");
+      return;
+    }
+    if (selectedStudentAssignment.curriculum && selectedStudentAssignment.curriculum.subject !== subject) {
+      setError(language === "ar" ? "سياق المنهج المسند لا يطابق المادة المختارة." : "The assigned curriculum does not match the selected subject.");
+      return;
+    }
 
     setLoading(true);
     setSaved(false);
@@ -316,15 +373,19 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
       const plan = await requestAuthenticatedAi<AILessonPlan>("/api/gemini/lesson-plan", {
         subject,
         topic,
-        studentName,
-        studentAge,
-        studentLevel: level,
+        studentId: selectedStudent.id,
+        curriculumId: selectedStudentAssignment.studentCurriculum?.curriculumId || null,
+        studentName: selectedStudent.name,
+        studentAge: selectedStudent.age,
+        studentLevel: selectedStudent.level,
         duration: durationMinutes,
         teachingStyle,
         language: explanationLanguage === "Arabic" ? "ar" : "en",
         learningGoal,
         customInstructions,
-        studentProfile: selectedStudent ? {
+        studentProfile: {
+          id: selectedStudent.id,
+          isGuest,
           name: selectedStudent.name,
           age: selectedStudent.age,
           nativeLanguage: selectedStudent.nativeLanguage,
@@ -332,8 +393,8 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
           level: selectedStudent.level,
           subjects: selectedStudent.subjects,
           teacherNotes: selectedStudent.notes || "",
-        } : {},
-        learningHistory: selectedStudent ? {
+        },
+        learningHistory: {
           curriculum: selectedStudentAssignment.curriculum ? {
             name: selectedStudentAssignment.curriculum.name,
             subject: selectedStudentAssignment.curriculum.subject,
@@ -347,26 +408,36 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
             quizScore: session.quizScore ?? null,
             completedItems: session.completedItems,
           })),
-        } : {},
+        },
+        curriculumContext: selectedStudentAssignment.curriculum ? {
+          name: selectedStudentAssignment.curriculum.name,
+          subject: selectedStudentAssignment.curriculum.subject,
+          level: selectedStudentAssignment.curriculum.level,
+          progressPercentage: selectedStudentAssignment.studentCurriculum?.progressPercentage || 0,
+          currentLessonId: selectedStudentAssignment.studentCurriculum?.currentLessonId || null,
+        } : null,
       }, (response) => response.data || response.lessonPlan);
       setGeneratedPlan(plan);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error generating lesson plan:", err);
-      if (err.name === 'AbortError') {
-        setError(language === "ar" ? "استغرق إنشاء الدرس وقتاً أطول من المتوقع. يرجى المحاولة مرة أخرى." : "The lesson is taking longer than expected. Please try again.");
-      } else if (err.message === "AUTH_ERROR") {
-        setError(language === "ar" ? "انتهت صلاحية الجلسة الخاصة بك. يرجى تسجيل الدخول مرة أخرى." : "Your session has expired. Please sign in again.");
-      } else if (err.message === "RATE_LIMITED") {
-        setError(language === "ar" ? "جليلة مشغولة حالياً. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى." : "Jaleela is temporarily busy. Please wait a moment and try again.");
-      } else if (err.message === "INVALID_RESPONSE") {
-        setError(language === "ar" ? "لم تتمكن جليلة من إنشاء الدرس الآن. يرجى المحاولة مرة أخرى." : "Jaleela couldn't generate the lesson right now. Please try again.");
-      } else if (err.message === "TIMEOUT_ERROR") {
-        setError(language === "ar" ? "استغرق إنشاء الدرس وقتاً أطول من المتوقع." : "The request timed out. Please try again.");
-      } else if (err.message === "VERCEL_SERVER_ERROR") {
-        setError(language === "ar" ? "حدث خطأ في الخادم (Vercel). يرجى التحقق من السجلات." : "A server error occurred (Vercel Timeout or Crash).");
-      } else {
-        setError((language === "ar" ? "خطأ: " : "Error: ") + err.message);
-      }
+      const code = err instanceof AiClientError ? err.code : "SERVER_ERROR";
+      const messages: Record<string, { en: string; ar: string }> = {
+        AUTH_ERROR: { en: "Your session has expired. Please sign in again.", ar: "انتهت صلاحية الجلسة الخاصة بك. يرجى تسجيل الدخول مرة أخرى." },
+        RATE_LIMITED: { en: "Jaleela is temporarily busy. Please wait a moment, then try again.", ar: "جليلة مشغولة حالياً. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى." },
+        VALIDATION_ERROR: { en: "Complete the student, subject, level, topic, and curriculum details before generating.", ar: "أكمل بيانات الطالب والمادة والمستوى والموضوع والمنهج قبل إنشاء الدرس." },
+        CONFIG_ERROR: { en: "Lesson generation is not configured on the server. Please contact the administrator.", ar: "لم يتم إعداد إنشاء الدروس على الخادم. تواصل مع المسؤول." },
+        MODEL_ERROR: { en: "The configured AI model is unavailable. Please contact the administrator.", ar: "نموذج الذكاء الاصطناعي المكوّن غير متاح. تواصل مع المسؤول." },
+        PROVIDER_ERROR: { en: "The AI provider is temporarily unavailable. Please try again.", ar: "مزود الذكاء الاصطناعي غير متاح مؤقتاً. حاول مرة أخرى." },
+        DATABASE_ERROR: { en: "Student or curriculum data could not be verified. Please refresh and try again.", ar: "تعذر التحقق من بيانات الطالب أو المنهج. حدّث الصفحة وحاول مرة أخرى." },
+        SCHEMA_ERROR: { en: "The AI returned an incomplete lesson structure. Please try again.", ar: "أعاد الذكاء الاصطناعي بنية درس غير مكتملة. حاول مرة أخرى." },
+        INVALID_RESPONSE: { en: "The AI returned an invalid lesson structure. Please try again.", ar: "أعاد الذكاء الاصطناعي بنية درس غير صالحة. حاول مرة أخرى." },
+        TIMEOUT_ERROR: { en: "The lesson request timed out. Please try again.", ar: "انتهت مهلة إنشاء الدرس. حاول مرة أخرى." },
+        VERCEL_SERVER_ERROR: { en: "A server response could not be read. Please try again.", ar: "تعذر قراءة استجابة الخادم. حاول مرة أخرى." },
+        SERVER_ERROR: { en: "Lesson generation failed. Please try again.", ar: "فشل إنشاء الدرس. حاول مرة أخرى." },
+      };
+      const message = messages[code] || messages.SERVER_ERROR;
+      const localizedMessage = language === "ar" ? message.ar : message.en;
+      setError(import.meta.env.DEV ? `${localizedMessage} [${code}]` : localizedMessage);
     } finally {
       setLoading(false);
     }
@@ -399,8 +470,11 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
       setSaveToast(language === "ar" ? "تم حفظ الدرس في مكتبتك." : "Saved to your Saved Library.");
       setTimeout(() => setSaveToast(null), 5000);
     } catch (err) {
-      console.error("Error saving lesson plan:", err);
+      console.error("[Lesson] Manual lesson save failed.", err);
       setSaved(false);
+      const message = language === "ar" ? "تعذر حفظ الدرس في مكتبتك. حاول مرة أخرى." : "The lesson could not be saved to your library. Please try again.";
+      setSaveToast(import.meta.env.DEV ? `${message} [SAVE_ERROR]` : message);
+      setTimeout(() => setSaveToast(null), 5000);
     }
   };
 
@@ -705,6 +779,47 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="ir-inset p-4 space-y-2 sm:col-span-2">
+                  <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Learning Objectives</h4>
+                  <ul className="list-disc rtl:list-[arabic-indic] pl-4 rtl:pr-4 rtl:pl-0 space-y-1 text-[#2D332D] dark:text-stone-300">
+                    {generatedPlan.learningObjectives.map((objective, index) => <li key={index}>{objective}</li>)}
+                  </ul>
+                </div>
+                <div className="ir-inset p-4 space-y-2 sm:col-span-2">
+                  <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Teacher Explanation</h4>
+                  <p className="text-[#2D332D] dark:text-stone-300 leading-relaxed">{generatedPlan.teacherExplanation}</p>
+                </div>
+                <div className="ir-inset p-4 space-y-2">
+                  <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Guided Practice</h4>
+                  <ul className="list-disc pl-4 rtl:pr-4 rtl:pl-0 space-y-1">{generatedPlan.guidedPractice.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                </div>
+                <div className="ir-inset p-4 space-y-2">
+                  <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Student Practice</h4>
+                  <ul className="list-disc pl-4 rtl:pr-4 rtl:pl-0 space-y-1">{generatedPlan.studentPractice.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                </div>
+                <div className="ir-inset p-4 space-y-2">
+                  <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Checkpoint Questions</h4>
+                  <ul className="list-disc pl-4 rtl:pr-4 rtl:pl-0 space-y-1">{generatedPlan.checkpointQuestions.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                </div>
+                <div className="ir-inset p-4 space-y-2">
+                  <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Assessment</h4>
+                  <ul className="list-disc pl-4 rtl:pr-4 rtl:pl-0 space-y-1">{generatedPlan.assessment.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                </div>
+                <div className="ir-inset p-4 space-y-2 sm:col-span-2">
+                  <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Differentiated Activities</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <p><strong>Beginner:</strong> {generatedPlan.differentiatedActivities.beginner}</p>
+                    <p><strong>Intermediate:</strong> {generatedPlan.differentiatedActivities.intermediate}</p>
+                    <p><strong>Advanced:</strong> {generatedPlan.differentiatedActivities.advanced}</p>
+                  </div>
+                </div>
+                <div className="ir-inset p-4 space-y-2 sm:col-span-2">
+                  <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Estimated Timing</h4>
+                  <p>{generatedPlan.estimatedTiming.warmupMinutes}m warm-up · {generatedPlan.estimatedTiming.explanationMinutes}m explanation · {generatedPlan.estimatedTiming.guidedPracticeMinutes}m guided practice · {generatedPlan.estimatedTiming.studentPracticeMinutes}m student practice · {generatedPlan.estimatedTiming.assessmentMinutes}m assessment · {generatedPlan.estimatedTiming.totalMinutes}m total</p>
+                </div>
+              </div>
+
               {/* Google Docs Status Banner */}
               {docStatusMsg && (
                 <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-xs font-semibold text-emerald-900 dark:text-emerald-200 flex items-center justify-between">
@@ -926,7 +1041,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                         {item.type === "lesson_plan" && (
                           <button
                             onClick={() => {
-                              setGeneratedPlan(item.content);
+                              setGeneratedPlan(normalizeSavedLessonPlan(item.content));
                               setTopic(item.title);
                               setActiveSavedItemId(item.id);
                               if (item.studentId) {
