@@ -44,7 +44,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ currentSection, onSelectSe
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FCFAF5]/95 dark:bg-[#161D17]/95 backdrop-blur-md border-t border-[#E8E5DB] dark:border-[#2A352A] px-2 py-1.5 shadow-soft">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#F7F3E9]/96 dark:bg-[#142019]/96 backdrop-blur-md border-t border-[#D9E3D9] dark:border-[#294535] px-2 py-1.5 shadow-soft">
       <div className="flex items-center justify-around gap-1 overflow-x-auto no-scrollbar">
         {navItems.map((item) => {
           const isActive = currentSection === item.id;
@@ -55,11 +55,11 @@ export const MobileNav: React.FC<MobileNavProps> = ({ currentSection, onSelectSe
               onClick={() => onSelectSection(item.id)}
               className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-medium min-w-[58px] transition-all cursor-pointer ${
                 isActive
-                  ? "text-[#3E4D3E] dark:text-[#E2E8E2] bg-[#E8E5DB] dark:bg-[#2A352A] font-semibold"
-                  : "text-[#7A7D75] dark:text-stone-400 hover:text-[#3E4D3E]"
+                  ? "text-[#1F6F4A] dark:text-[#B9D7BF] bg-[#E5EFE7] dark:bg-[#20382A] font-semibold"
+                  : "text-[#617267] dark:text-stone-400 hover:text-[#1F6F4A]"
               }`}
             >
-              <div className={isActive ? "scale-105 transition-transform text-[#5A6B5A]" : ""}>
+              <div className={isActive ? "scale-105 transition-transform text-[#1F6F4A]" : ""}>
                 {item.icon}
               </div>
               <span className="text-[10px] mt-1 whitespace-nowrap truncate max-w-[64px]">

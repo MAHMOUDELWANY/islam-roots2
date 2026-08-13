@@ -43,7 +43,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         </div>
         <h2 className="text-2xl font-serif font-bold text-[#E2ECE2] tracking-tight flex items-center justify-center gap-2">
           <span>ISLAM</span>
-          <span className="text-[#8BA888] font-normal italic">ROOTS</span>
+          <span className="text-[#8BA888] font-semibold">ROOTS</span>
         </h2>
         <p className="text-xs font-mono font-semibold text-[#8BA888] tracking-widest uppercase mt-1">
           {isRTL ? "منصة معلمي القرآن الكريم" : "Teacher Workspace"}
@@ -70,15 +70,15 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         {isRTL ? (
           <div className={`font-serif font-bold tracking-tight ${textClasses} text-[#2A3B2C] dark:text-[#E2E8E2] flex items-center`}>
             <span>جذور</span>
-            <span className="text-[#1B7844] dark:text-[#8BA888] font-normal italic">الإسلام</span>
+            <span className="text-[#1F6F4A] dark:text-[#8BA888] font-semibold">الإسلام</span>
             <span className="text-[10px] bg-[#16211A] text-[#8BA888] px-1.5 py-0.5 rounded font-mono font-normal border border-[#28382B]">
-              Workspace
+              {isRTL ? "مساحة العمل" : "workspace"}
             </span>
           </div>
         ) : (
           <div className={`font-serif font-bold tracking-tight ${textClasses} text-[#2A3B2C] dark:text-[#E2E8E2] uppercase flex items-center`}>
             <span>ISLAM</span>
-            <span className="text-[#1B7844] dark:text-[#8BA888] font-normal italic">ROOTS</span>
+            <span className="text-[#1F6F4A] dark:text-[#8BA888] font-semibold">ROOTS</span>
             <span className="text-[10px] font-mono font-semibold tracking-normal text-[#8BA888] lowercase bg-[#16211A] px-1.5 py-0.5 rounded border border-[#28382B]">
               workspace
             </span>
@@ -87,7 +87,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
         {showSubtitle && (
           <span className="text-[10px] font-semibold uppercase tracking-wider text-[#5C6D5E] dark:text-[#9AA89C] -mt-0.5">
-            {isRTL ? "منصة معلمي القرآن" : "Teacher Edition"}
+            {isRTL ? "مساحة العمل" : "Workspace"}
           </span>
         )}
       </div>

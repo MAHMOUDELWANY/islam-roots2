@@ -42,7 +42,7 @@ export const JalilahTourModal: React.FC<JalilahTourModalProps> = ({
       return window.innerWidth >= 1024 ? `#desktop-tour-nav-${id}` : `#mobile-tour-nav-${id}`;
     };
 
-    const TOTAL_STEPS = 7;
+    const TOTAL_STEPS = 11;
 
     driverRef.current = driver({
       showProgress: true,
@@ -80,9 +80,9 @@ export const JalilahTourModal: React.FC<JalilahTourModalProps> = ({
             dot.style.transition = "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
             
             if (theme === "dark") {
-              dot.style.backgroundColor = i === state.activeIndex ? "#8BA888" : "rgba(139, 168, 136, 0.2)";
+              dot.style.backgroundColor = i === state.activeIndex ? "#2F8F5B" : "rgba(47, 143, 91, 0.2)";
             } else {
-              dot.style.backgroundColor = i === state.activeIndex ? "#5A6B5A" : "rgba(90, 107, 90, 0.2)";
+              dot.style.backgroundColor = i === state.activeIndex ? "#1F6F4A" : "rgba(31, 111, 74, 0.2)";
             }
             popover.progress.appendChild(dot);
           }
@@ -173,6 +173,46 @@ export const JalilahTourModal: React.FC<JalilahTourModalProps> = ({
           },
           onHighlightStarted: () => onSelectSection("quranDetective"),
         },
+        {
+          element: getNavTarget("progressMap"),
+          popover: {
+            title: isAr ? "خريطة التقدم والذاكرة" : "Progress & Memory Map",
+            description: isAr ? "راجع التقدم المسجل ونتائج الذاكرة فقط؛ المعاينات لا تُحسب كإتقان." : "Review recorded progress and memory evidence. Preview content never counts as mastery.",
+            side: "right",
+            align: "start"
+          },
+          onHighlightStarted: () => onSelectSection("progressMap"),
+        },
+        {
+          element: getNavTarget("settings"),
+          popover: {
+            title: isAr ? "الإعدادات" : "Settings",
+            description: isAr ? "نظم ملف المعلم، اللغة، المظهر، الخصوصية، وخيارات الحساب من مساحة واحدة." : "Organize your educator profile, language, appearance, privacy, and account controls.",
+            side: "right",
+            align: "start"
+          },
+          onHighlightStarted: () => onSelectSection("settings"),
+        },
+        {
+          element: getNavTarget("settings"),
+          popover: {
+            title: isAr ? "اتصالات Google والتصدير" : "Google Connections & Exports",
+            description: isAr ? "من الإعدادات، اربط التقويم والمستندات والعروض والمهام وDrive عندما تحتاج إلى مزامنة عملك." : "Use Settings to connect Calendar, Docs, Slides, Tasks, Gmail, Forms, and Drive for teaching workflows.",
+            side: "right",
+            align: "start"
+          },
+          onHighlightStarted: () => onSelectSection("settings"),
+        },
+        {
+          element: getNavTarget("lessonStudio"),
+          popover: {
+            title: isAr ? "المكتبة وإعادة الفتح" : "Library & Reopening Work",
+            description: isAr ? "يتم حفظ خطط الدروس تلقائيًا في مكتبتك مع سياق الطالب والمادة والتركيز." : "Lesson Studio autosaves generated work so you can reopen, refine, and export it later.",
+            side: "right",
+            align: "start"
+          },
+          onHighlightStarted: () => onSelectSection("lessonStudio"),
+        },
       ]
     });
 
@@ -191,12 +231,13 @@ export const JalilahTourModal: React.FC<JalilahTourModalProps> = ({
   return (
     <style dangerouslySetInnerHTML={{ __html: `
       /* ISLAM ROOTS Premium Tour Styling for driver.js */
-      .islamroots-tour-theme {
+        .islamroots-tour-theme {
         font-family: inherit !important;
+        direction: ${isAr ? "rtl" : "ltr"} !important;
         padding: 24px !important;
         border-radius: 16px !important;
-        background-color: #ffffff !important;
-        border: 1px solid rgba(90, 107, 90, 0.15) !important;
+        background-color: #F7F3E9 !important;
+        border: 1px solid rgba(31, 111, 74, 0.18) !important;
         box-shadow: 0 20px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04) !important;
         max-width: 360px !important;
       }

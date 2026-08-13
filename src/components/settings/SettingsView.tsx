@@ -27,26 +27,26 @@ export const SettingsView: React.FC = () => {
   };
 
   return (
-    <div className="w-full space-y-6 sm:space-y-8 animate-fade-in pb-12">
+    <div className="w-full space-y-5 sm:space-y-7 animate-fade-in pb-12">
       {/* Header */}
       <div>
-        <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2.5">
+        <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#173326] dark:text-[#E2E8E2] flex items-center gap-2.5">
           <Settings className="w-6 h-6 text-[#5A6B5A]" />
           <span>{t("settings")}</span>
         </h2>
-        <p className="text-xs sm:text-sm text-[#7A7D75] dark:text-stone-400 mt-1 font-sans">
-          Manage teacher account preferences, workspace theme, and integrations.
+        <p className="text-xs sm:text-sm text-[#617267] dark:text-stone-400 mt-1 font-sans">
+          {language === "ar" ? "نظّم مساحة العمل، واربط أدوات التعليم، وأدر تفضيلات المعلم." : "Shape your workspace, connect teaching tools, and manage educator preferences."}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 xl:gap-7 items-start">
         {/* Left Column: Educator Profile & App Preferences */}
-        <div className="lg:col-span-7 space-y-6 sm:space-y-8">
+        <div className="lg:col-span-7 space-y-5 sm:space-y-6">
           {/* Teacher Profile Section */}
-          <div className="p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4">
+          <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#294535] shadow-soft space-y-4">
             <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
               <User className="w-5 h-5 text-[#5A6B5A]" />
-              <span>Educator Profile</span>
+              <span>{language === "ar" ? "ملف المعلم" : "Educator Profile"}</span>
             </h3>
 
             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
@@ -67,7 +67,7 @@ export const SettingsView: React.FC = () => {
                 {teacher?.username ? (
                   <div className="space-y-1">
                     <label className="font-semibold text-[#2D332D] dark:text-[#E2E8E2]">
-                      Username
+                      {language === "ar" ? "اسم المستخدم" : "Username"}
                     </label>
                     <input
                       type="text"
@@ -79,7 +79,7 @@ export const SettingsView: React.FC = () => {
                 ) : (
                   <div className="space-y-1">
                     <label className="font-semibold text-[#2D332D] dark:text-[#E2E8E2]">
-                      Email Address
+                      {language === "ar" ? "البريد الإلكتروني" : "Email Address"}
                     </label>
                     <input
                       type="email"
@@ -147,7 +147,7 @@ export const SettingsView: React.FC = () => {
               <div className="flex items-center justify-between pt-2">
                 {saved && (
                   <span className="text-xs font-semibold text-[#3E4D3E] dark:text-[#8BA888]">
-                    ✓ Profile saved successfully!
+                    ✓                     {language === "ar" ? "تم حفظ الملف الشخصي بنجاح" : "Profile saved successfully!"}
                   </span>
                 )}
                 <button
@@ -162,10 +162,10 @@ export const SettingsView: React.FC = () => {
           </div>
 
           {/* Preferences Section */}
-          <div className="p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 text-xs">
+          <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#294535] shadow-soft space-y-4 text-xs">
             <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
               <Globe className="w-5 h-5 text-[#8B5A2B]" />
-              <span>App Preferences</span>
+              <span>{language === "ar" ? "تفضيلات الواجهة" : "Language & Appearance"}</span>
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -201,7 +201,7 @@ export const SettingsView: React.FC = () => {
               {/* Theme Switcher */}
               <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-2">
                 <span className="font-semibold text-[#2D332D] dark:text-[#E2E8E2] block">
-                  Interface Theme
+                  {language === "ar" ? "مظهر الواجهة" : "Interface Theme"}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -213,7 +213,7 @@ export const SettingsView: React.FC = () => {
                     }`}
                   >
                     <Sun className="w-3.5 h-3.5" />
-                    <span>Light</span>
+                    <span>{language === "ar" ? "فاتح" : "Light"}</span>
                   </button>
                   <button
                     onClick={() => theme === "light" && toggleTheme()}
@@ -224,7 +224,7 @@ export const SettingsView: React.FC = () => {
                     }`}
                   >
                     <Moon className="w-3.5 h-3.5" />
-                    <span>Dark</span>
+                    <span>{language === "ar" ? "داكن" : "Dark"}</span>
                   </button>
                 </div>
               </div>
@@ -233,11 +233,11 @@ export const SettingsView: React.FC = () => {
         </div>
 
         {/* Right Column: Integrations, Database Status & Actions */}
-        <div className="lg:col-span-5 space-y-6 sm:space-y-8">
+        <div className="lg:col-span-5 space-y-5 sm:space-y-6 lg:sticky lg:top-24 self-start">
 
       {/* Supabase Database & Authentication Status (Super Admin / Admin Only) */}
       {isAdmin && (
-        <div className="p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 text-xs">
+        <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#294535] shadow-soft space-y-4 text-xs">
           <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
             <Database className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <span>Supabase Database & Authentication</span>
@@ -275,21 +275,21 @@ export const SettingsView: React.FC = () => {
       )}
 
       {/* Google Workspace Integrations */}
-      <div className="p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 text-xs">
+      <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#294535] shadow-soft space-y-4 text-xs">
         <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
           <Globe className="w-5 h-5 text-[#5A6B5A] dark:text-[#8BA888]" />
-          <span>Google Workspace Connections</span>
+          <span>{language === "ar" ? "اتصالات Google Workspace" : "Google Workspace Connections"}</span>
         </h3>
         <p className="text-[#7A7D75] dark:text-stone-400">
-          Connect your Google Calendar, Google Docs, Google Slides, Google Tasks, Gmail, Google Forms, or Google Drive/Picker accounts to sync schedules, export lesson plans, manage tasks, and send student updates.
+          {language === "ar" ? "اربط تقويم Google وDocs وSlides وTasks وGmail وForms وDrive لمزامنة الجداول وتصدير خطط الدروس وإدارة مهامك التعليمية." : "Connect your Google Calendar, Google Docs, Google Slides, Google Tasks, Gmail, Google Forms, or Google Drive/Picker accounts to sync schedules, export lesson plans, manage tasks, and send student updates."}
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Google Calendar</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.calendar ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
-                {googleTokens.calendar ? "Connected" : "Not Connected"}
+                {googleTokens.calendar ? (language === "ar" ? "متصل" : "Connected") : (language === "ar" ? "غير متصل" : "Not Connected")}
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
@@ -307,7 +307,7 @@ export const SettingsView: React.FC = () => {
               }}
               className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
             >
-              {googleTokens.calendar ? "Reconnect Calendar" : "Connect Calendar"}
+              {googleTokens.calendar ? (language === "ar" ? "إعادة ربط التقويم" : "Reconnect Calendar") : (language === "ar" ? "ربط التقويم" : "Connect Calendar")}
             </button>
           </div>
 
@@ -315,7 +315,7 @@ export const SettingsView: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Google Docs</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.docs ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
-                {googleTokens.docs ? "Connected" : "Not Connected"}
+                {googleTokens.docs ? (language === "ar" ? "متصل" : "Connected") : (language === "ar" ? "غير متصل" : "Not Connected")}
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
@@ -333,7 +333,7 @@ export const SettingsView: React.FC = () => {
               }}
               className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
             >
-              {googleTokens.docs ? "Reconnect Docs" : "Connect Docs"}
+              {googleTokens.docs ? (language === "ar" ? "إعادة ربط Docs" : "Reconnect Docs") : (language === "ar" ? "ربط Docs" : "Connect Docs")}
             </button>
           </div>
 
@@ -341,7 +341,7 @@ export const SettingsView: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Google Slides</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.slides ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
-                {googleTokens.slides ? "Connected" : "Not Connected"}
+                {googleTokens.slides ? (language === "ar" ? "متصل" : "Connected") : (language === "ar" ? "غير متصل" : "Not Connected")}
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
@@ -359,7 +359,7 @@ export const SettingsView: React.FC = () => {
               }}
               className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
             >
-              {googleTokens.slides ? "Reconnect Slides" : "Connect Slides"}
+              {googleTokens.slides ? (language === "ar" ? "إعادة ربط Slides" : "Reconnect Slides") : (language === "ar" ? "ربط Slides" : "Connect Slides")}
             </button>
           </div>
 
@@ -367,7 +367,7 @@ export const SettingsView: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Google Tasks</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.tasks ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
-                {googleTokens.tasks ? "Connected" : "Not Connected"}
+                {googleTokens.tasks ? (language === "ar" ? "متصل" : "Connected") : (language === "ar" ? "غير متصل" : "Not Connected")}
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
@@ -385,7 +385,7 @@ export const SettingsView: React.FC = () => {
               }}
               className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
             >
-              {googleTokens.tasks ? "Reconnect Tasks" : "Connect Tasks"}
+              {googleTokens.tasks ? (language === "ar" ? "إعادة ربط Tasks" : "Reconnect Tasks") : (language === "ar" ? "ربط Tasks" : "Connect Tasks")}
             </button>
           </div>
 
@@ -393,7 +393,7 @@ export const SettingsView: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Gmail</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.gmail ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
-                {googleTokens.gmail ? "Connected" : "Not Connected"}
+                {googleTokens.gmail ? (language === "ar" ? "متصل" : "Connected") : (language === "ar" ? "غير متصل" : "Not Connected")}
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
@@ -411,7 +411,7 @@ export const SettingsView: React.FC = () => {
               }}
               className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
             >
-              {googleTokens.gmail ? "Reconnect Gmail" : "Connect Gmail"}
+              {googleTokens.gmail ? (language === "ar" ? "إعادة ربط Gmail" : "Reconnect Gmail") : (language === "ar" ? "ربط Gmail" : "Connect Gmail")}
             </button>
           </div>
 
@@ -420,7 +420,7 @@ export const SettingsView: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Google Forms</span>
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.forms ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
-                  {googleTokens.forms ? "Connected" : "Not Connected"}
+                  {googleTokens.forms ? (language === "ar" ? "متصل" : "Connected") : (language === "ar" ? "غير متصل" : "Not Connected")}
                 </span>
               </div>
               <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
@@ -438,7 +438,7 @@ export const SettingsView: React.FC = () => {
                 }}
                 className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
               >
-                {googleTokens.forms ? "Reconnect Forms" : "Connect Forms"}
+                {googleTokens.forms ? (language === "ar" ? "إعادة ربط Forms" : "Reconnect Forms") : (language === "ar" ? "ربط Forms" : "Connect Forms")}
               </button>
             </div>
           )}
@@ -447,7 +447,7 @@ export const SettingsView: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Google Drive & Picker</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.picker ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
-                {googleTokens.picker ? "Connected" : "Not Connected"}
+                {googleTokens.picker ? (language === "ar" ? "متصل" : "Connected") : (language === "ar" ? "غير متصل" : "Not Connected")}
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
@@ -465,17 +465,17 @@ export const SettingsView: React.FC = () => {
               }}
               className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
             >
-              {googleTokens.picker ? "Reconnect Drive" : "Connect Drive"}
+              {googleTokens.picker ? (language === "ar" ? "إعادة ربط Drive" : "Reconnect Drive") : (language === "ar" ? "ربط Drive" : "Connect Drive")}
             </button>
           </div>
         </div>
       </div>
 
       {/* Legal & Public Links Section */}
-      <div className="p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 text-xs">
+      <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#294535] shadow-soft space-y-4 text-xs">
         <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
           <Settings className="w-5 h-5 text-[#8B5A2B]" />
-          <span>Legal & Privacy Links</span>
+          <span>{language === "ar" ? "الخصوصية والروابط القانونية" : "Legal & Privacy Links"}</span>
         </h3>
         <p className="text-[#7A7D75] dark:text-stone-400">
           Public compliance links for Google Cloud Console and OAuth User Data verification.
@@ -488,7 +488,7 @@ export const SettingsView: React.FC = () => {
             rel="noreferrer"
             className="px-4 py-2.5 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] font-bold text-[#3E4D3E] dark:text-[#8BA888] hover:bg-[#E8E5DB] dark:hover:bg-[#2A352A] transition-all"
           >
-            📄 View Public Privacy Policy (/privacy)
+            View Privacy Policy
           </a>
           <a
             href="/terms"
@@ -496,7 +496,7 @@ export const SettingsView: React.FC = () => {
             rel="noreferrer"
             className="px-4 py-2.5 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] font-bold text-[#3E4D3E] dark:text-[#8BA888] hover:bg-[#E8E5DB] dark:hover:bg-[#2A352A] transition-all"
           >
-            📋 View Public Terms of Service (/terms)
+            View Terms of Service
           </a>
         </div>
       </div>
@@ -505,26 +505,26 @@ export const SettingsView: React.FC = () => {
       <div className="p-6 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 text-xs">
         <h3 className="text-base font-serif font-bold text-rose-800 dark:text-rose-400 flex items-center gap-2">
           <RefreshCw className="w-5 h-5 text-rose-700" />
-          <span>Account & Demo Controls</span>
+          <span>{language === "ar" ? "الحساب وبيانات المعاينة" : "Account & Demo Controls"}</span>
         </h3>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <p className="font-semibold text-[#1F261F] dark:text-[#E2E8E2]">Reset Demo Data</p>
-            <p className="text-[#7A7D75] dark:text-stone-400">Restore sample students and curriculums to initial state.</p>
+              <p className="font-semibold text-[#1F261F] dark:text-[#E2E8E2]">{language === "ar" ? "إعادة ضبط بيانات المعاينة" : "Reset Demo Data"}</p>
+              <p className="text-[#7A7D75] dark:text-stone-400">{language === "ar" ? "استعادة الطلاب والمناهج التجريبية إلى حالتها الأولية." : "Restore sample students and curriculums to initial state."}</p>
           </div>
           <button
             onClick={resetToDemoData}
             className="px-4 py-2 rounded-lg bg-rose-700 hover:bg-rose-800 text-white font-semibold cursor-pointer shadow-xs transition-all active:scale-95 shrink-0"
           >
-            Reset Demo Data
+              {language === "ar" ? "إعادة ضبط البيانات" : "Reset Demo Data"}
           </button>
         </div>
 
         {isGuest && (
           <div className="border-t border-[#E8E5DB] dark:border-[#2A352A] pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <p className="font-semibold text-[#1F261F] dark:text-[#E2E8E2]">Clear Guest Session Data</p>
-              <p className="text-[#7A7D75] dark:text-stone-400">Remove guest workspace data from this browser session and restore the sample workspace.</p>
+              <p className="font-semibold text-[#1F261F] dark:text-[#E2E8E2]">{language === "ar" ? "مسح بيانات جلسة الضيف" : "Clear Guest Session Data"}</p>
+              <p className="text-[#7A7D75] dark:text-stone-400">{language === "ar" ? "إزالة بيانات مساحة الضيف من جلسة المتصفح الحالية." : "Remove guest workspace data from this browser session and restore the sample workspace."}</p>
             </div>
             <button
               onClick={() => {
@@ -532,21 +532,21 @@ export const SettingsView: React.FC = () => {
               }}
               className="px-4 py-2 rounded-lg bg-rose-700 hover:bg-rose-800 text-white font-semibold cursor-pointer shadow-xs transition-all active:scale-95 shrink-0"
             >
-              Clear Guest Data
+              {language === "ar" ? "مسح بيانات الضيف" : "Clear Guest Data"}
             </button>
           </div>
         )}
 
         <div className="border-t border-[#E8E5DB] dark:border-[#2A352A] pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <p className="font-semibold text-[#1F261F] dark:text-[#E2E8E2]">Sign Out</p>
-            <p className="text-[#7A7D75] dark:text-stone-400">Log out of your Ustadh account and clear session token.</p>
+              <p className="font-semibold text-[#1F261F] dark:text-[#E2E8E2]">{language === "ar" ? "تسجيل الخروج" : "Sign Out"}</p>
+              <p className="text-[#7A7D75] dark:text-stone-400">{language === "ar" ? "الخروج من حساب المعلم ومسح رمز الجلسة." : "Log out of your Ustadh account and clear session token."}</p>
           </div>
           <button
             onClick={() => logout()}
             className="px-4 py-2 rounded-lg bg-stone-800 dark:bg-stone-700 hover:bg-stone-900 text-white font-semibold cursor-pointer shadow-xs transition-all active:scale-95 shrink-0"
           >
-            Log Out
+            {language === "ar" ? "تسجيل الخروج" : "Log Out"}
           </button>
         </div>
       </div>

@@ -25,23 +25,23 @@ export const Header: React.FC<HeaderProps> = ({
   const [profileOpen, setProfileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-[#EFF3EF]/90 dark:bg-[#121813]/90 backdrop-blur-md border-b border-[#D6E0D6] dark:border-[#2A352A] px-4 sm:px-8 py-3.5 transition-colors">
+    <header className="sticky top-0 z-30 w-full bg-[#F7F3E9]/92 dark:bg-[#142019]/92 backdrop-blur-md border-b border-[#D9E3D9] dark:border-[#294535] px-4 sm:px-8 py-3 transition-colors">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Brand Logo & Welcome Greeting */}
         <div className="flex items-center gap-3 sm:gap-4">
           <BrandLogo size="sm" showSubtitle={false} className="flex" />
           <div className="h-8 w-px bg-[#D2DDD2] dark:bg-[#2A352A] hidden sm:block" />
           <div className="flex flex-col">
-            <h1 className="font-serif text-base sm:text-lg text-[#1F261F] dark:text-[#E2E8E2] italic font-semibold flex items-center gap-2 flex-wrap">
+            <h1 className="font-serif text-base sm:text-lg text-[#173326] dark:text-[#E2E8E2] font-semibold flex items-center gap-2 flex-wrap">
               <span>{t("welcomeBack")},</span>
               {teacher && (
                 <span className="text-[#3E4D3E] dark:text-[#8BA888] font-bold not-italic">
-                  {teacher.name}
+                  {isGuest && language === "ar" ? "أستاذ ضيف" : teacher.name}
                 </span>
               )}
               {isGuest && (
-                <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-800 text-[10px] font-bold not-italic font-sans">
-                  Demo Workspace
+                <span className="px-2 py-0.5 rounded-md bg-[#F3F0E6] dark:bg-[#2C2A1F] text-[#6B3F1D] dark:text-[#E5C69B] border border-[#E5C99F] dark:border-[#6B3F1D] text-[10px] font-bold not-italic font-sans">
+                  {language === "ar" ? "مساحة ضيف" : "Guest workspace"}
                 </span>
               )}
             </h1>

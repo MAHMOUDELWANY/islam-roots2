@@ -89,10 +89,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 xl:w-68 bg-[#F4F8F4] dark:bg-[#161D17] border-r border-[#D6E0D6] dark:border-[#2A352A] min-h-screen p-6 transition-colors select-none">
+    <aside className="hidden lg:flex flex-col w-64 xl:w-68 bg-[#F7F3E9] dark:bg-[#142019] border-r border-[#D9E3D9] dark:border-[#294535] min-h-screen p-5 xl:p-6 transition-colors select-none">
       {/* Brand Header */}
-      <div className="mb-10">
-        <BrandLogo size="md" showSubtitle />
+      <div className="mb-8">
+        <BrandLogo size="md" showSubtitle={false} />
       </div>
 
       {/* Navigation Items */}
@@ -104,17 +104,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
               key={item.id}
               id={`desktop-tour-nav-${item.id}`}
               onClick={() => onSelectSection(item.id)}
-              className={`w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer ${
+              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all duration-150 cursor-pointer ${
                 isActive
-                  ? "bg-[#E8E5DB] dark:bg-[#2A352A] text-[#3E4D3E] dark:text-[#E2E8E2] border-l-4 border-[#5A6B5A] font-semibold shadow-xs"
-                  : "text-[#7A7D75] dark:text-stone-400 hover:text-[#3E4D3E] dark:hover:text-[#E2E8E2] hover:bg-[#F2EFE6]/80 dark:hover:bg-[#232B23]"
+                  ? "bg-[#E5EFE7] dark:bg-[#20382A] text-[#1F6F4A] dark:text-[#B9D7BF] border-l-4 border-[#1F6F4A] font-semibold shadow-xs"
+                  : "text-[#617267] dark:text-stone-400 hover:text-[#1F6F4A] dark:hover:text-[#E2E8E2] hover:bg-[#EEF4EE] dark:hover:bg-[#1D3024]"
               }`}
             >
               <div className="flex items-center gap-3.5 min-w-0">
                 <span className={`relative shrink-0 ${isActive ? "text-[#5A6B5A] dark:text-[#8BA888]" : "text-[#7A7D75] dark:text-stone-400"}`}>
                   {item.icon}
                 </span>
-                <span className="truncate">{t(item.labelKey)}</span>
+                <span className="max-w-[145px] whitespace-normal text-left leading-tight">{t(item.labelKey)}</span>
               </div>
               <div className="flex items-center gap-1.5 shrink-0 ml-2">
                 {item.badge && (
@@ -135,7 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
       </nav>
 
       {/* Educator Footer Card */}
-      <div className="mt-auto p-4 bg-[#F2EFE6] dark:bg-[#232B23] rounded-xl border border-[#E8E5DB]/60 dark:border-[#2A352A]">
+      <div className="mt-auto p-4 bg-[#F3F0E6] dark:bg-[#1B2C21] rounded-xl border border-[#D9E3D9] dark:border-[#294535]">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-[#D4D1C5] dark:bg-stone-600 text-[#3E4D3E] dark:text-stone-200 flex items-center justify-center font-bold text-sm font-serif">
             {teacher?.name?.charAt(0) || "U"}
@@ -144,7 +144,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
             <p className="text-xs font-semibold text-[#3E4D3E] dark:text-[#E2E8E2] truncate">
               {teacher?.name || "Ustadh Mahmoud"}
             </p>
-            <p className="text-[10px] text-[#7A7D75] dark:text-stone-400">Teacher Edition</p>
+            <p className="text-[10px] text-[#617267] dark:text-stone-400">{t("workspace") || "Workspace"}</p>
           </div>
         </div>
       </div>

@@ -417,7 +417,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
               Jalilah AI Assistant | المساعد الذكي جليلة
             </span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-serif italic font-bold">
+          <h2 className="text-xl sm:text-2xl font-serif font-bold">
             {t("aiLessonStudio")}
           </h2>
           <p className="text-xs sm:text-sm text-stone-300 max-w-2xl font-sans">

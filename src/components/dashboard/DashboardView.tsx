@@ -29,7 +29,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onSelectStudentProfile,
 }) => {
   const { students, lessonSessions, studentCurriculums, curriculums } = useData();
-  const { t, isRTL } = useLanguage();
+  const { t, isRTL, language } = useLanguage();
 
   // Calculate Metrics
   const activeStudents = students.filter((s) => s.status === "Active");
@@ -43,6 +43,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const todaySessions = lessonSessions.filter((s) => s.date === todayStr);
   const presentToday = todaySessions.filter((s) => s.attendanceStatus === "Present").length;
   const lateToday = todaySessions.filter((s) => s.attendanceStatus === "Late").length;
+  const hasLearningEvidence = lessonSessions.length > 0;
 
   // Students needing attention
   const studentsNeedingAttention = activeStudents.filter((s) => {
@@ -51,18 +52,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   });
 
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fade-in pb-12">
+    <div className="space-y-5 sm:space-y-7 animate-fade-in pb-12">
       {/* Top Welcome Banner & Quick Action Bar in Natural Tones */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-6 sm:p-8 rounded-2xl bg-[#3E4D3E] text-white shadow-soft relative overflow-hidden">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 p-6 sm:p-8 rounded-2xl bg-[#1F6F4A] text-white shadow-soft relative overflow-hidden">
         <div className="space-y-2 z-10 max-w-2xl">
-          <span className="inline-block px-3 py-1 rounded-md bg-[#5A6B5A] text-xs font-semibold tracking-wider text-[#DDE2D5]">
-            Ustadh Teaching Hub
+          <span className="inline-block px-3 py-1 rounded-md bg-[#2F8F5B] text-xs font-semibold tracking-wider text-[#F3F0E6]">
+            {t("todayOverview")}
           </span>
-          <h2 className="text-2xl sm:text-3xl font-serif italic font-bold tracking-tight text-[#FCFAF5]">
-            Welcome to Islam Roots Workspace
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold tracking-tight text-[#FCFAF5]">
+            {language === "ar" ? "مرحباً بك في مساحة جذور الإسلام" : "Welcome to Islam Roots Workspace"}
           </h2>
-          <p className="text-xs sm:text-sm text-[#DDE2D5] leading-relaxed">
-            Streamline your teaching, track student progress across Quran & Tajweed, and generate AI-powered lesson plans.
+          <p className="text-xs sm:text-sm text-[#DDEBE0] leading-relaxed max-w-xl">
+            {language === "ar" ? "خطط لدروس اليوم، وراجع الأدلة الحقيقية للطلاب، وانتقل بسرعة إلى الخطوة التالية." : "Plan today’s teaching, review real student evidence, and move quickly into the next useful action."}
           </p>
         </div>
 
@@ -71,7 +72,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             onClick={onOpenAddStudent}
             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#FCFAF5] text-[#3E4D3E] hover:bg-white text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer"
           >
-            <Plus className="w-4 h-4 text-[#5A6B5A]" />
+            <Plus className="w-4 h-4 text-[#1F6F4A]" />
             <span>{t("addStudent")}</span>
           </button>
           <button
@@ -89,13 +90,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Active Students */}
         <div
           onClick={() => onNavigate("students")}
-          className="p-5 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft hover:border-[#5A6B5A] transition-all cursor-pointer group"
+          className="p-5 rounded-xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#2A352A] shadow-soft hover:border-[#5A6B5A] transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#7A7D75] dark:text-stone-400">
               {t("activeStudents")}
             </span>
-            <div className="p-2 rounded-lg bg-[#F2EFE6] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] group-hover:scale-105 transition-transform">
+            <div className="p-2 rounded-lg bg-[#F3F0E6] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] group-hover:scale-105 transition-transform">
               <Users className="w-4 h-4" />
             </div>
           </div>
@@ -103,19 +104,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="text-2xl sm:text-3xl font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2]">
               {activeStudents.length}
             </span>
-            <span className="text-[11px] text-[#5A6B5A] dark:text-[#8BA888] font-medium block mt-0.5">
-              Active Learners
+            <span className="text-[11px] text-[#1F6F4A] dark:text-[#8BA888] font-medium block mt-0.5">
+              {language === "ar" ? "طلاب نشطون" : "Active Learners"}
             </span>
           </div>
         </div>
 
         {/* Today's Lessons & Attendance */}
-        <div className="p-5 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft">
+        <div className="p-5 rounded-xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#2A352A] shadow-soft">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#7A7D75] dark:text-stone-400">
               {t("todayLessons")}
             </span>
-            <div className="p-2 rounded-lg bg-[#F2EFE6] dark:bg-[#232B23] text-[#8B5A2B]">
+            <div className="p-2 rounded-lg bg-[#F3F0E6] dark:bg-[#232B23] text-[#8B5A2B]">
               <Clock className="w-4 h-4" />
             </div>
           </div>
@@ -124,7 +125,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {todaySessions.length > 0 ? todaySessions.length : activeStudents.length}
             </span>
             <span className="text-[11px] text-[#7A7D75] dark:text-stone-400 block mt-0.5">
-              {presentToday} {t("presentCount")} • {lateToday} {t("lateCount")}
+              {presentToday} {language === "ar" ? "حاضر" : t("presentCount")} • {lateToday} {language === "ar" ? "متأخر" : t("lateCount")}
             </span>
           </div>
         </div>
@@ -132,13 +133,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Average Progress */}
         <div
           onClick={() => onNavigate("progressMap")}
-          className="p-5 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft hover:border-[#5A6B5A] transition-all cursor-pointer group"
+          className="p-5 rounded-xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#2A352A] shadow-soft hover:border-[#5A6B5A] transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#7A7D75] dark:text-stone-400">
               {t("averageProgress")}
             </span>
-            <div className="p-2 rounded-lg bg-[#F2EFE6] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] group-hover:scale-105 transition-transform">
+            <div className="p-2 rounded-lg bg-[#F3F0E6] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] group-hover:scale-105 transition-transform">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
@@ -146,9 +147,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="text-2xl sm:text-3xl font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2]">
               {avgProgress}%
             </span>
-            <div className="w-full bg-[#F2EFE6] dark:bg-[#232B23] h-2 rounded-full mt-2 overflow-hidden">
+            <div className="w-full bg-[#F3F0E6] dark:bg-[#232B23] h-2 rounded-full mt-2 overflow-hidden">
               <div
-                className="bg-[#5A6B5A] h-full rounded-full transition-all duration-500"
+                className="bg-[#1F6F4A] h-full rounded-full transition-all duration-500"
                 style={{ width: `${avgProgress}%` }}
               />
             </div>
@@ -156,7 +157,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Needs Attention */}
-        <div className="p-5 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft">
+        <div className="p-5 rounded-xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#2A352A] shadow-soft">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-[#7A7D75] dark:text-stone-400">
               {t("needsAttention")}
@@ -170,16 +171,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               {studentsNeedingAttention.length}
             </span>
             <span className="text-[11px] text-stone-600 dark:text-stone-400 font-medium block mt-0.5">
-              Requires Tajweed/Revision
+              {language === "ar" ? "يحتاجون إلى تجويد أو مراجعة" : "Requires Tajweed/Revision"}
             </span>
           </div>
         </div>
       </div>
 
       {/* AI Insight Card */}
-      <div className="p-5 sm:p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft relative overflow-hidden">
+      <div className="p-5 sm:p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#2A352A] shadow-soft relative overflow-hidden">
         <div className="flex items-start gap-4">
-          <div className="p-2.5 rounded-lg bg-[#5A6B5A] text-white shrink-0">
+          <div className="p-2.5 rounded-lg bg-[#1F6F4A] text-white shrink-0">
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="space-y-1.5 flex-1">
@@ -187,28 +188,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <h3 className="text-sm font-semibold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
                 <span>{t("aiInsightTitle")}</span>
                 <span className="px-2 py-0.5 rounded-md bg-[#E8E5DB] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] text-[10px] font-bold">
-                  Observation
+                  {language === "ar" ? "ملاحظة" : "Observation"}
                 </span>
               </h3>
             </div>
-            {activeStudents.length > 0 ? (
+            {hasLearningEvidence && activeStudents.length > 0 ? (
               <>
                 <p className="text-xs sm:text-sm text-[#2D332D] dark:text-stone-300 leading-relaxed font-sans">
-                  « {activeStudents[0].name} is active in {activeStudents[0].subjects.join(", ") || "Quran"}. Regular Tajweed drills and revision sessions are recommended before upcoming lessons. »
+                  {language === "ar" ? `تم تسجيل نشاط تعليمي للطالب ${activeStudents[0].name}. راجع الملف الشخصي لاتخاذ قرار التدريس التالي من الأدلة المحفوظة.` : `${activeStudents[0].name} has recorded learning activity. Review the student profile to make the next teaching decision from stored lesson evidence.`}
                 </p>
                 <div className="pt-2 flex items-center gap-3">
                   <button
                     onClick={() => onSelectStudentProfile(activeStudents[0].id)}
                     className="text-xs font-semibold text-[#3E4D3E] dark:text-[#8BA888] hover:underline flex items-center gap-1 cursor-pointer"
                   >
-                    <span>Review {activeStudents[0].name}'s Profile</span>
+                    <span>{language === "ar" ? "مراجعة ملف الطالب" : `Review ${activeStudents[0].name}'s profile`}</span>
                     <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
                   </button>
                 </div>
               </>
             ) : (
               <p className="text-xs sm:text-sm text-[#2D332D] dark:text-stone-300 leading-relaxed font-sans">
-                Welcome to your Ustadh Workspace! As you add your real students and log lesson sessions, personalized AI teaching observations and Tajweed recommendations will appear here.
+                {language === "ar" ? "ستظهر ملاحظات الذكاء الاصطناعي بعد تسجيل أدلة تعليمية حقيقية. حتى ذلك الحين، استخدم سجل الطلاب واستوديو الدروس للتحضير للخطوة التالية." : "AI observations will appear here after real lesson evidence is recorded. Until then, use the student roster and lesson studio to prepare the next step."}
               </p>
             )}
           </div>
@@ -220,7 +221,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Today's Lessons / Upcoming List (2 cols) */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] italic">
+            <h3 className="text-lg font-serif font-bold text-[#173326] dark:text-[#E2E8E2]">
               {t("upcomingLessons")}
             </h3>
             <button
@@ -234,17 +235,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <div className="space-y-3">
             {activeStudents.length === 0 ? (
-              <div className="p-8 text-center rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
+              <div className="p-8 text-center rounded-xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#2A352A] space-y-3">
                 <Users className="w-10 h-10 text-[#7A7D75] mx-auto" />
                 <h4 className="font-semibold text-sm text-[#1F261F] dark:text-[#E2E8E2]">
-                  No students added yet
+                  {language === "ar" ? "لم تتم إضافة طلاب بعد" : "No students added yet"}
                 </h4>
                 <p className="text-xs text-[#7A7D75] dark:text-stone-400 max-w-sm mx-auto">
-                  Click 'Add Student' above to start adding your real students and building your teaching roster.
+                  {language === "ar" ? "استخدم زر إضافة طالب لبدء بناء سجل طلابك الحقيقي." : "Click 'Add Student' above to start adding your real students and building your teaching roster."}
                 </p>
                 <button
                   onClick={onOpenAddStudent}
-                  className="px-4 py-2 rounded-lg bg-[#5A6B5A] text-white text-xs font-semibold hover:bg-[#495749] transition-all cursor-pointer inline-flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-lg bg-[#1F6F4A] text-white text-xs font-semibold hover:bg-[#155A3B] transition-all cursor-pointer inline-flex items-center gap-1.5"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>{t("addStudent")}</span>
@@ -258,10 +259,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 return (
                   <div
                     key={student.id}
-                    className="p-4 sm:p-5 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft hover:border-[#5A6B5A] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    className="p-4 sm:p-5 rounded-xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#2A352A] shadow-soft hover:border-[#5A6B5A] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   >
                     <div className="flex items-center gap-3.5">
-                      <div className="w-10 h-10 rounded-full bg-[#5A6B5A] text-white font-serif font-bold text-sm flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-[#1F6F4A] text-white font-serif font-bold text-sm flex items-center justify-center shrink-0">
                         {student.name.charAt(0)}
                       </div>
 
@@ -269,11 +270,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         <div className="flex items-center gap-2">
                           <h4
                             onClick={() => onSelectStudentProfile(student.id)}
-                            className="font-semibold text-[#1F261F] dark:text-[#E2E8E2] text-sm hover:text-[#5A6B5A] cursor-pointer"
+                            className="font-semibold text-[#1F261F] dark:text-[#E2E8E2] text-sm hover:text-[#1F6F4A] cursor-pointer"
                           >
                             {student.name}
                           </h4>
-                          <span className="px-2 py-0.5 rounded bg-[#F2EFE6] dark:bg-[#232B23] text-[#7A7D75] dark:text-stone-300 text-[10px] font-medium">
+                          <span className="px-2 py-0.5 rounded bg-[#F3F0E6] dark:bg-[#232B23] text-[#7A7D75] dark:text-stone-300 text-[10px] font-medium">
                             Age {student.age}
                           </span>
                         </div>
@@ -284,7 +285,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-[#E8E5DB] dark:border-[#2A352A]">
+                    <div className="flex items-center gap-3 justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-[#D9E3D9] dark:border-[#2A352A]">
                       <div className="text-right rtl:text-left">
                         <span className="text-xs font-semibold text-[#3E4D3E] dark:text-[#8BA888]">
                           {sc ? `${sc.progressPercentage}% Progress` : "New Student"}
@@ -293,7 +294,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
                       <button
                         onClick={() => onOpenStartLesson(student.id)}
-                        className="px-3.5 py-1.5 rounded-lg bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
+                        className="px-3.5 py-1.5 rounded-lg bg-[#1F6F4A] hover:bg-[#155A3B] text-white text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
                       >
                         <Play className="w-3 h-3 fill-current" />
                         <span>{t("startLesson")}</span>
@@ -308,7 +309,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         {/* Quick Tools & Shortcuts (1 col) */}
         <div className="space-y-4">
-          <h3 className="text-lg font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] italic">
+          <h3 className="text-lg font-serif font-bold text-[#173326] dark:text-[#E2E8E2]">
             {t("quickActions")}
           </h3>
 
@@ -316,7 +317,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {/* AI Lesson Studio card */}
             <div
               onClick={() => onNavigate("lessonStudio")}
-              className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft hover:border-[#8B5A2B] transition-all cursor-pointer group"
+              className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#2A352A] shadow-soft hover:border-[#8B5A2B] transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-lg bg-[#8B5A2B] text-white font-bold group-hover:scale-105 transition-transform">
@@ -327,7 +328,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     {t("aiLessonStudio")}
                   </h4>
                   <p className="text-xs text-[#7A7D75] dark:text-stone-400">
-                    Instant structured lesson plans & vocabulary
+                    {language === "ar" ? "خطط دروس منظمة ومفردات جاهزة" : "Instant structured lesson plans & vocabulary"}
                   </p>
                 </div>
               </div>
@@ -336,10 +337,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {/* Quran Memory Detective */}
             <div
               onClick={() => onNavigate("quranDetective")}
-              className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft hover:border-[#5A6B5A] transition-all cursor-pointer group"
+              className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#2A352A] shadow-soft hover:border-[#5A6B5A] transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-[#F2EFE6] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] group-hover:scale-105 transition-transform">
+                <div className="p-2.5 rounded-lg bg-[#F3F0E6] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] group-hover:scale-105 transition-transform">
                   <SearchCheck className="w-4 h-4" />
                 </div>
                 <div>
@@ -347,7 +348,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     {t("quranDetective")}
                   </h4>
                   <p className="text-xs text-[#7A7D75] dark:text-stone-400">
-                    Test Quran memorization & continuation
+                    {language === "ar" ? "اختبر حفظ القرآن واستكمال الآيات" : "Test Quran memorization & continuation"}
                   </p>
                 </div>
               </div>
@@ -356,10 +357,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {/* Curriculum Builder */}
             <div
               onClick={() => onNavigate("curriculums")}
-              className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft hover:border-[#5A6B5A] transition-all cursor-pointer group"
+              className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#2A352A] shadow-soft hover:border-[#5A6B5A] transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-[#F2EFE6] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] group-hover:scale-105 transition-transform">
+                <div className="p-2.5 rounded-lg bg-[#F3F0E6] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] group-hover:scale-105 transition-transform">
                   <BookOpen className="w-4 h-4" />
                 </div>
                 <div>
@@ -367,7 +368,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     {t("curriculums")}
                   </h4>
                   <p className="text-xs text-[#7A7D75] dark:text-stone-400">
-                    Define custom programs & reorder topics
+                    {language === "ar" ? "أنشئ برامج مخصصة ورتب الموضوعات" : "Define custom programs & reorder topics"}
                   </p>
                 </div>
               </div>
