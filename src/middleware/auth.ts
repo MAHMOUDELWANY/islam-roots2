@@ -1,40 +1,47 @@
-import { Request, Response, NextFunction } from 'express';
-import { supabaseAdmin } from '../lib/supabase-admin';
-import { User } from '@supabase/supabase-js';
+import { Request, Response, NextFunction } from "express";
+import { User } from "@supabase/supabase-js";
+import { isSupabaseAdminConfigured, supabaseAdmin } from "../lib/supabase-admin";
 
 export interface AuthRequest extends Request {
-  user?: User & { uid?: string, email_verified?: boolean };
+  user?: User & { uid?: string; email_verified?: boolean };
 }
 
 export const requireAuth = async (
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized: Missing token' });
+  if (!isSupabaseAdminConfigured) {
+    console.error("[Auth] Protected server route rejected because Supabase admin credentials are not configured.");
+    return res.status(503).json({ error: "Authentication service is unavailable." });
   }
 
-  const token = authHeader.split('Bearer ')[1];
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Unauthorized." });
+  }
+
+  const token = authHeader.slice("Bearer ".length).trim();
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized." });
+  }
+
   try {
     const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-    
     if (error || !user) {
-      console.error('Error verifying Supabase token. Code:', error?.code || error?.status);
-      return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+      console.error("[Auth] Supabase token verification failed.", error?.code || error?.status || "unknown");
+      return res.status(401).json({ error: "Unauthorized." });
     }
-    
-    // Add compatibility properties for downstream handlers (e.g. server.ts expects uid and email_verified)
+
     req.user = {
       ...user,
       uid: user.id,
-      email_verified: !!user.email_confirmed_at || user.app_metadata?.provider === 'google'
+      email_verified: Boolean(user.email_confirmed_at) || user.app_metadata?.provider === "google",
     };
-    
+
     next();
   } catch (error: any) {
-    console.error('Error verifying Supabase token. Code:', error?.code || error?.status);
-    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+    console.error("[Auth] Supabase token verification failed.", error?.code || error?.status || "unknown");
+    return res.status(401).json({ error: "Unauthorized." });
   }
 };

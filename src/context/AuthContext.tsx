@@ -3,8 +3,6 @@ import { User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { Teacher } from "../types";
 
-export const ADMIN_EMAIL = "mhmwdlwany4222@gmail.com";
-
 export interface GoogleTokens {
   calendar?: string;
   docs?: string;
@@ -53,18 +51,9 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [teacher, setTeacher] = useState<Teacher | null>(null);
-  const [googleTokens, setGoogleTokens] = useState<GoogleTokens>(() => {
-    try {
-      const stored = sessionStorage.getItem("googleTokens");
-      return stored ? JSON.parse(stored) : {};
-    } catch {
-      return {};
-    }
-  });
-  
-  useEffect(() => {
-    sessionStorage.setItem("googleTokens", JSON.stringify(googleTokens));
-  }, [googleTokens]);
+  // Google access tokens stay in memory only and are cleared on refresh or logout.
+  const [googleTokens, setGoogleTokens] = useState<GoogleTokens>({});
+  const [isSuperAdminClaim, setIsSuperAdminClaim] = useState(false);
   const [loading, setLoading] = useState<boolean>(true);
 
 useEffect(() => {
@@ -199,25 +188,19 @@ useEffect(() => {
       });
       setIsSuperAdminClaim(!!teacherData.is_super_admin);
 
-      // Trigger super admin claim if this is the admin email
-      if (user.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      // The server alone decides whether the authenticated user may receive the bootstrap admin role.
+      if (!teacherData.is_super_admin && user.email_confirmed_at) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.access_token) {
             const res = await fetch("/api/auth/claim-admin", {
               method: "POST",
-              headers: {
-                "Authorization": `Bearer ${session.access_token}`
-              }
+              headers: { "Authorization": `Bearer ${session.access_token}` },
             });
-            if (res.ok) {
-              setIsSuperAdminClaim(true);
-            } else {
-              console.warn("[Auth] Failed to claim admin status via API. Status:", res.status);
-            }
+            if (res.ok) setIsSuperAdminClaim(true);
           }
-        } catch (adminErr) {
-          console.error("Failed to claim admin status.");
+        } catch {
+          // Normal users and unavailable provisioning should not interrupt profile loading.
         }
       }
     } catch (err: any) {
@@ -466,52 +449,52 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
 
   const connectGoogleCalendar = async (): Promise<string | null> => {
     return requestGoogleToken(
-      "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
+      "https://www.googleapis.com/auth/calendar.events",
       "calendar"
     );
   };
 
   const connectGoogleDocs = async (): Promise<string | null> => {
     return requestGoogleToken(
-      "https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/documents.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly",
+      "https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.file",
       "docs"
     );
   };
 
   const connectGoogleSlides = async (): Promise<string | null> => {
     return requestGoogleToken(
-      "https://www.googleapis.com/auth/presentations https://www.googleapis.com/auth/presentations.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly",
+      "https://www.googleapis.com/auth/presentations https://www.googleapis.com/auth/drive.file",
       "slides"
     );
   };
 
   const connectGoogleTasks = async (): Promise<string | null> => {
     return requestGoogleToken(
-      "https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/tasks.readonly",
+      "https://www.googleapis.com/auth/tasks",
       "tasks"
     );
   };
 
   const connectGmail = async (): Promise<string | null> => {
     return requestGoogleToken(
-      "https://mail.google.com/ https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/gmail.send",
       "gmail"
     );
   };
 
   const connectGoogleForms = async (): Promise<string | null> => {
-    if (!isAdmin) {
+    if (!isSuperAdminClaim) {
       throw new Error("Google Forms integration is restricted to Super Admin only.");
     }
     return requestGoogleToken(
-      "https://www.googleapis.com/auth/forms.body https://www.googleapis.com/auth/forms.body.readonly https://www.googleapis.com/auth/forms.responses.readonly",
+      "https://www.googleapis.com/auth/forms.body",
       "forms"
     );
   };
 
   const connectGooglePicker = async (): Promise<string | null> => {
     return requestGoogleToken(
-      "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata.readonly",
+      "https://www.googleapis.com/auth/drive.file",
       "picker"
     );
   };
@@ -556,7 +539,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
       const updated = { ...teacher, ...updatedData };
       setTeacher(updated);
       if (teacher.id === "guest-ustadh-101") {
-        localStorage.setItem("islamroots_guest_teacher", JSON.stringify(updated));
+        sessionStorage.setItem("islamroots_session_guest", JSON.stringify(updated));
       } else if (firebaseUser) {
         try {
           const dbData: any = {};
@@ -628,15 +611,8 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
 
   const isGuest = Boolean(teacher?.id === "guest-ustadh-101" || teacher?.isGuest);
 
-  const isAdmin = Boolean(
-    (teacher?.email && teacher.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) ||
-      (firebaseUser?.email && firebaseUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
-  );
-  
-  // Note: isSuperAdminClaim is now populated during teacher lookup in onAuthStateChange
-  const [isSuperAdminClaim, setIsSuperAdminClaim] = useState(false);
-  
-  const effectiveIsAdmin = isAdmin || isSuperAdminClaim;
+  // Administrative UI is derived only from the server/RLS-backed teacher profile claim.
+  const effectiveIsAdmin = isSuperAdminClaim;
   
 
   return (

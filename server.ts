@@ -1,33 +1,68 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, type GenerateContentParameters } from "@google/genai";
 import { requireAuth } from "./src/middleware/auth";
+import {
+  aiRateLimiter,
+  hasRequiredModelFields,
+  sendInvalidRequest,
+  sendServerError,
+  validateHomeworkInput,
+  validateLessonPlanInput,
+  validateQuizInput,
+  validateSlidesPlanInput,
+  validateStudentInsightsInput,
+} from "./src/server/aiSecurity";
 import dotenv from "dotenv";
 
 dotenv.config();
+
+const AI_TIMEOUT_MS = 8_500;
+
+async function generateWithTimeout(ai: GoogleGenAI, options: GenerateContentParameters) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error("VERCEL_TIMEOUT")), AI_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([ai.models.generateContent(options), timeoutPromise]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
+function getAi() {
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("AI_PROVIDER_NOT_CONFIGURED");
+  }
+
+  return new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        "User-Agent": "islam-roots-server",
+      },
+    },
+  });
+}
+
+function parseModelResponse(response: { text?: string }, requiredFields: string[]) {
+  const text = response.text || "{}";
+  const parsed = JSON.parse(text) as unknown;
+  if (!hasRequiredModelFields(parsed, requiredFields)) {
+    throw new Error("INVALID_MODEL_RESPONSE");
+  }
+  return parsed;
+}
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json({ limit: "5mb" }));
-
-  // Initialize Gemini AI Client
-  const generateWithTimeout = async (ai: any, options: any) => { const timeoutMs = 8500; const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("VERCEL_TIMEOUT")), timeoutMs) ); return Promise.race([ ai.models.generateContent(options), timeoutPromise ]); }; const getAi = () => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.warn("GEMINI_API_KEY environment variable is not defined.");
-    }
-    return new GoogleGenAI({
-      apiKey: apiKey || "placeholder-key",
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
-        },
-      },
-    });
-  };
+  app.use(express.json({ limit: "100kb" }));
 
 
   // API: Grant Super Admin Claim
@@ -38,21 +73,32 @@ async function startServer() {
         return res.status(401).json({ error: "Unauthorized" });
       }
       
-      const adminEmail = "mhmwdlwany4222@gmail.com";
-      if (user.email && user.email.toLowerCase() === adminEmail.toLowerCase() && user.email_verified) {
-        const { supabaseAdmin } = await import("./src/lib/supabase-admin");
-        const { data, error } = await supabaseAdmin.from('teachers').update({ is_super_admin: true }).eq('id', user.uid).select();
-        if (error) throw error;
-        if (!data || data.length === 0) {
-          return res.status(404).json({ error: "Teacher profile not found" });
-        }
-        return res.json({ success: true, message: "Super admin claim granted" });
+      const adminEmail = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase();
+      if (!adminEmail) {
+        console.error("[Auth] SUPER_ADMIN_EMAIL is not configured.");
+        return res.status(503).json({ error: "Administrator provisioning is unavailable." });
       }
-      
-      return res.status(403).json({ error: "Forbidden: Not an admin" });
+
+      if (user.email?.toLowerCase() !== adminEmail || !user.email_verified) {
+        return res.status(403).json({ error: "Forbidden." });
+      }
+
+      const { supabaseAdmin } = await import("./src/lib/supabase-admin");
+      const { data, error } = await supabaseAdmin
+        .from("teachers")
+        .update({ is_super_admin: true })
+        .eq("id", user.uid)
+        .select("id, is_super_admin");
+
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        return res.status(404).json({ error: "Teacher profile not found." });
+      }
+
+      return res.json({ success: true });
     } catch (err: any) {
-      console.error("Error setting super admin status:", err);
-      res.status(500).json({ error: "Internal server error" });
+      console.error("[Auth] Failed to provision the configured administrator.", err?.code || err?.message || "unknown");
+      return sendServerError(res);
     }
   });
 
@@ -65,53 +111,43 @@ async function startServer() {
   app.get("/api/quran/surahs", async (_req, res) => {
     try {
       const response = await fetch("https://api.quran.com/api/v4/chapters?language=en");
-      if (!response.ok) throw new Error("Failed to fetch surahs from Quran API");
-      const data = await response.json();
-      res.json(data);
+      if (!response.ok) throw new Error(`Quran API returned ${response.status}`);
+      return res.json(await response.json());
     } catch (err: any) {
-      console.error("Error proxying surahs:", err);
-      res.status(500).json({ error: err.message || "Failed to fetch surahs" });
+      console.error("[Quran] Failed to proxy surahs.", err?.message || "unknown");
+      return sendServerError(res);
     }
   });
 
   app.get("/api/quran/verses/:surahId", async (req, res) => {
+    const surahId = Number(req.params.surahId);
+    const perPage = Number(req.query.perPage ?? 50);
+    if (!Number.isInteger(surahId) || surahId < 1 || surahId > 114 || !Number.isInteger(perPage) || perPage < 1 || perPage > 300) {
+      return sendInvalidRequest(res, "surahId must be 1–114 and perPage must be 1–300.");
+    }
+
     try {
-      const { surahId } = req.params;
-      const perPage = req.query.perPage || 50;
       const response = await fetch(
-        `https://api.quran.com/api/v4/verses/by_chapter/${surahId}?language=en&words=false&translations=131&fields=text_uthmani&per_page=${perPage}`
+        `https://api.quran.com/api/v4/verses/by_chapter/${surahId}?language=en&words=false&translations=131&fields=text_uthmani&per_page=${perPage}`,
       );
-      if (!response.ok) throw new Error("Failed to fetch verses from Quran API");
-      const data = await response.json();
-      res.json(data);
+      if (!response.ok) throw new Error(`Quran API returned ${response.status}`);
+      return res.json(await response.json());
     } catch (err: any) {
-      console.error("Error proxying verses:", err);
-      res.status(500).json({ error: err.message || "Failed to fetch verses" });
+      console.error("[Quran] Failed to proxy verses.", err?.message || "unknown");
+      return sendServerError(res);
     }
   });
 
   // API: AI Lesson Generator
-  app.post("/api/gemini/lesson-plan", requireAuth, async (req, res) => {
-    console.log("[JAL_GENERATION_REQUEST] Received lesson-plan request");
-    try {
-      const {
-        subject,
-        topic,
-        studentName,
-        studentAge,
-        studentLevel,
-        duration,
-        teachingStyle,
-        language,
-        learningGoal,
-        customInstructions,
-      } = req.body;
+  app.post("/api/gemini/lesson-plan", requireAuth, aiRateLimiter, async (req, res) => {
+    const validation = validateLessonPlanInput(req.body);
+    if ("error" in validation) return sendInvalidRequest(res, validation.error);
 
+    try {
+      const { subject, topic, studentName, studentAge, studentLevel, duration, teachingStyle, language, learningGoal, customInstructions } = validation.value;
       const ai = getAi();
       const isArabic = language === "ar";
-      
-      console.log("[JAL_GENERATION_AUTH_OK] User authenticated. Topic:", topic, "Subject:", subject);
-      
+
       const prompt = `You are a world-class Islamic & Arabic educator designing a lesson plan for an international student.
 Generate a structured, practical, teacher-friendly lesson plan in ${isArabic ? "Arabic" : "English"}.
 
@@ -212,20 +248,23 @@ ${customInstructions ? `4. Custom Instructions: ${customInstructions}` : ""}
         },
       });
 
-      const text = response.text || "{}";
-      const result = JSON.parse(text);
-      console.log("[JAL_GENERATION_AI_SUCCESS] Successfully generated lesson plan.");
-      res.json({ success: true, data: result });
+      const result = parseModelResponse(response, [
+        "lessonGoal", "warmup", "keyPoints", "vocabulary", "questionsToAsk", "examples", "miniActivity", "quickQuiz", "homework", "teachingTips",
+      ]);
+      return res.json({ success: true, data: result });
     } catch (err: any) {
-      console.error("[JAL_GENERATION_ERROR] Error generating lesson plan:", err.message);
-      res.status(500).json({ success: false, error: err.message || "Failed to generate lesson plan" });
+      console.error("[Gemini] Lesson-plan generation failed.", err?.message || "unknown");
+      return sendServerError(res);
     }
   });
 
   // API: AI Slides Generator
-  app.post("/api/gemini/slides-plan", requireAuth, async (req, res) => {
+  app.post("/api/gemini/slides-plan", requireAuth, aiRateLimiter, async (req, res) => {
+    const validation = validateSlidesPlanInput(req.body);
+    if ("error" in validation) return sendInvalidRequest(res, validation.error);
+
     try {
-      const { subject, topic, studentName, studentAge, studentLevel, duration, teachingStyle, language, learningGoal, customInstructions, lessonPlan } = req.body;
+      const { subject, topic, studentName, studentAge, studentLevel, duration, teachingStyle, language, learningGoal, customInstructions, lessonPlan } = validation.value;
       const ai = getAi();
       const isArabic = language === "ar";
       const prompt = `You are a world-class Islamic & Arabic educator designing a Google Slides presentation structure for a lesson.\n
@@ -259,19 +298,21 @@ Provide the title, bullet points, and speaker notes for each slide.`;
           },
         },
       });
-      const text = response.text || "{}";
-      const result = JSON.parse(text);
-      res.json({ success: true, data: result });
+      const result = parseModelResponse(response, ["title", "slides"]);
+      return res.json({ success: true, data: result });
     } catch (err: any) {
-      console.error("Error generating slides plan:", err);
-      res.status(500).json({ success: false, error: err.message || "Failed to generate slides plan" });
+      console.error("[Gemini] Slides-plan generation failed.", err?.message || "unknown");
+      return sendServerError(res);
     }
   });
 
   // API: AI Quiz Generator
-  app.post("/api/gemini/quiz", requireAuth, async (req, res) => {
+  app.post("/api/gemini/quiz", requireAuth, aiRateLimiter, async (req, res) => {
+    const validation = validateQuizInput(req.body);
+    if ("error" in validation) return sendInvalidRequest(res, validation.error);
+
     try {
-      const { subject, topic, level, count, difficulty, language } = req.body;
+      const { subject, topic, level, count, difficulty, language } = validation.value;
       const ai = getAi();
       const isArabic = language === "ar";
 
@@ -314,18 +355,21 @@ Provide the question, list of options (if applicable), correct answer, and a sho
         },
       });
 
-      const text = response.text || "{}";
-      res.json({ success: true, data: JSON.parse(text) });
+      const result = parseModelResponse(response, ["title", "questions"]);
+      return res.json({ success: true, data: result });
     } catch (err: any) {
-      console.error("Error generating quiz:", err);
-      res.status(500).json({ success: false, error: err.message || "Failed to generate quiz" });
+      console.error("[Gemini] Quiz generation failed.", err?.message || "unknown");
+      return sendServerError(res);
     }
   });
 
   // API: AI Homework Generator
-  app.post("/api/gemini/homework", requireAuth, async (req, res) => {
+  app.post("/api/gemini/homework", requireAuth, aiRateLimiter, async (req, res) => {
+    const validation = validateHomeworkInput(req.body);
+    if ("error" in validation) return sendInvalidRequest(res, validation.error);
+
     try {
-      const { subject, topic, level, age, language } = req.body;
+      const { subject, topic, level, age, language } = validation.value;
       const ai = getAi();
       const isArabic = language === "ar";
 
@@ -366,18 +410,21 @@ Keep it practical, encouraging, and clear.`;
         },
       });
 
-      const text = response.text || "{}";
-      res.json({ success: true, data: JSON.parse(text) });
+      const result = parseModelResponse(response, ["title", "estimatedMinutes", "tasks"]);
+      return res.json({ success: true, data: result });
     } catch (err: any) {
-      console.error("Error generating homework:", err);
-      res.status(500).json({ success: false, error: err.message || "Failed to generate homework" });
+      console.error("[Gemini] Homework generation failed.", err?.message || "unknown");
+      return sendServerError(res);
     }
   });
 
   // API: AI Student Insights Generator
-  app.post("/api/gemini/student-insights", requireAuth, async (req, res) => {
+  app.post("/api/gemini/student-insights", requireAuth, aiRateLimiter, async (req, res) => {
+    const validation = validateStudentInsightsInput(req.body);
+    if ("error" in validation) return sendInvalidRequest(res, validation.error);
+
     try {
-      const { studentName, subject, level, attendanceRate, recentSessions, quizScores, language } = req.body;
+      const { studentName, subject, level, attendanceRate, recentSessions, quizScores, language } = validation.value;
       const ai = getAi();
       const isArabic = language === "ar";
 
@@ -412,11 +459,11 @@ Provide:
         },
       });
 
-      const text = response.text || "{}";
-      res.json({ success: true, data: JSON.parse(text) });
+      const result = parseModelResponse(response, ["overallAssessment", "strengths", "areasToFocus", "actionableTip"]);
+      return res.json({ success: true, data: result });
     } catch (err: any) {
-      console.error("Error generating student insights:", err);
-      res.status(500).json({ success: false, error: err.message || "Failed to generate student insights" });
+      console.error("[Gemini] Student-insights generation failed.", err?.message || "unknown");
+      return sendServerError(res);
     }
   });
 

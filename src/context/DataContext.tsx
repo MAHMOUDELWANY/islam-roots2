@@ -34,6 +34,8 @@ interface DataContextType {
   schedules: ScheduleEntry[];
   notifications: AppNotification[];
   loadingData: boolean;
+  syncError: string | null;
+  clearSyncError: () => void;
 
   // Student Actions
   addStudent: (data: Omit<Student, "id" | "teacherId" | "createdAt" | "status">) => Promise<Student>;
@@ -77,11 +79,12 @@ interface DataContextType {
   // Seed / Reset
   seedDemoDataIfEmpty: () => Promise<void>;
   resetToDemoData: () => Promise<void>;
+  clearGuestData: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Local Storage Keys for Guest Persistence
+// Session Storage Keys for Guest Persistence
 const STORAGE_KEYS = {
   students: "ir_guest_students_v1",
   curriculums: "ir_guest_curriculums_v1",
@@ -94,12 +97,12 @@ const STORAGE_KEYS = {
   memoryMap: "ir_guest_memorymap_v1",
 };
 
-const getInitialLocal = <T,>(key: string, fallback: T): T => {
+const getInitialGuestData = <T,>(key: string, fallback: T): T => {
   try {
-    const saved = localStorage.getItem(key);
+    const saved = sessionStorage.getItem(key);
     if (saved) return JSON.parse(saved);
   } catch (e) {
-    console.warn("Failed to load local storage key:", key, e);
+    console.warn("Failed to load guest session data:", key, e);
   }
   return fallback;
 };
@@ -346,48 +349,69 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const teacherId = teacher?.id || "guest-ustadh-101";
   const isGuestMode = isGuest;
 
-  // State initialized with localStorage or DEMO data
+  // State initialized with session-only guest data or demo data
   const [students, setStudents] = useState<Student[]>(() =>
-    getInitialLocal(STORAGE_KEYS.students, DEMO_STUDENTS)
+    getInitialGuestData(STORAGE_KEYS.students, DEMO_STUDENTS)
   );
   const [curriculums, setCurriculums] = useState<Curriculum[]>(() =>
-    getInitialLocal(STORAGE_KEYS.curriculums, DEMO_CURRICULUMS)
+    getInitialGuestData(STORAGE_KEYS.curriculums, DEMO_CURRICULUMS)
   );
   const [studentCurriculums, setStudentCurriculums] = useState<StudentCurriculum[]>(() =>
-    getInitialLocal(STORAGE_KEYS.studentCurriculums, DEMO_STUDENT_CURRICULUMS)
+    getInitialGuestData(STORAGE_KEYS.studentCurriculums, DEMO_STUDENT_CURRICULUMS)
   );
   const [lessonSessions, setLessonSessions] = useState<LessonSession[]>(() =>
-    getInitialLocal(STORAGE_KEYS.sessions, DEMO_LESSON_SESSIONS)
+    getInitialGuestData(STORAGE_KEYS.sessions, DEMO_LESSON_SESSIONS)
   );
   const [detectiveResults, setDetectiveResults] = useState<MemoryDetectiveResult[]>(() =>
-    getInitialLocal(STORAGE_KEYS.detective, DEMO_MEMORY_DETECTIVE_RESULTS)
+    getInitialGuestData(STORAGE_KEYS.detective, DEMO_MEMORY_DETECTIVE_RESULTS)
   );
   const [savedContents, setSavedContents] = useState<SavedAIContent[]>(() =>
-    getInitialLocal(STORAGE_KEYS.savedAI, [])
+    getInitialGuestData(STORAGE_KEYS.savedAI, [])
   );
   const [schedules, setSchedules] = useState<ScheduleEntry[]>(() =>
-    getInitialLocal(STORAGE_KEYS.schedules, DEMO_SCHEDULES)
+    getInitialGuestData(STORAGE_KEYS.schedules, DEMO_SCHEDULES)
   );
   const [notifications, setNotifications] = useState<AppNotification[]>(() =>
-    getInitialLocal(STORAGE_KEYS.notifications, DEMO_NOTIFICATIONS)
+    getInitialGuestData(STORAGE_KEYS.notifications, DEMO_NOTIFICATIONS)
   );
   const [memoryMapNodes, setMemoryMapNodes] = useState<MemoryMapNode[]>(() =>
-    getInitialLocal(STORAGE_KEYS.memoryMap, DEMO_MEMORY_MAP_NODES)
+    getInitialGuestData(STORAGE_KEYS.memoryMap, DEMO_MEMORY_MAP_NODES)
   );
   const [loadingData, setLoadingData] = useState<boolean>(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
-  // Sync Guest Data to localStorage whenever state changes in Guest mode
+  const reportSyncError = (operation: string, error: unknown) => {
+    console.error(`[DataContext] ${operation} failed.`, error);
+    setSyncError(`Your latest ${operation.toLowerCase()} could not be saved. Check your connection and try again.`);
+  };
+
+  const runMutation = async <T extends { error: unknown }>(operation: string, mutation: PromiseLike<T>): Promise<T> => {
+    const result = await mutation;
+    if (result.error) {
+      reportSyncError(operation, result.error);
+      throw result.error;
+    }
+    return result;
+  };
+
+  // Remove legacy persistent guest records after the session-storage privacy migration.
+  useEffect(() => {
+    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
+    localStorage.removeItem("islamroots_guest_teacher");
+  }, []);
+
+  // Sync guest data to sessionStorage whenever state changes in Guest mode
   useEffect(() => {
     if (isGuestMode) {
-      localStorage.setItem(STORAGE_KEYS.students, JSON.stringify(students));
-      localStorage.setItem(STORAGE_KEYS.curriculums, JSON.stringify(curriculums));
-      localStorage.setItem(STORAGE_KEYS.studentCurriculums, JSON.stringify(studentCurriculums));
-      localStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(lessonSessions));
-      localStorage.setItem(STORAGE_KEYS.detective, JSON.stringify(detectiveResults));
-      localStorage.setItem(STORAGE_KEYS.savedAI, JSON.stringify(savedContents));
-      localStorage.setItem(STORAGE_KEYS.schedules, JSON.stringify(schedules));
-      localStorage.setItem(STORAGE_KEYS.notifications, JSON.stringify(notifications));
-      localStorage.setItem(STORAGE_KEYS.memoryMap, JSON.stringify(memoryMapNodes));
+      sessionStorage.setItem(STORAGE_KEYS.students, JSON.stringify(students));
+      sessionStorage.setItem(STORAGE_KEYS.curriculums, JSON.stringify(curriculums));
+      sessionStorage.setItem(STORAGE_KEYS.studentCurriculums, JSON.stringify(studentCurriculums));
+      sessionStorage.setItem(STORAGE_KEYS.sessions, JSON.stringify(lessonSessions));
+      sessionStorage.setItem(STORAGE_KEYS.detective, JSON.stringify(detectiveResults));
+      sessionStorage.setItem(STORAGE_KEYS.savedAI, JSON.stringify(savedContents));
+      sessionStorage.setItem(STORAGE_KEYS.schedules, JSON.stringify(schedules));
+      sessionStorage.setItem(STORAGE_KEYS.notifications, JSON.stringify(notifications));
+      sessionStorage.setItem(STORAGE_KEYS.memoryMap, JSON.stringify(memoryMapNodes));
     }
   }, [
     isGuestMode,
@@ -405,15 +429,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load from Supabase when logged in as an authenticated user
   useEffect(() => {
     if (isGuestMode || !firebaseUser) {
-      setStudents(getInitialLocal(STORAGE_KEYS.students, DEMO_STUDENTS));
-      setCurriculums(getInitialLocal(STORAGE_KEYS.curriculums, DEMO_CURRICULUMS));
-      setStudentCurriculums(getInitialLocal(STORAGE_KEYS.studentCurriculums, DEMO_STUDENT_CURRICULUMS));
-      setLessonSessions(getInitialLocal(STORAGE_KEYS.sessions, DEMO_LESSON_SESSIONS));
-      setDetectiveResults(getInitialLocal(STORAGE_KEYS.detective, DEMO_MEMORY_DETECTIVE_RESULTS));
-      setSavedContents(getInitialLocal(STORAGE_KEYS.savedAI, []));
-      setSchedules(getInitialLocal(STORAGE_KEYS.schedules, DEMO_SCHEDULES));
-      setNotifications(getInitialLocal(STORAGE_KEYS.notifications, DEMO_NOTIFICATIONS));
-      setMemoryMapNodes(getInitialLocal(STORAGE_KEYS.memoryMap, DEMO_MEMORY_MAP_NODES));
+      setStudents(getInitialGuestData(STORAGE_KEYS.students, DEMO_STUDENTS));
+      setCurriculums(getInitialGuestData(STORAGE_KEYS.curriculums, DEMO_CURRICULUMS));
+      setStudentCurriculums(getInitialGuestData(STORAGE_KEYS.studentCurriculums, DEMO_STUDENT_CURRICULUMS));
+      setLessonSessions(getInitialGuestData(STORAGE_KEYS.sessions, DEMO_LESSON_SESSIONS));
+      setDetectiveResults(getInitialGuestData(STORAGE_KEYS.detective, DEMO_MEMORY_DETECTIVE_RESULTS));
+      setSavedContents(getInitialGuestData(STORAGE_KEYS.savedAI, []));
+      setSchedules(getInitialGuestData(STORAGE_KEYS.schedules, DEMO_SCHEDULES));
+      setNotifications(getInitialGuestData(STORAGE_KEYS.notifications, DEMO_NOTIFICATIONS));
+      setMemoryMapNodes(getInitialGuestData(STORAGE_KEYS.memoryMap, DEMO_MEMORY_MAP_NODES));
       setLoadingData(false);
       return;
     }
@@ -432,16 +456,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const fetchAllData = async () => {
       try {
-        const [
-          { data: stData },
-          { data: currData },
-          { data: scData },
-          { data: sessData },
-          { data: detData },
-          { data: aiData },
-          { data: schedData },
-          { data: notifData },
-        ] = await Promise.all([
+        const results = await Promise.all([
           supabase.from("students").select("*").eq("teacher_id", uid),
           supabase.from("curriculums").select("*").eq("teacher_id", uid),
           supabase.from("student_curriculums").select("*").eq("teacher_id", uid),
@@ -451,7 +466,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           supabase.from("schedules").select("*").eq("teacher_id", uid),
           supabase.from("notifications").select("*").eq("teacher_id", uid),
         ]);
+        const firstError = results.find((result) => result.error)?.error;
+        if (firstError) {
+          reportSyncError("workspace data load", firstError);
+          return;
+        }
 
+        const [stData, currData, scData, sessData, detData, aiData, schedData, notifData] = results.map((result) => result.data);
         if (stData) setStudents(stData.map(mapStudentFromDb));
         if (currData) setCurriculums(currData.map(mapCurriculumFromDb));
         if (scData) setStudentCurriculums(scData.map(mapStudentCurriculumFromDb));
@@ -481,20 +502,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     fetchAllData();
 
-    // Subscribe to realtime changes for all relevant tables
+    let reloadTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleReload = () => {
+      if (reloadTimer) clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => { void fetchAllData(); }, 250);
+    };
+
+    // Subscribe to realtime changes for all relevant tables and coalesce bursts.
     const channel = supabase
       .channel("data_changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "students", filter: `teacher_id=eq.${uid}` }, () => fetchAllData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "curriculums", filter: `teacher_id=eq.${uid}` }, () => fetchAllData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "student_curriculums", filter: `teacher_id=eq.${uid}` }, () => fetchAllData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "lesson_sessions", filter: `teacher_id=eq.${uid}` }, () => fetchAllData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "memory_detective_sessions", filter: `teacher_id=eq.${uid}` }, () => fetchAllData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "saved_ai_content", filter: `teacher_id=eq.${uid}` }, () => fetchAllData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "schedules", filter: `teacher_id=eq.${uid}` }, () => fetchAllData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `teacher_id=eq.${uid}` }, () => fetchAllData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "students", filter: `teacher_id=eq.${uid}` }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "curriculums", filter: `teacher_id=eq.${uid}` }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "student_curriculums", filter: `teacher_id=eq.${uid}` }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "lesson_sessions", filter: `teacher_id=eq.${uid}` }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "memory_detective_sessions", filter: `teacher_id=eq.${uid}` }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "saved_ai_content", filter: `teacher_id=eq.${uid}` }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "schedules", filter: `teacher_id=eq.${uid}` }, scheduleReload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `teacher_id=eq.${uid}` }, scheduleReload)
       .subscribe();
 
     return () => {
+      if (reloadTimer) clearTimeout(reloadTimer);
       supabase.removeChannel(channel);
     };
   }, [firebaseUser, isGuestMode]);
@@ -546,6 +574,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await seedDemoDataIfEmpty();
   };
 
+  const clearGuestData = () => {
+    Object.values(STORAGE_KEYS).forEach((key) => sessionStorage.removeItem(key));
+    setStudents(DEMO_STUDENTS);
+    setCurriculums(DEMO_CURRICULUMS);
+    setStudentCurriculums(DEMO_STUDENT_CURRICULUMS);
+    setLessonSessions(DEMO_LESSON_SESSIONS);
+    setDetectiveResults(DEMO_MEMORY_DETECTIVE_RESULTS);
+    setSavedContents([]);
+    setSchedules(DEMO_SCHEDULES);
+    setNotifications(DEMO_NOTIFICATIONS);
+    setMemoryMapNodes(DEMO_MEMORY_MAP_NODES);
+  };
+
   // Student Actions
   const addStudent = async (data: Omit<Student, "id" | "teacherId" | "createdAt" | "status">): Promise<Student> => {
     const newStudent: Student = {
@@ -559,8 +600,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setStudents((prev) => [newStudent, ...prev]);
 
     if (!isGuestMode && firebaseUser) {
-      const { data: inserted, error } = await supabase.from("students").insert(mapStudentToDb(newStudent)).select().single();
-      if (!error && inserted) {
+      const { data: inserted } = await runMutation(
+        "student creation",
+        supabase.from("students").insert(mapStudentToDb(newStudent)).select().single(),
+      );
+      if (inserted) {
         const mapped = mapStudentFromDb(inserted);
         setStudents((prev) => prev.map((s) => (s.id === newStudent.id ? mapped : s)));
         return mapped;
@@ -572,14 +616,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateStudent = async (id: string, data: Partial<Student>) => {
     setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
     if (!isGuestMode && firebaseUser) {
-      await supabase.from("students").update(mapStudentToDb(data)).eq("id", id);
+      await runMutation("student update", supabase.from("students").update(mapStudentToDb(data)).eq("id", id));
     }
   };
 
   const archiveStudent = async (id: string) => {
     setStudents((prev) => prev.map((s) => (s.id === id ? { ...s, status: "Archived" } : s)));
     if (!isGuestMode && firebaseUser) {
-      await supabase.from("students").update({ status: "Archived" }).eq("id", id);
+      await runMutation("student archive", supabase.from("students").update({ status: "Archived" }).eq("id", id));
     }
   };
 
@@ -597,8 +641,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurriculums((prev) => [newCurriculum, ...prev]);
 
     if (!isGuestMode && firebaseUser) {
-      const { data: inserted, error } = await supabase.from("curriculums").insert(mapCurriculumToDb(newCurriculum)).select().single();
-      if (!error && inserted) {
+      const { data: inserted } = await runMutation(
+        "curriculum creation",
+        supabase.from("curriculums").insert(mapCurriculumToDb(newCurriculum)).select().single(),
+      );
+      if (inserted) {
         const mapped = mapCurriculumFromDb(inserted);
         setCurriculums((prev) => prev.map((c) => (c.id === newCurriculum.id ? mapped : c)));
         return mapped;
@@ -610,14 +657,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateCurriculum = async (id: string, data: Partial<Curriculum>) => {
     setCurriculums((prev) => prev.map((c) => (c.id === id ? { ...c, ...data } : c)));
     if (!isGuestMode && firebaseUser) {
-      await supabase.from("curriculums").update(mapCurriculumToDb(data)).eq("id", id);
+      await runMutation("curriculum update", supabase.from("curriculums").update(mapCurriculumToDb(data)).eq("id", id));
     }
   };
 
   const deleteCurriculum = async (id: string) => {
     setCurriculums((prev) => prev.filter((c) => c.id !== id));
     if (!isGuestMode && firebaseUser) {
-      await supabase.from("curriculums").delete().eq("id", id);
+      await runMutation("curriculum deletion", supabase.from("curriculums").delete().eq("id", id));
     }
   };
 
@@ -639,8 +686,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setStudentCurriculums((prev) => [...prev, newAssignment]);
 
     if (!isGuestMode && firebaseUser) {
-      const { data: inserted, error } = await supabase.from("student_curriculums").insert(mapStudentCurriculumToDb(newAssignment)).select().single();
-      if (!error && inserted) {
+      const { data: inserted } = await runMutation(
+        "curriculum assignment",
+        supabase.from("student_curriculums").insert(mapStudentCurriculumToDb(newAssignment)).select().single(),
+      );
+      if (inserted) {
         const mapped = mapStudentCurriculumFromDb(inserted);
         setStudentCurriculums((prev) => prev.map((sc) => (sc.id === newAssignment.id ? mapped : sc)));
         return mapped;
@@ -668,8 +718,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let finalSchedule = newSchedule;
     if (!isGuestMode && firebaseUser) {
-      const { data: inserted, error } = await supabase.from("schedules").insert(mapScheduleToDb(newSchedule)).select().single();
-      if (!error && inserted) {
+      const { data: inserted } = await runMutation(
+        "schedule creation",
+        supabase.from("schedules").insert(mapScheduleToDb(newSchedule)).select().single(),
+      );
+      if (inserted) {
         finalSchedule = mapScheduleFromDb(inserted);
         setSchedules((prev) => prev.map((s) => (s.id === newSchedule.id ? finalSchedule : s)));
       }
@@ -693,14 +746,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateSchedule = async (id: string, data: Partial<ScheduleEntry>) => {
     setSchedules((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
     if (!isGuestMode && firebaseUser) {
-      await supabase.from("schedules").update(mapScheduleToDb(data)).eq("id", id);
+      await runMutation("schedule update", supabase.from("schedules").update(mapScheduleToDb(data)).eq("id", id));
     }
   };
 
   const deleteSchedule = async (id: string) => {
     setSchedules((prev) => prev.filter((s) => s.id !== id));
     if (!isGuestMode && firebaseUser) {
-      await supabase.from("schedules").delete().eq("id", id);
+      await runMutation("schedule deletion", supabase.from("schedules").delete().eq("id", id));
     }
   };
 
@@ -717,8 +770,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setNotifications((prev) => [newNotif, ...prev]);
 
     if (!isGuestMode && firebaseUser) {
-      const { data: inserted, error } = await supabase.from("notifications").insert(mapNotificationToDb(newNotif)).select().single();
-      if (!error && inserted) {
+      const { data: inserted } = await runMutation(
+        "notification creation",
+        supabase.from("notifications").insert(mapNotificationToDb(newNotif)).select().single(),
+      );
+      if (inserted) {
         const mapped = mapNotificationFromDb(inserted);
         setNotifications((prev) => prev.map((n) => (n.id === newNotif.id ? mapped : n)));
         return mapped;
@@ -730,21 +786,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const markNotificationRead = async (id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     if (!isGuestMode && firebaseUser) {
-      await supabase.from("notifications").update({ read: true }).eq("id", id);
+      await runMutation("notification update", supabase.from("notifications").update({ read: true }).eq("id", id));
     }
   };
 
   const markAllNotificationsRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     if (!isGuestMode && firebaseUser) {
-      await supabase.from("notifications").update({ read: true }).eq("teacher_id", teacherId);
+      await runMutation("notification update", supabase.from("notifications").update({ read: true }).eq("teacher_id", teacherId));
     }
   };
 
   const clearNotifications = async () => {
     setNotifications([]);
     if (!isGuestMode && firebaseUser) {
-      await supabase.from("notifications").delete().eq("teacher_id", teacherId);
+      await runMutation("notification deletion", supabase.from("notifications").delete().eq("teacher_id", teacherId));
     }
   };
 
@@ -761,8 +817,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     let finalSession = newSession;
     if (!isGuestMode && firebaseUser) {
-      const { data: inserted, error } = await supabase.from("lesson_sessions").insert(mapLessonSessionToDb(newSession)).select().single();
-      if (!error && inserted) {
+      const { data: inserted } = await runMutation(
+        "lesson session creation",
+        supabase.from("lesson_sessions").insert(mapLessonSessionToDb(newSession)).select().single(),
+      );
+      if (inserted) {
         finalSession = mapLessonSessionFromDb(inserted);
         setLessonSessions((prev) => prev.map((s) => (s.id === newSession.id ? finalSession : s)));
       }
@@ -789,11 +848,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
 
         if (!isGuestMode && firebaseUser) {
-          await supabase.from("student_curriculums").update({
-            completed_lesson_ids: completedIds,
-            progress_percentage: progressPct,
-            current_lesson_id: nextLessonId,
-          }).eq("id", sc.id);
+          await runMutation(
+            "curriculum progress update",
+            supabase.from("student_curriculums").update({
+              completed_lesson_ids: completedIds,
+              progress_percentage: progressPct,
+              current_lesson_id: nextLessonId,
+            }).eq("id", sc.id),
+          );
         }
       }
     }
@@ -815,8 +877,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setDetectiveResults((prev) => [newResult, ...prev]);
 
     if (!isGuestMode && firebaseUser) {
-      const { data: inserted, error } = await supabase.from("memory_detective_sessions").insert(mapDetectiveResultToDb(newResult)).select().single();
-      if (!error && inserted) {
+      const { data: inserted } = await runMutation(
+        "memory detective result creation",
+        supabase.from("memory_detective_sessions").insert(mapDetectiveResultToDb(newResult)).select().single(),
+      );
+      if (inserted) {
         const mapped = mapDetectiveResultFromDb(inserted);
         setDetectiveResults((prev) => prev.map((r) => (r.id === newResult.id ? mapped : r)));
         return mapped;
@@ -841,8 +906,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSavedContents((prev) => [newItem, ...prev]);
 
     if (!isGuestMode && firebaseUser) {
-      const { data: inserted, error } = await supabase.from("saved_ai_content").insert(mapSavedAIToDb(newItem)).select().single();
-      if (!error && inserted) {
+      const { data: inserted } = await runMutation(
+        "saved AI content creation",
+        supabase.from("saved_ai_content").insert(mapSavedAIToDb(newItem)).select().single(),
+      );
+      if (inserted) {
         const mapped = mapSavedAIFromDb(inserted);
         setSavedContents((prev) => prev.map((i) => (i.id === newItem.id ? mapped : i)));
         return mapped;
@@ -854,7 +922,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const deleteSavedAIContent = async (id: string) => {
     setSavedContents((prev) => prev.filter((item) => item.id !== id));
     if (!isGuestMode && firebaseUser) {
-      await supabase.from("saved_ai_content").delete().eq("id", id);
+      await runMutation("saved content deletion", supabase.from("saved_ai_content").delete().eq("id", id));
     }
   };
 
@@ -881,12 +949,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
 
         if (!isGuestMode && firebaseUser) {
-          supabase.from("student_curriculums").update({
-            completed_lesson_ids: completedIds,
-            progress_percentage: progressPct,
-          }).eq("id", sc.id).then(({ error }) => {
-            if (error) console.error("Failed to update student_curriculums in Supabase:", error);
-          });
+          void runMutation(
+            "curriculum progress update",
+            supabase.from("student_curriculums").update({
+              completed_lesson_ids: completedIds,
+              progress_percentage: progressPct,
+            }).eq("id", sc.id),
+          ).catch(() => undefined);
         }
       }
     }
@@ -905,6 +974,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         schedules,
         notifications,
         loadingData,
+        syncError,
+        clearSyncError: () => setSyncError(null),
         addStudent,
         updateStudent,
         archiveStudent,
@@ -930,6 +1001,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateMemoryMapNode,
         seedDemoDataIfEmpty,
         resetToDemoData,
+        clearGuestData,
       }}
     >
       {children}

@@ -133,7 +133,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
               If you have any questions or inquiries about these Terms of Service, please reach out to us:
             </p>
             <p className="font-mono text-xs sm:text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2]">
-              Email: support@islamroots.app / mhmwdlwany4222@gmail.com
+              Email: support@islamroots.app
             </p>
           </section>
         </div>

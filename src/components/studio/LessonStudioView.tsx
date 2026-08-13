@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { exportLessonToGoogleDoc } from "../../lib/googleDocs";
 import { exportLessonToGoogleSlides, createGoogleSlidesPresentation } from "../../lib/googleSlides";
 import { captureAndDownloadScreenshot } from "../../lib/screenshot";
+import { requestAuthenticatedAi } from "../../lib/aiClient";
 import { SubjectType, LevelType, AILessonPlan } from "../../types";
 import {
   Sparkles,
@@ -271,58 +272,18 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
     setSaved(false);
     setError(null);
     
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), 35000); // 35 second timeout
-
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) throw new Error("AUTH_ERROR");
-
-      const response = await fetch("/api/gemini/lesson-plan", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          subject,
-          topic,
-          level,
-          duration: durationMinutes,
-          language: explanationLanguage === "Arabic" ? "ar" : "en",
-          customInstructions,
-        }),
-        signal: abortController.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      const text = await response.text();
-      let resJson;
-      try {
-        resJson = JSON.parse(text);
-      } catch (e) {
-        throw new Error(text.includes("504") ? "TIMEOUT_ERROR" : "VERCEL_SERVER_ERROR");
-      }
-      
-      if (!response.ok) {
-         if (response.status === 401 || response.status === 403) throw new Error("AUTH_ERROR");
-         if (response.status === 429) throw new Error("RATE_LIMITED");
-         throw new Error(resJson.error || "SERVER_ERROR");
-      }
-
-      const plan = resJson.data || resJson.lessonPlan;
-      if (plan) {
-        setGeneratedPlan(plan);
-      } else {
-        console.error("No plan returned:", resJson);
-        throw new Error("INVALID_RESPONSE");
-      }
+      const plan = await requestAuthenticatedAi<AILessonPlan>("/api/gemini/lesson-plan", {
+        subject,
+        topic,
+        level,
+        duration: durationMinutes,
+        language: explanationLanguage === "Arabic" ? "ar" : "en",
+        customInstructions,
+      }, (response) => response.data || response.lessonPlan);
+      setGeneratedPlan(plan);
     } catch (err: any) {
       console.error("Error generating lesson plan:", err);
-      clearTimeout(timeoutId);
-      
       if (err.name === 'AbortError') {
         setError(language === "ar" ? "استغرق إنشاء الدرس وقتاً أطول من المتوقع. يرجى المحاولة مرة أخرى." : "The lesson is taking longer than expected. Please try again.");
       } else if (err.message === "AUTH_ERROR") {

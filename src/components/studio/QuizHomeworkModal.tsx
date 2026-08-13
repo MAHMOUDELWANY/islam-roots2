@@ -4,6 +4,7 @@ import { SubjectType, LevelType } from "../../types";
 import { useLanguage } from "../../context/LanguageContext";
 import { useData } from "../../context/DataContext";
 import { captureAndDownloadScreenshot } from "../../lib/screenshot";
+import { requestAuthenticatedAi } from "../../lib/aiClient";
 import { X, FileQuestion, Sparkles, Loader2, CheckCircle2, Copy, Check, Bookmark, Camera } from "lucide-react";
 
 interface QuizHomeworkModalProps {
@@ -65,57 +66,18 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
     setSaved(false);
     setError(null);
 
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), 35000);
-
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) throw new Error("AUTH_ERROR");
-
       const endpoint = type === "quiz" ? "/api/gemini/quiz" : "/api/gemini/homework";
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          subject,
-          topic: lessonTitle,
-          level,
-          count: questionCount,
-          difficulty: level,
-        }),
-        signal: abortController.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      const text = await response.text();
-      let resJson;
-      try {
-        resJson = JSON.parse(text);
-      } catch (e) {
-        throw new Error(text.includes("504") ? "TIMEOUT_ERROR" : "VERCEL_SERVER_ERROR");
-      }
-      
-      if (!response.ok) {
-         if (response.status === 401 || response.status === 403) throw new Error("AUTH_ERROR");
-         if (response.status === 429) throw new Error("RATE_LIMITED");
-         throw new Error(resJson.error || "SERVER_ERROR");
-      }
-
-      const output = resJson.data || resJson.quiz || resJson.homework;
-      if (output) {
-        setGeneratedData(output);
-      } else {
-        throw new Error("INVALID_RESPONSE");
-      }
+      const output = await requestAuthenticatedAi(endpoint, {
+        subject,
+        topic: lessonTitle,
+        level,
+        count: questionCount,
+        difficulty: level,
+      }, (response) => response.data || response.quiz || response.homework);
+      setGeneratedData(output);
     } catch (err: any) {
       console.error("Error generating quiz/homework:", err);
-      clearTimeout(timeoutId);
-      
       if (err.name === 'AbortError') {
         setError(t("timeoutError") || "Generation is taking longer than expected. Please try again.");
       } else if (err.message === "AUTH_ERROR") {

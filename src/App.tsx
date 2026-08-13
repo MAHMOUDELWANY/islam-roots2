@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { LanguageProvider } from "./context/LanguageContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { DataProvider } from "./context/DataContext";
+import { DataProvider, useData } from "./context/DataContext";
 
 import { Sidebar, NavSection } from "./components/layout/Sidebar";
 import { Header } from "./components/layout/Header";
@@ -33,10 +33,11 @@ import { TeacherOnboardingModal } from "./components/auth/TeacherOnboardingModal
 import { JalilahTourModal } from "./components/common/JalilahTourModal";
 
 import { Student, Curriculum, SubjectType } from "./types";
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, X } from "lucide-react";
 
 const AppContent: React.FC = () => {
   const { teacher, isAuthenticated, loading, loginAsGuest } = useAuth();
+  const { syncError, clearSyncError } = useData();
 
   const [currentSection, setCurrentSection] = useState<NavSection>("dashboard");
   const [selectedStudentProfileId, setSelectedStudentProfileId] = useState<string | null>(null);
@@ -199,6 +200,15 @@ const AppContent: React.FC = () => {
         />
 
         <main className="flex-1 p-4 sm:p-6 xl:p-8 max-w-7xl w-full mx-auto">
+          {syncError && (
+            <div role="alert" className="mb-4 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-100">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+              <p className="flex-1 leading-relaxed">{syncError}</p>
+              <button type="button" onClick={clearSyncError} aria-label="Dismiss save error" className="rounded p-1 hover:bg-rose-100 dark:hover:bg-rose-900/50">
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+          )}
           {/* Render Views depending on section & state */}
           {selectedStudentProfileId ? (
             <StudentProfileView

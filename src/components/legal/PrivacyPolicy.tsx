@@ -137,7 +137,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               Data Storage & Security
             </h2>
             <p>
-              Your data is stored securely using cloud database infrastructure (Supabase Postgres) with end-to-end transport encryption (HTTPS/TLS) and strict access controls. Guest mode data is stored locally in your web browser (localStorage) and can be cleared by you at any time.
+              Your data is stored securely using cloud database infrastructure (Supabase Postgres) with end-to-end transport encryption (HTTPS/TLS) and strict access controls. Guest mode data is stored in your web browser session (sessionStorage) and is cleared when the session ends; you can also clear it from Settings.
             </p>
           </section>
 
@@ -165,7 +165,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               If you have any questions or concerns regarding this Privacy Policy or your data, please contact the Islam Roots administrator team at:
             </p>
             <p className="font-mono text-xs sm:text-sm font-bold text-[#1F261F] dark:text-[#E2E8E2]">
-              Email: support@islamroots.app / mhmwdlwany4222@gmail.com
+              Email: support@islamroots.app
             </p>
           </section>
         </div>

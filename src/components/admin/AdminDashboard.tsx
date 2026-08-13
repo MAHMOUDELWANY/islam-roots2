@@ -41,22 +41,32 @@ export const AdminDashboard: React.FC = () => {
   const [activeInspectorTab, setActiveInspectorTab] = useState<"profile" | "students" | "curriculums" | "sessions" | "schedule">("profile");
 
   useEffect(() => {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
+
+    const fetchAllRows = async (table: string) => {
+      const pageSize = 100;
+      const rows: any[] = [];
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await supabase.from(table).select("*").range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        rows.push(...(data || []));
+        if (!data || data.length < pageSize) return rows;
+      }
+    };
 
     const fetchAllAdminData = async () => {
       try {
-        const [
-          { data: teachersRes },
-          { data: studentsRes },
-          { data: curriculumsRes },
-          { data: sessionsRes },
-          { data: schedulesRes },
-        ] = await Promise.all([
-          supabase.from("teachers").select("*"),
-          supabase.from("students").select("*"),
-          supabase.from("curriculums").select("*"),
-          supabase.from("lesson_sessions").select("*"),
-          supabase.from("schedules").select("*"),
+        const [teachersRes, studentsRes, curriculumsRes, sessionsRes, schedulesRes] = await Promise.all([
+          fetchAllRows("teachers"),
+          fetchAllRows("students"),
+          fetchAllRows("curriculums"),
+          fetchAllRows("lesson_sessions"),
+          fetchAllRows("schedules"),
         ]);
 
         if (teachersRes) {
@@ -168,7 +178,7 @@ export const AdminDashboard: React.FC = () => {
     };
 
     fetchAllAdminData();
-  }, []);
+  }, [isAdmin]);
 
   // Filter teachers list
   const filteredTeachers = teachers.filter((tItem) => {
@@ -244,8 +254,8 @@ export const AdminDashboard: React.FC = () => {
         </h3>
         <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
           {isRTL
-            ? "حسابك الحالي ليس لديه صلاحية الوصول إلى شاشة المراقب العام. يرجى تسجيل الدخول بالبريد الإلكتروني المعتمد: mhmwdlwany4222@gmail.com"
-            : "Your current account is not authorized to view the Super Admin Monitor. Please sign in with the designated administrator account: mhmwdlwany4222@gmail.com"}
+            ? "حسابك الحالي ليس لديه صلاحية الوصول إلى شاشة المراقب العام. يرجى تسجيل الدخول بحساب إداري معتمد."
+            : "Your current account is not authorized to view the Super Admin Monitor. Please sign in with an approved administrator account."}
         </p>
       </div>
     );
@@ -271,9 +281,6 @@ export const AdminDashboard: React.FC = () => {
               <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/40 flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Super Admin Verified</span>
-              </span>
-              <span className="text-xs text-stone-300 bg-white/10 px-2.5 py-0.5 rounded font-mono">
-                mhmwdlwany4222@gmail.com
               </span>
             </div>
 

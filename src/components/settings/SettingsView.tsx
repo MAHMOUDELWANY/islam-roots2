@@ -5,8 +5,8 @@ import { useLanguage } from "../../context/LanguageContext";
 import { Settings, User, Globe, Moon, Sun, RefreshCw, Save, Database } from "lucide-react";
 
 export const SettingsView: React.FC = () => {
-  const { teacher, isAdmin, updateProfile, connectGoogleCalendar, connectGoogleDocs, connectGoogleSlides, connectGoogleTasks, connectGmail, connectGoogleForms, connectGooglePicker, googleTokens, logout } = useAuth();
-  const { resetToDemoData } = useData();
+  const { teacher, isAdmin, isGuest, updateProfile, connectGoogleCalendar, connectGoogleDocs, connectGoogleSlides, connectGoogleTasks, connectGmail, connectGoogleForms, connectGooglePicker, googleTokens, logout } = useAuth();
+  const { resetToDemoData, clearGuestData } = useData();
   const { language, setLanguage, theme, toggleTheme, t } = useLanguage();
 
   const [name, setName] = useState(teacher?.name || "");
@@ -519,6 +519,23 @@ export const SettingsView: React.FC = () => {
             Reset Demo Data
           </button>
         </div>
+
+        {isGuest && (
+          <div className="border-t border-[#E8E5DB] dark:border-[#2A352A] pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <p className="font-semibold text-[#1F261F] dark:text-[#E2E8E2]">Clear Guest Session Data</p>
+              <p className="text-[#7A7D75] dark:text-stone-400">Remove guest workspace data from this browser session and restore the sample workspace.</p>
+            </div>
+            <button
+              onClick={() => {
+                if (window.confirm("Clear all guest session data and restore the sample workspace?")) clearGuestData();
+              }}
+              className="px-4 py-2 rounded-lg bg-rose-700 hover:bg-rose-800 text-white font-semibold cursor-pointer shadow-xs transition-all active:scale-95 shrink-0"
+            >
+              Clear Guest Data
+            </button>
+          </div>
+        )}
 
         <div className="border-t border-[#E8E5DB] dark:border-[#2A352A] pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
