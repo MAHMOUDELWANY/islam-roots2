@@ -26,3 +26,7 @@ The live Gemini catalog was queried from the configured account. It exposed `gem
 The strict validation test rejected missing student identity, invalid subject, invalid student level, and invalid curriculum context, while accepting a valid request with empty evidence history. The live complete-plan Gemini probe using `gemini-3.5-flash` returned all 18 required top-level fields, included the requested Ayn/Qaf focus, produced a timing total, and returned beginner differentiation. The local API boundary returned HTTP 200 for health and safely rejected a protected lesson request when Supabase admin configuration was unavailable.
 
 No API keys, tokens, student records, provider prompts, or model-generated lesson content are committed in this record.
+
+## External verification sources
+
+The live Gemini model catalog was checked through the official endpoint [`https://generativelanguage.googleapis.com/v1beta/models`](https://generativelanguage.googleapis.com/v1beta/models). The repaired production deployment was verified at [`https://islam-roots-b9n9zb3px-islam-roots.vercel.app/`](https://islam-roots-b9n9zb3px-islam-roots.vercel.app/), which returned HTTP 200 for the public HTML smoke check. The deployment corresponds to GitHub commit `00b13e2c1d906eca203d75f8822b254758af2b7e`.
