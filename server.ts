@@ -1,4 +1,5 @@
 import express from "express";
+import type { Response } from "express";
 import path from "path";
 import fs from "fs";
 import { GoogleGenAI, Type, type GenerateContentParameters } from "@google/genai";
@@ -19,7 +20,12 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS || 8_500);
+const VERCEL_MAX_DURATION_MS = 60_000;
+const DEFAULT_AI_TIMEOUT_MS = 55_000;
+const configuredAiTimeoutMs = Number(process.env.AI_TIMEOUT_MS);
+const AI_TIMEOUT_MS = Number.isFinite(configuredAiTimeoutMs)
+  ? Math.min(Math.max(configuredAiTimeoutMs, 1_000), VERCEL_MAX_DURATION_MS - 1_000)
+  : DEFAULT_AI_TIMEOUT_MS;
 const SUPPORTED_GEMINI_MODELS = ["gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"] as const;
 const configuredGeminiModel = process.env.GEMINI_MODEL?.trim();
 const PRIMARY_GEMINI_MODEL = configuredGeminiModel && SUPPORTED_GEMINI_MODELS.includes(configuredGeminiModel as (typeof SUPPORTED_GEMINI_MODELS)[number])
@@ -98,6 +104,40 @@ function isStringArray(value: unknown, minLength = 1): value is string[] {
   return Array.isArray(value) && value.length >= minLength && value.every(isNonEmptyString);
 }
 
+function safeErrorSignal(error: unknown): { code: string; status: number | null } {
+  if (!isRecord(error)) return { code: "UNKNOWN", status: null };
+  const rawCode = typeof error.code === "string" ? error.code : "UNKNOWN";
+  const code = /^[A-Z0-9_]{1,64}$/.test(rawCode) ? rawCode : "UNKNOWN";
+  const rawStatus = typeof error.status === "number" ? error.status : null;
+  const status = rawStatus !== null && Number.isInteger(rawStatus) && rawStatus >= 100 && rawStatus <= 599 ? rawStatus : null;
+  return { code, status };
+}
+
+type AiErrorCategory = "TIMEOUT_ERROR" | "CONFIG_ERROR" | "MODEL_ERROR" | "PROVIDER_ERROR";
+
+function aiErrorCategory(error: unknown): AiErrorCategory {
+  const signal = safeErrorSignal(error);
+  if (isRecord(error) && error.message === "VERCEL_TIMEOUT") return "TIMEOUT_ERROR";
+  if (isRecord(error) && error.message === "AI_PROVIDER_NOT_CONFIGURED") return "CONFIG_ERROR";
+  if (isRecord(error) && error.message === "INVALID_MODEL_RESPONSE") return "MODEL_ERROR";
+  if (signal.status === 404 || signal.code === "NOT_FOUND" || signal.code === "MODEL_NOT_FOUND") return "MODEL_ERROR";
+  return "PROVIDER_ERROR";
+}
+
+function sendAiGenerationError(res: Response, error: unknown, routeName: string) {
+  const category = aiErrorCategory(error);
+  const signal = safeErrorSignal(error);
+  console.error(`[Gemini] ${routeName} generation failed.`, { category, code: signal.code, status: signal.status });
+  const responseByCategory: Record<AiErrorCategory, { status: number; error: string }> = {
+    TIMEOUT_ERROR: { status: 504, error: "The AI request timed out." },
+    CONFIG_ERROR: { status: 503, error: "AI service is not configured." },
+    MODEL_ERROR: { status: 502, error: "The configured AI model is unavailable." },
+    PROVIDER_ERROR: { status: 502, error: "The AI provider could not complete the request." },
+  };
+  const response = responseByCategory[category];
+  return res.status(response.status).json({ error: response.error, category });
+}
+
 function isLessonPlanOutput(value: unknown): boolean {
   if (!hasRequiredModelFields(value, LESSON_PLAN_FIELDS) || !isRecord(value)) return false;
   const warmup = value.warmup;
@@ -119,14 +159,19 @@ function isLessonPlanOutput(value: unknown): boolean {
   return isRecord(teachingTips) && isNonEmptyString(teachingTips.whatToEmphasize) && isNonEmptyString(teachingTips.commonConfusion) && isNonEmptyString(teachingTips.howToSimplify);
 }
 
+function isRepairableModelError(error: unknown): boolean {
+  return error instanceof SyntaxError || (isRecord(error) && error.message === "INVALID_MODEL_RESPONSE");
+}
+
 async function generateLessonWithRepair(ai: GoogleGenAI, options: GenerateContentParameters) {
   const response = await generateWithTimeout(ai, options);
   try {
     const parsed = parseModelResponse(response, LESSON_PLAN_FIELDS);
     if (!isLessonPlanOutput(parsed)) throw new Error("INVALID_MODEL_RESPONSE");
     return parsed;
-  } catch (parseError: any) {
-    console.warn("[Lesson] Structured response parse failed; attempting safe repair.", parseError?.message || "unknown");
+  } catch (parseError: unknown) {
+    if (!isRepairableModelError(parseError)) throw parseError;
+    console.warn("[Lesson] Structured response parse failed; attempting safe repair.", { category: "MODEL_ERROR" });
     const cleaned = (response.text || "").replace(/```json|```/g, "").trim();
     try {
       const repaired = JSON.parse(cleaned);
@@ -174,7 +219,11 @@ async function startServer() {
         return res.status(403).json({ error: "Forbidden." });
       }
 
-      const { supabaseAdmin } = await import("./src/lib/supabase-admin");
+      if (!supabaseAdmin) {
+        console.error("[Auth] Supabase admin configuration unavailable.");
+        return res.status(503).json({ error: "Administrator provisioning is unavailable." });
+      }
+
       const { data, error } = await supabaseAdmin
         .from("teachers")
         .update({ is_super_admin: true })
@@ -188,7 +237,7 @@ async function startServer() {
 
       return res.json({ success: true });
     } catch (err: any) {
-      console.error("[Auth] Failed to provision the configured administrator.", err?.code || err?.message || "unknown");
+      console.error("[Auth] Failed to provision the configured administrator.", safeErrorSignal(err));
       return sendServerError(res);
     }
   });
@@ -205,7 +254,7 @@ async function startServer() {
       if (!response.ok) throw new Error(`Quran API returned ${response.status}`);
       return res.json(await response.json());
     } catch (err: any) {
-      console.error("[Quran] Failed to proxy surahs.", err?.message || "unknown");
+      console.error("[Quran] Failed to proxy surahs.", safeErrorSignal(err));
       return sendServerError(res);
     }
   });
@@ -224,7 +273,7 @@ async function startServer() {
       if (!response.ok) throw new Error(`Quran API returned ${response.status}`);
       return res.json(await response.json());
     } catch (err: any) {
-      console.error("[Quran] Failed to proxy verses.", err?.message || "unknown");
+      console.error("[Quran] Failed to proxy verses.", safeErrorSignal(err));
       return sendServerError(res);
     }
   });
@@ -238,6 +287,10 @@ async function startServer() {
       const { subject, topic, duration, teachingStyle, language, learningGoal, learningGoals, customInstructions, curriculumId } = validation.value;
       const userId = (req as any).user?.id;
       if (!userId) return res.status(401).json({ error: "Unauthorized.", category: "AUTH_ERROR" });
+      if (!supabaseAdmin) {
+        console.error("[Lesson] Supabase admin configuration unavailable.");
+        return res.status(503).json({ error: "Lesson service is unavailable.", category: "CONFIG_ERROR" });
+      }
 
       const { data: trustedStudent, error: studentError } = await supabaseAdmin
         .from("students")
@@ -396,17 +449,7 @@ PEDAGOGICAL RULES
 
       return res.json({ success: true, data: result });
     } catch (err: any) {
-      console.error("[Gemini] Lesson-plan generation failed.", err?.message || "unknown");
-      if (err.message === "VERCEL_TIMEOUT") {
-        return res.status(504).json({ error: "The AI request timed out.", category: "TIMEOUT_ERROR" });
-      }
-      if (err.message === "AI_PROVIDER_NOT_CONFIGURED") {
-        return res.status(503).json({ error: "AI service is not configured.", category: "CONFIG_ERROR" });
-      }
-      if (err.status === 404 || err.message?.includes("not found") || err.message?.includes("no longer available")) {
-        return res.status(502).json({ error: "The configured AI model is unavailable.", category: "MODEL_ERROR" });
-      }
-      return res.status(502).json({ error: "The AI provider could not complete the lesson request.", category: "PROVIDER_ERROR" });
+      return sendAiGenerationError(res, err, "Lesson-plan");
     }
   });
 
@@ -453,8 +496,7 @@ Provide the title, bullet points, and speaker notes for each slide.`;
       const result = parseModelResponse(response, ["title", "slides"]);
       return res.json({ success: true, data: result });
     } catch (err: any) {
-      console.error("[Gemini] Slides-plan generation failed.", err?.message || "unknown");
-      return sendServerError(res);
+      return sendAiGenerationError(res, err, "Slides-plan");
     }
   });
 
@@ -510,8 +552,7 @@ Provide the question, list of options (if applicable), correct answer, and a sho
       const result = parseModelResponse(response, ["title", "questions"]);
       return res.json({ success: true, data: result });
     } catch (err: any) {
-      console.error("[Gemini] Quiz generation failed.", err?.message || "unknown");
-      return sendServerError(res);
+      return sendAiGenerationError(res, err, "Quiz");
     }
   });
 
@@ -565,8 +606,7 @@ Keep it practical, encouraging, and clear.`;
       const result = parseModelResponse(response, ["title", "estimatedMinutes", "tasks"]);
       return res.json({ success: true, data: result });
     } catch (err: any) {
-      console.error("[Gemini] Homework generation failed.", err?.message || "unknown");
-      return sendServerError(res);
+      return sendAiGenerationError(res, err, "Homework");
     }
   });
 
@@ -614,8 +654,7 @@ Provide:
       const result = parseModelResponse(response, ["overallAssessment", "strengths", "areasToFocus", "actionableTip"]);
       return res.json({ success: true, data: result });
     } catch (err: any) {
-      console.error("[Gemini] Student-insights generation failed.", err?.message || "unknown");
-      return sendServerError(res);
+      return sendAiGenerationError(res, err, "Student-insights");
     }
   });
 
@@ -637,7 +676,7 @@ Provide:
       });
       app.use(vite.middlewares);
     } catch (e) {
-      console.warn("Vite failed to load in dev mode, serving dist static files if available:", e);
+      console.warn("Vite failed to load in dev mode, serving dist static files if available.", safeErrorSignal(e));
       if (fs.existsSync(distPath)) {
         app.use(express.static(distPath));
         app.get("*", (_req, res) => {

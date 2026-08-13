@@ -11,7 +11,7 @@ export const requireAuth = async (
   res: Response,
   next: NextFunction,
 ) => {
-  if (!isSupabaseAdminConfigured) {
+  if (!isSupabaseAdminConfigured || !supabaseAdmin) {
     console.error("[Auth] Protected server route rejected because Supabase admin credentials are not configured.");
     return res.status(503).json({ error: "Authentication service is unavailable." });
   }

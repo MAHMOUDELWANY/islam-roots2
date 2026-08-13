@@ -1,5 +1,6 @@
 import type { NextFunction, Response } from "express";
 import type { AuthRequest } from "../middleware/auth";
+import { supabaseAdmin } from "../lib/supabase-admin";
 
 const SUBJECTS = ["Quran", "Tajweed", "Islamic Studies", "Arabic"] as const;
 const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
@@ -12,7 +13,7 @@ const MAX_MODEL_ARRAY_LENGTH = 50;
 const MAX_MODEL_OBJECT_KEYS = 50;
 const MAX_MODEL_DEPTH = 8;
 const AI_REQUEST_LIMIT = 10;
-const AI_REQUEST_WINDOW_MS = 15 * 60 * 1_000;
+const AI_REQUEST_WINDOW_SECONDS = 15 * 60;
 
 type RecordValue = Record<string, unknown>;
 type AllowedSubject = (typeof SUBJECTS)[number];
@@ -399,44 +400,53 @@ export function hasRequiredModelFields(value: unknown, fields: string[]): value 
   return isRecord(value) && isBoundedModelValue(value) && fields.every((field) => field in value);
 }
 
-interface RateLimitBucket {
-  count: number;
-  resetAt: number;
+interface RateLimitResult {
+  allowed: boolean;
+  retry_after_seconds: number;
+  request_count: number;
+  window_start: string;
 }
 
-const rateLimitBuckets = new Map<string, RateLimitBucket>();
-
-function pruneExpiredBuckets(now: number) {
-  for (const [key, bucket] of rateLimitBuckets) {
-    if (bucket.resetAt <= now) {
-      rateLimitBuckets.delete(key);
-    }
-  }
-}
-
-export function aiRateLimiter(req: AuthRequest, res: Response, next: NextFunction) {
+export async function aiRateLimiter(req: AuthRequest, res: Response, next: NextFunction) {
   const userId = req.user?.uid || req.user?.id;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized." });
   }
 
-  const now = Date.now();
-  pruneExpiredBuckets(now);
-  const existing = rateLimitBuckets.get(userId);
-
-  if (existing && existing.count >= AI_REQUEST_LIMIT) {
-    const retryAfterSeconds = Math.max(1, Math.ceil((existing.resetAt - now) / 1_000));
-    res.setHeader("Retry-After", retryAfterSeconds);
-    return res.status(429).json({ error: "Generation limit reached. Please try again later." });
+  if (!supabaseAdmin) {
+    console.error("[AI Rate Limit] Supabase admin configuration unavailable.");
+    return res.status(503).json({ error: "AI service is unavailable.", category: "CONFIG_ERROR" });
   }
 
-  if (existing) {
-    existing.count += 1;
-  } else {
-    rateLimitBuckets.set(userId, { count: 1, resetAt: now + AI_REQUEST_WINDOW_MS });
-  }
+  try {
+    const { data, error } = await supabaseAdmin.rpc("check_and_increment_ai_rate_limit", {
+      p_user_id: userId,
+      p_limit: AI_REQUEST_LIMIT,
+      p_window_seconds: AI_REQUEST_WINDOW_SECONDS,
+    });
 
-  next();
+    const result = Array.isArray(data) ? data[0] as RateLimitResult | undefined : undefined;
+    if (error || !result || typeof result.allowed !== "boolean") {
+      console.error("[AI Rate Limit] Persistent limiter request failed.", error?.code || "unknown");
+      return res.status(503).json({ error: "AI service is temporarily unavailable.", category: "CONFIG_ERROR" });
+    }
+
+    if (!result.allowed) {
+      const retryAfterSeconds = Number.isInteger(result.retry_after_seconds) && result.retry_after_seconds > 0
+        ? result.retry_after_seconds
+        : AI_REQUEST_WINDOW_SECONDS;
+      res.setHeader("Retry-After", retryAfterSeconds);
+      return res.status(429).json({
+        error: "Generation limit reached. Please try again later.",
+        category: "RATE_LIMIT_ERROR",
+      });
+    }
+
+    return next();
+  } catch (error: any) {
+    console.error("[AI Rate Limit] Persistent limiter request failed.", error?.code || "unknown");
+    return res.status(503).json({ error: "AI service is temporarily unavailable.", category: "CONFIG_ERROR" });
+  }
 }
 
 export function sendInvalidRequest(res: Response, details: string) {
