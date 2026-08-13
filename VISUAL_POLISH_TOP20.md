@@ -1,0 +1,34 @@
+# Islam Roots Visual Polish — Top 20 Improvements
+
+This document records the highest-impact improvements identified from the attached visual-polish requirements and inspection of the existing Islam Roots repository at commit `6af920f`. The scope is intentionally limited to **visual hierarchy, motion, accessibility, responsive behavior, Arabic/RTL quality, and component consistency**. Existing product functionality, integrations, data contracts, authentication, and route structure remain unchanged.
+
+## Evidence-based improvement list
+
+| Priority | Improvement | Existing evidence | Intended outcome | Primary validation |
+|---:|---|---|---|---|
+| 1 | Restore a deeper olive brand anchor and centralize the palette | Landing, settings, and shell still use many raw light-green and bespoke hex values despite global tokens. | A calm, mature visual identity with one clear primary action color. | Token scan; visual desktop and dark-mode review. |
+| 2 | Add a complete surface, border, radius, elevation, and motion token layer | `index.css` has only a small token set plus `glass-card` and `shadow-soft`. | Consistent cards, controls, transitions, and spacing across pages. | CSS review; repeated-class scan. |
+| 3 | Introduce reusable visual recipes for cards, buttons, inputs, badges, section headers, and empty states | Settings, landing, sidebar, and content screens repeat bespoke class combinations. | Reduce visual drift without changing component behavior. | TypeScript/build; representative screen comparison. |
+| 4 | Improve the public navigation hierarchy and scroll-state behavior | Landing navigation is sticky but visually static and uses raw colors. | A quieter, more intentional nav that responds subtly to scroll and remains accessible. | Keyboard check; scroll-state browser review. |
+| 5 | Build a scroll narrative for the landing page | Landing currently relies mainly on initial hero reveals and tab swaps; no section reveal or narrative depth exists. | Progressive discovery through meaningful reveal/stagger, not random animation. | Reduced-motion and normal-motion visual review. |
+| 6 | Add purposeful hero depth without expensive continuous animation | Hero uses static blurred blobs and several initial-load transitions. | Premium first impression with restrained ambient movement and no layout jank. | Performance check; reduced-motion check. |
+| 7 | Improve landing feature-card hierarchy and hover/focus feedback | Audience and feature cards use repeated raw surfaces and basic scale transitions. | Cards communicate priority and respond consistently to pointer and keyboard input. | Focus-visible review; mobile tap behavior. |
+| 8 | Make the interactive preview feel like a meaningful product demonstration | Preview has tab swaps but uses static sample content and limited state transition cues. | Tabs feel connected to the teaching workflow while clearly remaining preview content. | Tab keyboard interaction; content stability review. |
+| 9 | Standardize authenticated shell navigation states | Sidebar uses raw colors, bespoke active borders, and no shared transition recipe. | Clear active/hover/focus states with restrained motion and RTL-safe layout. | Desktop/tablet/mobile shell review. |
+| 10 | Refine header controls, popovers, and feedback affordances | Header and settings repeat toggle, icon-button, and dropdown styling. | Small controls feel intentional, legible, and consistent. | Keyboard and contrast review. |
+| 11 | Improve settings density and tablet composition | Settings has a dense three-column integration grid and repeated nested cards. | Better scanability at laptop/tablet widths without removing integrations. | 768px, 1024px, and desktop visual review. |
+| 12 | Normalize input and form control styling | Settings inputs repeat raw styles and rely on local focus borders. | Consistent height, radius, focus ring, disabled state, and RTL alignment. | Keyboard focus and long Arabic text checks. |
+| 13 | Normalize tabs, badges, and status indicators | Landing, curriculum, and settings use several unrelated pill and badge recipes. | Status is clear, non-color-only where possible, and visually cohesive. | Contrast; semantic status review. |
+| 14 | Remove remaining unnecessary italic/slanted UI typography | Landing and several authenticated screens still use italic headings or helper text. | Typography communicates hierarchy through weight and scale rather than slant. | Repository scan for UI italic classes. |
+| 15 | Improve English/Arabic typographic parity | Arabic support exists, but line-height, wrapping, and alignment need deliberate treatment across new surfaces. | Arabic feels authored and premium rather than mechanically translated. | RTL screenshots; mixed-direction text review. |
+| 16 | Add section reveal and progress feedback primitives | Workspace pages have limited transition language beyond ad-hoc hover effects. | Motion communicates navigation, hierarchy, progress, and save feedback only where useful. | Reduced-motion and interaction-state review. |
+| 17 | Improve modal, dropdown, and tab enter/exit transitions | Existing transitions are inconsistent and often only change opacity/position locally. | Consistent transform/opacity-based transitions with safe exit behavior. | Open/close keyboard and motion review. |
+| 18 | Audit responsive behavior with tablet as a first-class breakpoint | Existing layouts are mainly mobile/desktop splits, with dense grids at intermediate widths. | No clipping, awkward wrapping, or excessive whitespace at tablet widths. | 768px, 820px, 1024px, and mobile review. |
+| 19 | Strengthen reduced-motion and performance safeguards | A global reduced-motion rule exists, but new motion must avoid layout animation and continuous work. | Motion is optional, cheap, and respectful of user preferences. | CSS audit; production build; reduced-motion browser check. |
+| 20 | Add a visual QA and release checklist for this pass | Existing QA notes cover the prior refinement; this prompt requires a new advanced polish review. | The final result is checked across functionality, responsiveness, RTL, accessibility, and deployment. | Lint/build/audit; production smoke check; documented QA. |
+
+## Implementation boundary
+
+The implementation will prioritize items 1–8 on the public landing page, items 9–13 and 16–18 on the authenticated shell and settings, and items 14–15 and 19–20 globally. No route, database schema, authentication behavior, Google integration, AI boundary, or user data behavior will be changed.
+
+The Manim skill is not used to generate a video because the attached requirements ask for in-product UI motion rather than a standalone explanatory animation or MP4. The internet skill search was attempted against the verified skill index; the online fetch fell back to the cache and returned no matching supporting skill, so no unverified external instructions will be introduced.

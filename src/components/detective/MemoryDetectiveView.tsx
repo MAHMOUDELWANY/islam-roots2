@@ -177,7 +177,7 @@ export const MemoryDetectiveView: React.FC = () => {
             </button>
           )}
         </div>
-        <h2 className="text-xl sm:text-2xl font-serif font-bold italic">
+        <h2 className="text-xl sm:text-2xl font-serif font-bold">
           {t("quranDetective")}
         </h2>
         <p className="text-xs sm:text-sm text-[#E2E8E2]/80 max-w-3xl">
@@ -191,7 +191,7 @@ export const MemoryDetectiveView: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
             {/* Left Column: Target Surah Selection */}
             <div className="lg:col-span-7 space-y-6">
-              <div className="p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4">
+              <div className="ir-surface p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
                     <BookOpen className="w-5 h-5 text-[#5A6B5A]" />
@@ -253,7 +253,7 @@ export const MemoryDetectiveView: React.FC = () => {
               </div>
 
               {/* Scope Selection Card */}
-              <div className="p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4">
+              <div className="ir-surface p-6 space-y-4">
                 <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
                   <Sliders className="w-5 h-5 text-[#8B5A2B]" />
                   <span>2. Define Test Scope Range</span>
@@ -354,7 +354,7 @@ export const MemoryDetectiveView: React.FC = () => {
             {/* Right Column: Recall Mode, Student & Review Card */}
             <div className="lg:col-span-5 space-y-6">
               {/* Challenge Recall Mode Selection */}
-              <div className="p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4">
+              <div className="ir-surface p-6 space-y-4">
                 <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-[#5A6B5A]" />
                   <span>3. Select Challenge Mode</span>

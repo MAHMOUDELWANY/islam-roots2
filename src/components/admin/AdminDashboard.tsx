@@ -575,7 +575,7 @@ export const AdminDashboard: React.FC = () => {
 
                     {/* Purpose / Goal */}
                     {tItem.purpose && (
-                      <p className="text-xs text-[#2D332D] dark:text-stone-300 line-clamp-2 italic bg-[#FCFAF5] dark:bg-[#1C251D] p-2.5 rounded-lg border border-[#E8E5DB]/60 dark:border-[#2A352A]">
+                      <p className="text-xs text-[#2D332D] dark:text-stone-300 line-clamp-2 bg-[#FCFAF5] dark:bg-[#1C251D] p-2.5 rounded-lg border border-[#E8E5DB]/60 dark:border-[#2A352A]">
                         « {tItem.purpose} »
                       </p>
                     )}
@@ -995,7 +995,7 @@ export const AdminDashboard: React.FC = () => {
                             </span>
                           </div>
                           {sess.teacherNotes && (
-                            <p className="text-xs text-[#2D332D] dark:text-stone-300 italic bg-[#FCFAF5] dark:bg-[#1C251D] p-2 rounded">
+                            <p className="text-xs text-[#2D332D] dark:text-stone-300 bg-[#FCFAF5] dark:bg-[#1C251D] p-2 rounded">
                               « {sess.teacherNotes} »
                             </p>
                           )}

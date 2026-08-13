@@ -44,7 +44,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ currentSection, onSelectSe
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#F7F3E9]/96 dark:bg-[#142019]/96 backdrop-blur-md border-t border-[#D9E3D9] dark:border-[#294535] px-2 py-1.5 shadow-soft">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#F7F3E9]/96 dark:bg-[#142019]/96 backdrop-blur-xl border-t border-[var(--brand-line)] dark:border-[#294535] px-2 py-1.5 shadow-soft">
       <div className="flex items-center justify-around gap-1 overflow-x-auto no-scrollbar">
         {navItems.map((item) => {
           const isActive = currentSection === item.id;
@@ -53,13 +53,13 @@ export const MobileNav: React.FC<MobileNavProps> = ({ currentSection, onSelectSe
               key={item.id}
               id={`mobile-tour-nav-${item.id}`}
               onClick={() => onSelectSection(item.id)}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-medium min-w-[58px] transition-all cursor-pointer ${
+              className={`flex flex-col items-center justify-center p-2 rounded-lg text-xs font-medium min-w-[58px] transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? "text-[#1F6F4A] dark:text-[#B9D7BF] bg-[#E5EFE7] dark:bg-[#20382A] font-semibold"
-                  : "text-[#617267] dark:text-stone-400 hover:text-[#1F6F4A]"
+                  ? "text-[var(--brand-olive)] dark:text-[#B9D7BF] bg-[var(--brand-olive)]/10 dark:bg-[#20382A] font-semibold"
+                  : "text-[var(--brand-muted)] dark:text-stone-400 hover:text-[var(--brand-olive)]"
               }`}
             >
-              <div className={isActive ? "scale-105 transition-transform text-[#1F6F4A]" : ""}>
+              <div className={isActive ? "scale-105 transition-transform text-[var(--brand-olive)]" : "transition-transform"}>
                 {item.icon}
               </div>
               <span className="text-[10px] mt-1 whitespace-nowrap truncate max-w-[64px]">

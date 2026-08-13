@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [profileOpen, setProfileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-[#F7F3E9]/92 dark:bg-[#142019]/92 backdrop-blur-md border-b border-[#D9E3D9] dark:border-[#294535] px-4 sm:px-8 py-3 transition-colors">
+    <header className="sticky top-0 z-30 w-full bg-[#F7F3E9]/95 dark:bg-[#142019]/92 backdrop-blur-xl border-b border-[var(--brand-line)] dark:border-[#294535] px-4 sm:px-8 py-3 transition-colors">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         {/* Brand Logo & Welcome Greeting */}
         <div className="flex items-center gap-3 sm:gap-4">
@@ -58,7 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="tour-jalilah-guide"
               onClick={onOpenTour}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] hover:bg-[#F2EFE6] dark:hover:bg-[#2A352A] text-[#8B5A2B] dark:text-[#C49A6C] text-xs font-bold border border-[#D4D1C5] dark:border-[#2A352A] shadow-xs transition-all active:scale-95 cursor-pointer"
+              className="ir-button ir-button-secondary flex items-center gap-1.5 px-3.5 py-1.5 text-xs cursor-pointer"
               title={t("jalilahGuideTitle")}
             >
               <Sparkles className="w-3.5 h-3.5 text-[#8B5A2B] dark:text-[#C49A6C]" />
@@ -96,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Dark Mode Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg bg-[#E8E5DB]/70 dark:bg-[#232B23] border border-[#D4D1C5]/60 dark:border-[#2A352A] text-[#3E4D3E] dark:text-stone-200 hover:bg-[#E8E5DB] transition-all cursor-pointer"
+            className="ir-icon-button bg-[var(--brand-ivory)]/80 dark:bg-[#232B23] border border-[var(--brand-line)] text-[var(--brand-olive)] dark:text-stone-200 hover:bg-[var(--brand-line)] cursor-pointer"
             title={theme === "dark" ? t("lightMode") : t("darkMode")}
           >
             {theme === "dark" ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-[#3E4D3E]" />}
@@ -107,7 +107,7 @@ export const Header: React.FC<HeaderProps> = ({
             {isAuthenticated ? (
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 p-1 rounded-lg bg-[#E8E5DB] dark:bg-[#232B23] border border-[#D4D1C5] dark:border-[#2A352A] hover:border-[#5A6B5A] transition-all cursor-pointer"
+                className="ir-icon-button flex items-center gap-2 p-1 bg-[var(--brand-ivory)] dark:bg-[#232B23] border border-[var(--brand-line)] hover:border-[var(--brand-olive-soft)] cursor-pointer"
               >
                 <div className="w-7 h-7 rounded-md bg-[#5A6B5A] text-white flex items-center justify-center font-bold text-xs shadow-xs font-serif">
                   {teacher?.name?.charAt(0) || "U"}
@@ -116,7 +116,7 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="px-3.5 py-1.5 rounded-lg bg-[#5A6B5A] text-white text-xs font-semibold cursor-pointer shadow-xs"
+                className="ir-button ir-button-primary px-3.5 py-1.5 text-xs cursor-pointer"
               >
                 {t("login")}
               </button>
@@ -124,7 +124,7 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Profile Dropdown */}
             {profileOpen && (
-              <div className="absolute right-0 rtl:left-0 rtl:right-auto mt-2 w-56 rounded-xl bg-white dark:bg-[#1C221C] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft py-2 z-50 text-xs">
+              <div className="absolute right-0 rtl:left-0 rtl:right-auto mt-2 w-56 rounded-xl bg-[var(--brand-surface)] dark:bg-[#1C221C] border border-[var(--brand-line)] dark:border-[#2A352A] shadow-soft py-2 z-50 text-xs animate-fade-in">
                 <div className="px-4 py-2 border-b border-[#E8E5DB] dark:border-[#2A352A]">
                   <p className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">{teacher?.name}</p>
                   <p className="text-[#7A7D75] dark:text-stone-400 truncate">{teacher?.username ? `@${teacher.username}` : teacher?.email}</p>

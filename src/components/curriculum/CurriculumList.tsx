@@ -198,7 +198,7 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#161D17] p-6 rounded-2xl border border-[#E8E5DB] dark:border-[#2A352A] shadow-xs">
         <div>
-          <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] italic flex items-center gap-2.5">
+          <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2.5">
             <BookOpen className="w-6 h-6 text-[#5A6B5A] dark:text-[#8BA888]" />
             <span>{t("curriculums")}</span>
             <span className="px-2.5 py-0.5 rounded bg-[#E8E5DB] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] text-xs font-bold not-italic">
@@ -305,7 +305,7 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
           {filteredCurriculums.map((curr) => (
             <div
               key={curr.id}
-              className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft hover:border-[#5A6B5A] transition-all flex flex-col justify-between gap-4"
+              className="ir-surface ir-card-interactive p-6 flex flex-col justify-between gap-4"
             >
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
@@ -373,7 +373,7 @@ export const CurriculumList: React.FC<CurriculumListProps> = ({
                       </div>
                     ))}
                     {curr.lessons.length > 4 && (
-                      <p className="text-[10px] text-[#7A7D75] font-medium italic pl-5">
+                      <p className="text-[10px] text-[#7A7D75] font-medium pl-5">
                         +{curr.lessons.length - 4} more topics
                       </p>
                     )}

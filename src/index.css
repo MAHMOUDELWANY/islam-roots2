@@ -3,35 +3,53 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-brand-forest: #1F6F4A;
-  --color-brand-leaf: #2F8F5B;
+  --color-brand-olive: #3E4D3E;
+  --color-brand-olive-deep: #2A352A;
+  --color-brand-olive-soft: #5A6B5A;
+  --color-brand-sage: #8BA888;
+  --color-brand-forest: #3E4D3E;
+  --color-brand-leaf: #8BA888;
   --color-brand-earth: #8B5A2B;
   --color-brand-earth-dark: #6B3F1D;
   --color-brand-ivory: #F3F0E6;
   --color-brand-sand: #F7F3E9;
-  --color-brand-ink: #173326;
-  --color-brand-muted: #617267;
-  --color-brand-line: #D9E3D9;
+  --color-brand-surface: #FCFAF5;
+  --color-brand-ink: #1F261F;
+  --color-brand-muted: #677167;
+  --color-brand-line: #E8E5DB;
 }
 
 @layer base {
   :root {
-    --font-serif: 'Plus Jakarta Sans', system-ui, sans-serif;
     --font-sans: 'Plus Jakarta Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
     --font-arabic: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
-    --brand-forest: #1F6F4A;
-    --brand-leaf: #2F8F5B;
+    --brand-olive: #3E4D3E;
+    --brand-olive-deep: #2A352A;
+    --brand-olive-soft: #5A6B5A;
+    --brand-sage: #8BA888;
+    --brand-forest: #3E4D3E;
+    --brand-leaf: #8BA888;
     --brand-earth: #8B5A2B;
     --brand-earth-dark: #6B3F1D;
     --brand-ivory: #F3F0E6;
     --brand-sand: #F7F3E9;
-    --brand-ink: #173326;
-    --brand-muted: #617267;
-    --brand-line: #D9E3D9;
+    --brand-surface: #FCFAF5;
+    --brand-ink: #1F261F;
+    --brand-muted: #677167;
+    --brand-line: #E8E5DB;
+    --motion-fast: 140ms;
+    --motion-base: 220ms;
+    --motion-slow: 420ms;
+    --radius-control: 0.75rem;
+    --radius-card: 1.25rem;
+    --shadow-card: 0 12px 32px -18px rgba(42, 53, 42, 0.32), 0 2px 8px -4px rgba(42, 53, 42, 0.12);
+    --shadow-card-hover: 0 20px 44px -20px rgba(42, 53, 42, 0.38), 0 6px 14px -8px rgba(42, 53, 42, 0.14);
+    --shadow-olive: 0 16px 32px -18px rgba(42, 53, 42, 0.48);
   }
 
   html {
     background: var(--brand-sand);
+    scroll-behavior: smooth;
   }
 
   body {
@@ -41,6 +59,7 @@
     color: var(--brand-ink);
     font-synthesis: none;
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
 
   button,
@@ -55,8 +74,8 @@
   input:focus-visible,
   select:focus-visible,
   textarea:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--brand-leaf) 60%, white);
-    outline-offset: 2px;
+    outline: 3px solid color-mix(in srgb, var(--brand-sage) 68%, white);
+    outline-offset: 3px;
   }
 
   [dir="rtl"] {
@@ -64,34 +83,148 @@
   }
 }
 
-.font-serif {
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+.font-serif,
+.font-sans {
+  font-family: var(--font-sans) !important;
   font-style: normal !important;
 }
 
-.font-sans {
-  font-family: 'Plus Jakarta Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif !important;
-}
-
 .font-arabic {
-  font-family: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  font-family: var(--font-arabic) !important;
 }
 
 .glass-card {
-  background: color-mix(in srgb, white 82%, var(--brand-sand));
-  backdrop-filter: blur(12px);
-  border: 1px solid color-mix(in srgb, var(--brand-line) 80%, white);
+  background: color-mix(in srgb, var(--brand-surface) 86%, transparent);
+  backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in srgb, var(--brand-line) 86%, white);
 }
 
 .shadow-soft {
-  box-shadow: 0 12px 28px -10px rgba(31, 111, 74, 0.16), 0 3px 8px -3px rgba(23, 51, 38, 0.08);
+  box-shadow: var(--shadow-card);
+}
+
+/* Shared Islam Roots visual primitives. These are intentionally small recipes,
+   not a second component system, so existing product surfaces can adopt them
+   without changing their data or interaction contracts. */
+.ir-surface {
+  background: var(--brand-surface);
+  border: 1px solid var(--brand-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.ir-inset {
+  background: color-mix(in srgb, var(--brand-ivory) 58%, var(--brand-surface));
+  border: 1px solid var(--brand-line);
+  border-radius: 0.9rem;
+}
+
+.ir-card-interactive {
+  transition: transform var(--motion-base) ease, box-shadow var(--motion-base) ease, border-color var(--motion-base) ease, background-color var(--motion-base) ease;
+}
+
+.ir-card-interactive:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--brand-sage) 58%, var(--brand-line));
+  box-shadow: var(--shadow-card-hover);
+}
+
+.ir-button {
+  min-height: 2.75rem;
+  border-radius: var(--radius-control);
+  font-weight: 700;
+  transition: transform var(--motion-fast) ease, background-color var(--motion-fast) ease, color var(--motion-fast) ease, border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+}
+
+.ir-button:active,
+.ir-icon-button:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.ir-button-primary {
+  background: var(--brand-olive);
+  color: white;
+  box-shadow: var(--shadow-olive);
+}
+
+.ir-button-primary:hover {
+  background: var(--brand-olive-deep);
+  box-shadow: 0 18px 36px -18px rgba(42, 53, 42, 0.62);
+}
+
+.ir-button-secondary {
+  background: var(--brand-surface);
+  color: var(--brand-olive);
+  border: 1px solid var(--brand-line);
+}
+
+.ir-button-secondary:hover {
+  background: var(--brand-ivory);
+  border-color: color-mix(in srgb, var(--brand-sage) 58%, var(--brand-line));
+}
+
+.ir-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  border-radius: var(--radius-control);
+  transition: transform var(--motion-fast) ease, background-color var(--motion-fast) ease, color var(--motion-fast) ease;
+}
+
+.ir-input {
+  min-height: 2.75rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--brand-line);
+  background: var(--brand-surface);
+  color: var(--brand-ink);
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, background-color var(--motion-fast) ease;
+}
+
+.ir-input:focus {
+  border-color: var(--brand-olive-soft);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-sage) 24%, transparent);
+}
+
+.ir-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  padding-inline: 0.55rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.ir-section-label {
+  color: var(--brand-earth);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ir-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity var(--motion-slow) ease, transform var(--motion-slow) ease;
+}
+
+.ir-reveal[data-revealed="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ir-stagger > * {
+  transition-delay: calc(var(--stagger-index, 0) * 70ms);
 }
 
 .progress-line {
-  background: repeating-linear-gradient(90deg, #D5E0D5, #D5E0D5 10px, transparent 10px, transparent 20px);
+  background: repeating-linear-gradient(90deg, #D8DDD3, #D8DDD3 10px, transparent 10px, transparent 20px);
 }
 
-/* Custom scrollbar for natural feel */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -102,21 +235,51 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #B6C8B8;
+  background: #B0B8AB;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--brand-leaf);
+  background: var(--brand-olive-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
   *,
   *::before,
   *::after {
-    scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
+  .ir-card-interactive:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .ir-surface {
+    border-radius: 1rem;
+  }
+}
+
+.dark .ir-surface,
+.dark .ir-input,
+.dark .ir-button-secondary,
+.dark .ir-inset {
+  background: #161D17;
+  border-color: #2A352A;
+  color: #E2E8E2;
+}
+
+.dark .ir-button-secondary:hover {
+  background: #232B23;
+}
+
+.dark .ir-inset {
+  background: #232B23;
 }

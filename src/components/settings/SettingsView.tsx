@@ -43,7 +43,7 @@ export const SettingsView: React.FC = () => {
         {/* Left Column: Educator Profile & App Preferences */}
         <div className="lg:col-span-7 space-y-5 sm:space-y-6">
           {/* Teacher Profile Section */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#294535] shadow-soft space-y-4">
+          <div className="p-6 rounded-2xl ir-surface space-y-4">
             <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
               <User className="w-5 h-5 text-[#5A6B5A]" />
               <span>{language === "ar" ? "ملف المعلم" : "Educator Profile"}</span>
@@ -60,7 +60,7 @@ export const SettingsView: React.FC = () => {
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-none focus:border-[#5A6B5A]"
+                    className="ir-input w-full px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                   />
                 </div>
 
@@ -86,7 +86,7 @@ export const SettingsView: React.FC = () => {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-none focus:border-[#5A6B5A]"
+                      className="ir-input w-full px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                     />
                   </div>
                 )}
@@ -100,20 +100,20 @@ export const SettingsView: React.FC = () => {
                     value={age}
                     onChange={(e) => setAge(e.target.value)}
                     placeholder={t("agePlaceholder")}
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-none focus:border-[#5A6B5A]"
+                    className="ir-input w-full px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                   />
                 </div>
 
                 <div className="space-y-1">
                   <label className="font-semibold text-[#2D332D] dark:text-[#E2E8E2]">
-                    {t("yearsOfExperience")}
+                    {language === "ar" ? "سنوات الخبرة" : t("yearsOfExperience")}
                   </label>
                   <input
                     type="text"
                     value={yearsOfExperience}
                     onChange={(e) => setYearsOfExperience(e.target.value)}
                     placeholder={t("experiencePlaceholder")}
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-none focus:border-[#5A6B5A]"
+                    className="ir-input w-full px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                   />
                 </div>
               </div>
@@ -127,7 +127,7 @@ export const SettingsView: React.FC = () => {
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder={t("locationPlaceholder")}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-none focus:border-[#5A6B5A]"
+                  className="ir-input w-full px-3.5 py-2.5 text-xs font-medium focus:outline-none"
                 />
               </div>
 
@@ -140,7 +140,7 @@ export const SettingsView: React.FC = () => {
                   value={purpose}
                   onChange={(e) => setPurpose(e.target.value)}
                   placeholder={t("purposePlaceholder")}
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-none focus:border-[#5A6B5A] resize-none"
+                  className="ir-input w-full px-3.5 py-2.5 text-xs font-medium focus:outline-none resize-none"
                 />
               </div>
 
@@ -152,7 +152,7 @@ export const SettingsView: React.FC = () => {
                 )}
                 <button
                   type="submit"
-                  className="ml-auto px-5 py-2.5 rounded-lg bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold shadow-xs cursor-pointer flex items-center gap-2"
+                  className="ir-button ir-button-primary ml-auto px-5 py-2.5 text-xs cursor-pointer flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />
                   <span>{t("save")}</span>
@@ -162,7 +162,7 @@ export const SettingsView: React.FC = () => {
           </div>
 
           {/* Preferences Section */}
-          <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#294535] shadow-soft space-y-4 text-xs">
+          <div className="p-6 rounded-2xl ir-surface space-y-4 text-xs">
             <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
               <Globe className="w-5 h-5 text-[#8B5A2B]" />
               <span>{language === "ar" ? "تفضيلات الواجهة" : "Language & Appearance"}</span>
@@ -170,9 +170,9 @@ export const SettingsView: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Language Switcher */}
-              <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-2">
+              <div className="ir-inset p-4 space-y-2">
                 <span className="font-semibold text-[#2D332D] dark:text-[#E2E8E2] block">
-                  {t("language")}
+                  {language === "ar" ? "اللغة" : t("language")}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -199,7 +199,7 @@ export const SettingsView: React.FC = () => {
               </div>
 
               {/* Theme Switcher */}
-              <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-2">
+              <div className="ir-inset p-4 space-y-2">
                 <span className="font-semibold text-[#2D332D] dark:text-[#E2E8E2] block">
                   {language === "ar" ? "مظهر الواجهة" : "Interface Theme"}
                 </span>
@@ -237,7 +237,7 @@ export const SettingsView: React.FC = () => {
 
       {/* Supabase Database & Authentication Status (Super Admin / Admin Only) */}
       {isAdmin && (
-        <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#294535] shadow-soft space-y-4 text-xs">
+        <div className="p-6 rounded-2xl ir-surface space-y-4 text-xs">
           <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
             <Database className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <span>Supabase Database & Authentication</span>
@@ -247,7 +247,7 @@ export const SettingsView: React.FC = () => {
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-2">
+            <div className="ir-inset p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Supabase Database</span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
@@ -259,7 +259,7 @@ export const SettingsView: React.FC = () => {
               </p>
             </div>
 
-            <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-2">
+            <div className="ir-inset p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Supabase Authentication</span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
@@ -275,7 +275,7 @@ export const SettingsView: React.FC = () => {
       )}
 
       {/* Google Workspace Integrations */}
-      <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#294535] shadow-soft space-y-4 text-xs">
+      <div className="p-6 rounded-2xl ir-surface space-y-4 text-xs">
         <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
           <Globe className="w-5 h-5 text-[#5A6B5A] dark:text-[#8BA888]" />
           <span>{language === "ar" ? "اتصالات Google Workspace" : "Google Workspace Connections"}</span>
@@ -284,8 +284,8 @@ export const SettingsView: React.FC = () => {
           {language === "ar" ? "اربط تقويم Google وDocs وSlides وTasks وGmail وForms وDrive لمزامنة الجداول وتصدير خطط الدروس وإدارة مهامك التعليمية." : "Connect your Google Calendar, Google Docs, Google Slides, Google Tasks, Gmail, Google Forms, or Google Drive/Picker accounts to sync schedules, export lesson plans, manage tasks, and send student updates."}
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-          <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="ir-inset p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Google Calendar</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.calendar ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
@@ -293,7 +293,7 @@ export const SettingsView: React.FC = () => {
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
-              Sync student schedule entries directly to your primary Google Calendar.
+              {language === "ar" ? "مزامنة مواعيد الطلاب مباشرة مع تقويم Google الأساسي." : "Sync student schedule entries directly to your primary Google Calendar."}
             </p>
             <button
               type="button"
@@ -305,13 +305,13 @@ export const SettingsView: React.FC = () => {
                   alert(e?.message || "Failed to connect Google Calendar");
                 }
               }}
-              className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
+              className="ir-button ir-button-primary w-full py-2 px-3 text-xs cursor-pointer text-center"
             >
               {googleTokens.calendar ? (language === "ar" ? "إعادة ربط التقويم" : "Reconnect Calendar") : (language === "ar" ? "ربط التقويم" : "Connect Calendar")}
             </button>
           </div>
 
-          <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
+          <div className="ir-inset p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Google Docs</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.docs ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
@@ -319,7 +319,7 @@ export const SettingsView: React.FC = () => {
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
-              Export AI Jalilah lesson studio plans directly to Google Docs.
+              {language === "ar" ? "تصدير خطط دروس استوديو جليلة مباشرة إلى Google Docs." : "Export AI Jalilah lesson studio plans directly to Google Docs."}
             </p>
             <button
               type="button"
@@ -331,13 +331,13 @@ export const SettingsView: React.FC = () => {
                   alert(e?.message || "Failed to connect Google Docs");
                 }
               }}
-              className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
+              className="ir-button ir-button-primary w-full py-2 px-3 text-xs cursor-pointer text-center"
             >
               {googleTokens.docs ? (language === "ar" ? "إعادة ربط Docs" : "Reconnect Docs") : (language === "ar" ? "ربط Docs" : "Connect Docs")}
             </button>
           </div>
 
-          <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
+          <div className="ir-inset p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Google Slides</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.slides ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
@@ -345,7 +345,7 @@ export const SettingsView: React.FC = () => {
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
-              Export lesson plans into presentation decks in Google Slides.
+              {language === "ar" ? "تصدير خطط الدروس إلى عروض تقديمية في Google Slides." : "Export lesson plans into presentation decks in Google Slides."}
             </p>
             <button
               type="button"
@@ -357,13 +357,13 @@ export const SettingsView: React.FC = () => {
                   alert(e?.message || "Failed to connect Google Slides");
                 }
               }}
-              className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
+              className="ir-button ir-button-primary w-full py-2 px-3 text-xs cursor-pointer text-center"
             >
               {googleTokens.slides ? (language === "ar" ? "إعادة ربط Slides" : "Reconnect Slides") : (language === "ar" ? "ربط Slides" : "Connect Slides")}
             </button>
           </div>
 
-          <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
+          <div className="ir-inset p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Google Tasks</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.tasks ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
@@ -371,7 +371,7 @@ export const SettingsView: React.FC = () => {
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
-              Sync homework and assignment reminders into Google Tasks.
+              {language === "ar" ? "مزامنة الواجبات وتذكيرات المهام مع Google Tasks." : "Sync homework and assignment reminders into Google Tasks."}
             </p>
             <button
               type="button"
@@ -383,13 +383,13 @@ export const SettingsView: React.FC = () => {
                   alert(e?.message || "Failed to connect Google Tasks");
                 }
               }}
-              className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
+              className="ir-button ir-button-primary w-full py-2 px-3 text-xs cursor-pointer text-center"
             >
               {googleTokens.tasks ? (language === "ar" ? "إعادة ربط Tasks" : "Reconnect Tasks") : (language === "ar" ? "ربط Tasks" : "Connect Tasks")}
             </button>
           </div>
 
-          <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
+          <div className="ir-inset p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Gmail</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.gmail ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
@@ -397,7 +397,7 @@ export const SettingsView: React.FC = () => {
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
-              Send progress reports and lesson reminders directly via Gmail.
+              {language === "ar" ? "إرسال تقارير التقدم وتذكيرات الدروس عبر Gmail." : "Send progress reports and lesson reminders directly via Gmail."}
             </p>
             <button
               type="button"
@@ -409,14 +409,14 @@ export const SettingsView: React.FC = () => {
                   alert(e?.message || "Failed to connect Gmail");
                 }
               }}
-              className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
+              className="ir-button ir-button-primary w-full py-2 px-3 text-xs cursor-pointer text-center"
             >
               {googleTokens.gmail ? (language === "ar" ? "إعادة ربط Gmail" : "Reconnect Gmail") : (language === "ar" ? "ربط Gmail" : "Connect Gmail")}
             </button>
           </div>
 
           {isAdmin && (
-            <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
+            <div className="ir-inset p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Google Forms</span>
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.forms ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
@@ -436,14 +436,14 @@ export const SettingsView: React.FC = () => {
                     alert(e?.message || "Failed to connect Google Forms");
                   }
                 }}
-                className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
+                className="ir-button ir-button-primary w-full py-2 px-3 text-xs cursor-pointer text-center"
               >
                 {googleTokens.forms ? (language === "ar" ? "إعادة ربط Forms" : "Reconnect Forms") : (language === "ar" ? "ربط Forms" : "Connect Forms")}
               </button>
             </div>
           )}
 
-          <div className="p-4 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
+          <div className="ir-inset p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-bold text-[#1F261F] dark:text-[#E2E8E2]">Google Drive & Picker</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${googleTokens.picker ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-stone-100 text-stone-600 dark:bg-stone-800 dark:text-stone-300"}`}>
@@ -451,7 +451,7 @@ export const SettingsView: React.FC = () => {
               </span>
             </div>
             <p className="text-[#7A7D75] dark:text-stone-400 text-[11px]">
-              Pick files and documents directly from your Google Drive.
+              {language === "ar" ? "اختيار الملفات والمستندات مباشرة من Google Drive." : "Pick files and documents directly from your Google Drive."}
             </p>
             <button
               type="button"
@@ -463,7 +463,7 @@ export const SettingsView: React.FC = () => {
                   alert(e?.message || "Failed to connect Google Drive");
                 }
               }}
-              className="w-full py-2 px-3 rounded-lg bg-[#3E4D3E] hover:bg-[#2D382D] text-white font-semibold cursor-pointer text-center"
+              className="ir-button ir-button-primary w-full py-2 px-3 text-xs cursor-pointer text-center"
             >
               {googleTokens.picker ? (language === "ar" ? "إعادة ربط Drive" : "Reconnect Drive") : (language === "ar" ? "ربط Drive" : "Connect Drive")}
             </button>
@@ -472,13 +472,13 @@ export const SettingsView: React.FC = () => {
       </div>
 
       {/* Legal & Public Links Section */}
-      <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#D9E3D9] dark:border-[#294535] shadow-soft space-y-4 text-xs">
+      <div className="p-6 rounded-2xl ir-surface space-y-4 text-xs">
         <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
           <Settings className="w-5 h-5 text-[#8B5A2B]" />
           <span>{language === "ar" ? "الخصوصية والروابط القانونية" : "Legal & Privacy Links"}</span>
         </h3>
         <p className="text-[#7A7D75] dark:text-stone-400">
-          Public compliance links for Google Cloud Console and OAuth User Data verification.
+          {language === "ar" ? "روابط الامتثال العامة لوحدة تحكم Google Cloud والتحقق من بيانات OAuth." : "Public compliance links for Google Cloud Console and OAuth User Data verification."}
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -486,17 +486,17 @@ export const SettingsView: React.FC = () => {
             href="/privacy"
             target="_blank"
             rel="noreferrer"
-            className="px-4 py-2.5 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] font-bold text-[#3E4D3E] dark:text-[#8BA888] hover:bg-[#E8E5DB] dark:hover:bg-[#2A352A] transition-all"
+            className="ir-button ir-button-secondary px-4 py-2.5 text-xs"
           >
-            View Privacy Policy
+            {language === "ar" ? "عرض سياسة الخصوصية" : "View Privacy Policy"}
           </a>
           <a
             href="/terms"
             target="_blank"
             rel="noreferrer"
-            className="px-4 py-2.5 rounded-lg bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] font-bold text-[#3E4D3E] dark:text-[#8BA888] hover:bg-[#E8E5DB] dark:hover:bg-[#2A352A] transition-all"
+            className="ir-button ir-button-secondary px-4 py-2.5 text-xs"
           >
-            View Terms of Service
+            {language === "ar" ? "عرض شروط الخدمة" : "View Terms of Service"}
           </a>
         </div>
       </div>

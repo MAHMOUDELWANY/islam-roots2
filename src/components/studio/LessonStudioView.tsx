@@ -635,7 +635,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                   <h3 className="text-lg font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2]">
                     {topic}
                   </h3>
-                  <p className="text-xs italic text-[#7A7D75]">Goal: {generatedPlan.lessonGoal}</p>
+                  <p className="text-xs text-[#7A7D75]">Goal: {generatedPlan.lessonGoal}</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">

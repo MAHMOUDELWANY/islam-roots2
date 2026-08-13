@@ -537,7 +537,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
                         <span>{formatDate(startTimeStr)} • {formatTime(startTimeStr)}</span>
                       </div>
                       {evt.description && (
-                        <p className="text-xs text-[#7A7D75] dark:text-stone-400 line-clamp-2 mt-2 italic bg-[#FCFAF5] dark:bg-[#161D17] p-2 rounded-lg">
+                        <p className="text-xs text-[#7A7D75] dark:text-stone-400 line-clamp-2 mt-2 bg-[#FCFAF5] dark:bg-[#161D17] p-2 rounded-lg">
                           {evt.description}
                         </p>
                       )}
@@ -587,7 +587,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
             return (
               <div
                 key={entry.id}
-                className="bg-white dark:bg-[#1C221C] p-5 rounded-2xl border border-[#E8E5DB] dark:border-[#2A352A] shadow-xs flex flex-col justify-between space-y-4 hover:border-[#5A6B5A]/50 transition-all group"
+                className="ir-surface ir-card-interactive p-5 flex flex-col justify-between space-y-4 group"
               >
                 <div>
                   {/* Top Badge Bar */}
@@ -632,7 +632,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
                   </div>
 
                   {entry.notes && (
-                    <p className="text-xs text-[#7A7D75] dark:text-stone-400 italic mt-3 bg-[#F2EFE6]/50 dark:bg-[#232B23]/50 p-2 rounded-lg">
+                    <p className="text-xs text-[#7A7D75] dark:text-stone-400 mt-3 bg-[#F2EFE6]/50 dark:bg-[#232B23]/50 p-2 rounded-lg">
                       "{entry.notes}"
                     </p>
                   )}

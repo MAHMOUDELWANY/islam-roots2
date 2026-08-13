@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { BrandLogo } from "../common/BrandLogo";
+import { MotionReveal } from "../common/MotionReveal";
 import {
   Sparkles,
   BookOpen,
@@ -33,6 +34,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
   const isRTL = language === "ar";
 
   const [activeTab, setActiveTab] = useState<"dashboard" | "aiStudio" | "detective" | "memory">("dashboard");
+  const [hasScrolled, setHasScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setHasScrolled(window.scrollY > 16);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleQuickGuest = () => {
     loginAsGuest(isRTL ? "أستاذ محمود" : "Ustadh Mahmoud");
@@ -40,9 +49,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
   };
 
   return (
-    <div className="min-h-screen bg-[#FCFAF5] dark:bg-[#121812] text-[#1F261F] dark:text-[#E2E8E2] selection:bg-[#8BA888] selection:text-white font-sans transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--brand-surface)] dark:bg-[#121812] text-[var(--brand-ink)] dark:text-[#E2E8E2] selection:bg-[#8BA888] selection:text-white font-sans transition-colors duration-300">
       {/* TOP NAVIGATION BAR */}
-      <nav className="sticky top-0 z-40 w-full bg-[#FCFAF5]/90 dark:bg-[#121812]/90 backdrop-blur-md border-b border-[#E8E5DB] dark:border-[#2A352A] px-4 sm:px-8 py-3.5">
+      <nav className={`sticky top-0 z-40 w-full backdrop-blur-xl border-b px-4 sm:px-8 transition-all duration-300 ${hasScrolled ? "bg-[#FCFAF5] dark:bg-[#121812]/95 border-[var(--brand-line)] shadow-[0_10px_30px_-24px_rgba(42,53,42,0.7)] py-2.5" : "bg-[#FCFAF5]/92 dark:bg-[#121812]/88 border-[var(--brand-line)]/80 py-3.5"}`}>
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Brand Logo beside Brand Name */}
           <div className="flex items-center gap-3">
@@ -51,16 +60,16 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
 
           {/* Center Navigation Links (Desktop) */}
           <div className="hidden md:flex items-center gap-6 text-xs font-semibold text-[#3E4D3E] dark:text-stone-300">
-            <a href="#about" className="hover:text-[#8BA888] transition-colors">
+              <a href="#about" className="text-[var(--brand-muted)] hover:text-[var(--brand-olive)] transition-colors">
               {isRTL ? "عن المنصة" : "About"}
             </a>
-            <a href="#who-its-for" className="hover:text-[#8BA888] transition-colors">
+              <a href="#who-its-for" className="text-[var(--brand-muted)] hover:text-[var(--brand-olive)] transition-colors">
               {isRTL ? "من المعني؟" : "Who It's For"}
             </a>
-            <a href="#features" className="hover:text-[#8BA888] transition-colors">
+              <a href="#features" className="text-[var(--brand-muted)] hover:text-[var(--brand-olive)] transition-colors">
               {isRTL ? "المزايا والأدوات" : "Features"}
             </a>
-            <a href="#preview" className="hover:text-[#8BA888] transition-colors">
+              <a href="#preview" className="text-[var(--brand-muted)] hover:text-[var(--brand-olive)] transition-colors">
               {isRTL ? "معاينة المنصة" : "App Preview"}
             </a>
           </div>
@@ -94,7 +103,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             {/* Dark Mode Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg bg-[#E8E5DB]/70 dark:bg-[#232B23] border border-[#D4D1C5]/60 dark:border-[#2A352A] text-[#3E4D3E] dark:text-stone-200 hover:bg-[#E8E5DB] transition-all cursor-pointer"
+              className="ir-icon-button bg-[var(--brand-ivory)]/80 dark:bg-[#232B23] border border-[var(--brand-line)] text-[var(--brand-olive)] dark:text-stone-200 hover:bg-[var(--brand-line)] cursor-pointer"
               title="Toggle Theme"
             >
               {theme === "dark" ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-[#3E4D3E]" />}
@@ -103,7 +112,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             {/* Guest Quick Enter */}
             <button
               onClick={handleQuickGuest}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#E8E5DB] dark:bg-[#232B23] hover:bg-[#D4D1C5] dark:hover:bg-[#2A352A] text-[#3E4D3E] dark:text-stone-200 text-xs font-semibold border border-[#D4D1C5] dark:border-[#2A352A] transition-all cursor-pointer"
+              className="ir-button ir-button-secondary hidden sm:flex items-center gap-1.5 px-3.5 py-2 text-xs cursor-pointer"
             >
               <span>{isRTL ? "دخول سريع كزائر" : "Guest Mode"}</span>
             </button>
@@ -111,7 +120,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             {/* PROMINENT SIGN IN BUTTON */}
             <button
               onClick={onOpenAuth}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#3E4D3E] hover:bg-[#2A352A] text-white text-xs sm:text-sm font-semibold shadow-soft hover:shadow-md transition-all active:scale-95 cursor-pointer border border-[#5A6B5A]"
+              className="ir-button ir-button-primary flex items-center gap-2 px-4 py-2 text-xs sm:text-sm cursor-pointer"
             >
               <LogIn className="w-4 h-4" />
               <span>{isRTL ? "تسجيل الدخول" : "Sign In"}</span>
@@ -123,8 +132,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
       {/* HERO SECTION */}
       <section className="relative overflow-hidden pt-12 pb-20 sm:pt-16 sm:pb-28 px-4 sm:px-8">
         {/* Subtle Background Glows */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-emerald-500/10 dark:bg-emerald-900/15 blur-3xl rounded-full pointer-events-none" />
-        <div className="absolute top-1/3 right-10 w-72 h-72 bg-amber-500/10 dark:bg-amber-900/10 blur-3xl rounded-full pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-[#5A6B5A]/10 dark:bg-[#8BA888]/8 blur-3xl rounded-full pointer-events-none" />
+        <div className="absolute top-1/3 right-10 w-72 h-72 bg-[#8B5A2B]/8 dark:bg-[#8B5A2B]/10 blur-3xl rounded-full pointer-events-none" />
 
         <div className="max-w-6xl mx-auto relative z-10 text-center space-y-8">
           {/* Badge */}
@@ -132,7 +141,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             initial={{ opacity: 0, y: -15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#3E4D3E]/10 dark:bg-[#8BA888]/15 border border-[#3E4D3E]/20 dark:border-[#8BA888]/30 text-[#3E4D3E] dark:text-[#8BA888] text-xs font-bold tracking-wide shadow-xs"
+            className="ir-badge inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--brand-olive)]/10 dark:bg-[#8BA888]/15 border border-[var(--brand-olive)]/20 dark:border-[#8BA888]/30 text-[var(--brand-olive)] dark:text-[#8BA888] text-xs font-bold tracking-wide shadow-xs"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#8B5A2B] dark:text-[#C49A6C] animate-pulse" />
             <span>
@@ -151,11 +160,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
           >
             {isRTL ? (
               <>
-                ارتقِ برحلتك التعليمية في تدريس <span className="text-[#3E4D3E] dark:text-[#8BA888] italic">القرآن والعلوم الشرعية</span>
+                ارتقِ برحلتك التعليمية في تدريس <span className="text-[var(--brand-olive)] dark:text-[#8BA888]">القرآن والعلوم الشرعية</span>
               </>
             ) : (
               <>
-                Elevate Your <span className="text-[#3E4D3E] dark:text-[#8BA888] italic">Quran & Islamic Teaching</span> Experience
+                Elevate Your <span className="text-[var(--brand-olive)] dark:text-[#8BA888]">Quran & Islamic Teaching</span> Experience
               </>
             )}
           </motion.h1>
@@ -181,7 +190,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
           >
             <button
               onClick={onOpenAuth}
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#3E4D3E] hover:bg-[#2A352A] text-white font-bold text-sm sm:text-base shadow-soft hover:shadow-lg transition-all active:scale-98 cursor-pointer flex items-center justify-center gap-3 border border-[#5A6B5A]"
+              className="ir-button ir-button-primary w-full sm:w-auto px-8 py-4 text-sm sm:text-base cursor-pointer flex items-center justify-center gap-3"
             >
               <LogIn className="w-5 h-5" />
               <span>{isRTL ? "ابدأ التدريس مجاناً الان" : "Get Started Free"}</span>
@@ -190,7 +199,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
 
             <button
               onClick={handleQuickGuest}
-              className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-white dark:bg-[#161D17] hover:bg-[#F2EFE6] dark:hover:bg-[#232B23] text-[#3E4D3E] dark:text-stone-200 font-semibold text-sm sm:text-base border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft transition-all cursor-pointer flex items-center justify-center gap-2.5"
+              className="ir-button ir-button-secondary w-full sm:w-auto px-7 py-4 text-sm sm:text-base cursor-pointer flex items-center justify-center gap-2.5"
             >
               <Sparkles className="w-4 h-4 text-[#8B5A2B] dark:text-[#C49A6C]" />
               <span>{isRTL ? "تجربة فورية كمعلم زائر" : "Try Guest Ustadh Demo"}</span>
@@ -223,7 +232,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="mt-8 text-left p-6 sm:p-8 rounded-3xl bg-white/90 dark:bg-[#161D17]/90 backdrop-blur-md border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft max-w-4xl mx-auto space-y-4"
+            className="ir-surface mt-8 text-left p-6 sm:p-8 bg-white/90 dark:bg-[#161D17]/90 backdrop-blur-md max-w-4xl mx-auto space-y-4"
           >
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8E5DB] dark:border-[#2A352A] pb-3">
               <div className="flex items-center gap-2">
@@ -243,7 +252,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
                   }}
                   className="text-[#3E4D3E] dark:text-[#8BA888] underline hover:text-[#2A352A] font-semibold cursor-pointer"
                 >
-                  Privacy Policy
+                  {isRTL ? "سياسة الخصوصية" : "Privacy Policy"}
                 </a>
                 <span>•</span>
                 <a
@@ -256,33 +265,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
                   }}
                   className="text-[#3E4D3E] dark:text-[#8BA888] underline hover:text-[#2A352A] font-semibold cursor-pointer"
                 >
-                  Terms of Service
+                  {isRTL ? "شروط الخدمة" : "Terms of Service"}
                 </a>
               </div>
             </div>
 
             <p className="text-xs sm:text-sm text-[#3E4D3E] dark:text-stone-300 leading-relaxed font-sans">
-              <strong>Application Purpose:</strong> Islam Roots Workspace is an all-in-one educational platform designed for Quran teachers, Tajweed scholars, Hifz academies, and Islamic studies educators. The application enables teachers to manage student progress records, create structured curriculums, generate AI-assisted lesson plans, and streamline educational administration.
+              {isRTL ? <><strong>هدف التطبيق:</strong> مساحة عمل إسلام روتس منصة تعليمية متكاملة لمعلمي القرآن والتجويد وحلقات التحفيظ ومدرّسي العلوم الشرعية. تساعدك على إدارة سجلات الطلاب، وبناء المناهج، وإعداد خطط الدروس المدعومة بالذكاء الاصطناعي، وتنظيم أعمالك التعليمية.</> : <><strong>Application Purpose:</strong> Islam Roots Workspace is an all-in-one educational platform designed for Quran teachers, Tajweed scholars, Hifz academies, and Islamic studies educators. The application enables teachers to manage student progress records, create structured curriculums, generate AI-assisted lesson plans, and streamline educational administration.</>}
             </p>
 
             <div className="space-y-1.5 text-xs text-[#5A615A] dark:text-stone-400 font-sans">
-              <p className="font-semibold text-[#1F261F] dark:text-[#E2E8E2]">Google Workspace API Integrations:</p>
+              <p className="font-semibold text-[#1F261F] dark:text-[#E2E8E2]">{isRTL ? "تكاملات Google Workspace:" : "Google Workspace API Integrations:"}</p>
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                 <li className="flex items-start gap-1.5 p-2.5 rounded-xl bg-[#FCFAF5] dark:bg-[#1C251D] border border-[#E8E5DB]/70 dark:border-[#2A352A]">
                   <CheckCircle2 className="w-4 h-4 text-[#8BA888] shrink-0 mt-0.5" />
-                  <span><strong>Google Calendar:</strong> Sync class schedules and Hifz revision sessions directly to teacher calendars.</span>
+                  <span><strong>Google Calendar:</strong> {isRTL ? "مزامنة جداول الحصص والمراجعة مع تقويم المعلم." : "Sync class schedules and Hifz revision sessions directly to teacher calendars."}</span>
                 </li>
                 <li className="flex items-start gap-1.5 p-2.5 rounded-xl bg-[#FCFAF5] dark:bg-[#1C251D] border border-[#E8E5DB]/70 dark:border-[#2A352A]">
                   <CheckCircle2 className="w-4 h-4 text-[#8BA888] shrink-0 mt-0.5" />
-                  <span><strong>Google Docs & Slides:</strong> Export generated Tajweed lesson plans and study presentations to Google Drive.</span>
+                  <span><strong>Google Docs & Slides:</strong> {isRTL ? "تصدير خطط التجويد والعروض التعليمية إلى Google Drive." : "Export generated Tajweed lesson plans and study presentations to Google Drive."}</span>
                 </li>
                 <li className="flex items-start gap-1.5 p-2.5 rounded-xl bg-[#FCFAF5] dark:bg-[#1C251D] border border-[#E8E5DB]/70 dark:border-[#2A352A]">
                   <CheckCircle2 className="w-4 h-4 text-[#8BA888] shrink-0 mt-0.5" />
-                  <span><strong>Google Tasks:</strong> Create and track teacher preparation tasks and student assignment reminders.</span>
+                  <span><strong>Google Tasks:</strong> {isRTL ? "إنشاء مهام التحضير وتذكيرات الواجبات ومتابعتها." : "Create and track teacher preparation tasks and student assignment reminders."}</span>
                 </li>
                 <li className="flex items-start gap-1.5 p-2.5 rounded-xl bg-[#FCFAF5] dark:bg-[#1C251D] border border-[#E8E5DB]/70 dark:border-[#2A352A]">
                   <CheckCircle2 className="w-4 h-4 text-[#8BA888] shrink-0 mt-0.5" />
-                  <span><strong>Gmail & Forms:</strong> Send student progress reports to parents and distribute Tajweed assessment quizzes.</span>
+                  <span><strong>Gmail & Forms:</strong> {isRTL ? "إرسال تقارير تقدم الطلاب وتوزيع اختبارات التجويد." : "Send student progress reports to parents and distribute Tajweed assessment quizzes."}</span>
                 </li>
               </ul>
             </div>
@@ -295,7 +304,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             transition={{ duration: 0.8, delay: 0.4 }}
             className="pt-8 max-w-5xl mx-auto"
           >
-            <div className="p-3 sm:p-5 rounded-3xl bg-white/80 dark:bg-[#161D17]/80 backdrop-blur-xl border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4">
+            <div className="ir-surface p-3 sm:p-5 bg-white/80 dark:bg-[#161D17]/80 backdrop-blur-xl space-y-4">
               {/* Simulated App Top Bar */}
               <div className="flex items-center justify-between pb-3 border-b border-[#E8E5DB] dark:border-[#2A352A]">
                 <div className="flex items-center gap-2">
@@ -324,7 +333,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
                   <p className="text-xs font-semibold text-[#1F261F] dark:text-[#E2E8E2]">
                     {isRTL ? "توليد خطة درس التجويد (أحكام النون الساكنة)" : "Generate Tajweed Lesson: Rules of Noon Sakinah"}
                   </p>
-                  <p className="text-[11px] text-[#7A7D75] dark:text-stone-400 italic">
+                  <p className="text-[11px] text-[#7A7D75] dark:text-stone-400">
                     « Done! Generated 4 key rules, 6 practice questions, and non-native pronunciation tips. »
                   </p>
                 </div>
@@ -376,7 +385,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
 
       {/* SECTION 1: WHOM THIS WEBSITE IS MADE FOR */}
       <section id="who-its-for" className="py-16 sm:py-24 bg-[#F2EFE6]/60 dark:bg-[#161D17]/50 border-y border-[#E8E5DB] dark:border-[#2A352A] px-4 sm:px-8">
-        <div className="max-w-6xl mx-auto space-y-12">
+        <MotionReveal className="max-w-6xl mx-auto space-y-12">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-widest text-[#8B5A2B] dark:text-[#C49A6C]">
               {isRTL ? "الفئات المستهدفة" : "Target Educators"}
@@ -393,7 +402,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
             {/* Target 1 */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 hover:border-[#5A6B5A] transition-all group">
+            <div className="ir-surface ir-card-interactive p-6 sm:p-8 space-y-4 group">
               <div className="w-12 h-12 rounded-xl bg-[#5A6B5A]/10 text-[#5A6B5A] dark:text-[#8BA888] flex items-center justify-center group-hover:scale-110 transition-transform">
                 <BookOpen className="w-6 h-6" />
               </div>
@@ -408,7 +417,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             </div>
 
             {/* Target 2 */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 hover:border-[#5A6B5A] transition-all group">
+            <div className="ir-surface ir-card-interactive p-6 sm:p-8 space-y-4 group">
               <div className="w-12 h-12 rounded-xl bg-[#8B5A2B]/10 text-[#8B5A2B] dark:text-[#C49A6C] flex items-center justify-center group-hover:scale-110 transition-transform">
                 <GraduationCap className="w-6 h-6" />
               </div>
@@ -423,7 +432,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             </div>
 
             {/* Target 3 */}
-            <div className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 hover:border-[#5A6B5A] transition-all group">
+            <div className="ir-surface ir-card-interactive p-6 sm:p-8 space-y-4 group">
               <div className="w-12 h-12 rounded-xl bg-[#5A6B5A]/10 text-[#5A6B5A] dark:text-[#8BA888] flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Users className="w-6 h-6" />
               </div>
@@ -437,12 +446,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
               </p>
             </div>
           </div>
-        </div>
+        </MotionReveal>
       </section>
 
       {/* SECTION 2: WHAT IT HELPS YOU IN (CORE FEATURES) */}
       <section id="features" className="py-16 sm:py-24 px-4 sm:px-8">
-        <div className="max-w-6xl mx-auto space-y-12">
+        <MotionReveal className="max-w-6xl mx-auto space-y-12">
           <div className="text-center space-y-3 max-w-2xl mx-auto">
             <span className="text-xs font-bold uppercase tracking-widest text-[#5A6B5A] dark:text-[#8BA888]">
               {isRTL ? "الأدوات والمميزات" : "Core Capabilities"}
@@ -459,7 +468,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Feature 1 */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-3">
+            <div className="ir-surface ir-card-interactive p-6 space-y-3">
               <div className="p-3 rounded-xl bg-[#8B5A2B]/10 text-[#8B5A2B] dark:text-[#C49A6C] w-fit">
                 <Sparkles className="w-5 h-5" />
               </div>
@@ -474,7 +483,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             </div>
 
             {/* Feature 2 */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-3">
+            <div className="ir-surface ir-card-interactive p-6 space-y-3">
               <div className="p-3 rounded-xl bg-[#5A6B5A]/10 text-[#5A6B5A] dark:text-[#8BA888] w-fit">
                 <Search className="w-5 h-5" />
               </div>
@@ -489,7 +498,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             </div>
 
             {/* Feature 3 */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-3">
+            <div className="ir-surface ir-card-interactive p-6 space-y-3">
               <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-fit">
                 <TrendingUp className="w-5 h-5" />
               </div>
@@ -504,7 +513,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             </div>
 
             {/* Feature 4 */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-3">
+            <div className="ir-surface ir-card-interactive p-6 space-y-3">
               <div className="p-3 rounded-xl bg-[#5A6B5A]/10 text-[#5A6B5A] dark:text-[#8BA888] w-fit">
                 <BookOpen className="w-5 h-5" />
               </div>
@@ -519,7 +528,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             </div>
 
             {/* Feature 5 */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-3">
+            <div className="ir-surface ir-card-interactive p-6 space-y-3">
               <div className="p-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 w-fit">
                 <Calendar className="w-5 h-5" />
               </div>
@@ -534,7 +543,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             </div>
 
             {/* Feature 6 */}
-            <div className="p-6 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-3">
+            <div className="ir-surface ir-card-interactive p-6 space-y-3">
               <div className="p-3 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 w-fit">
                 <ShieldCheck className="w-5 h-5" />
               </div>
@@ -548,12 +557,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
               </p>
             </div>
           </div>
-        </div>
+        </MotionReveal>
       </section>
 
       {/* SECTION 3: INTERACTIVE FEATURE PREVIEW TAB SWITCHER */}
       <section id="preview" className="py-16 sm:py-24 bg-[#F2EFE6]/60 dark:bg-[#161D17]/50 border-t border-[#E8E5DB] dark:border-[#2A352A] px-4 sm:px-8">
-        <div className="max-w-5xl mx-auto space-y-8">
+        <MotionReveal className="max-w-5xl mx-auto space-y-8">
           <div className="text-center space-y-3">
             <span className="text-xs font-bold uppercase tracking-widest text-[#8B5A2B] dark:text-[#C49A6C]">
               {isRTL ? "نظرة داخل المنصة" : "Live Feature Preview"}
@@ -564,13 +573,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
           </div>
 
           {/* Tabs Selector */}
-          <div className="flex items-center justify-center gap-2 p-1.5 rounded-2xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft overflow-x-auto max-w-2xl mx-auto">
+          <div className="ir-surface flex items-center justify-center gap-2 p-1.5 overflow-x-auto max-w-2xl mx-auto">
             <button
               onClick={() => setActiveTab("dashboard")}
               className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 activeTab === "dashboard"
-                  ? "bg-[#3E4D3E] text-white shadow-xs"
-                  : "text-[#7A7D75] hover:text-[#1F261F] dark:hover:text-[#E2E8E2]"
+                  ? "bg-[var(--brand-olive)] text-white shadow-xs"
+                  : "text-[#7A7D75] hover:text-[var(--brand-olive)] dark:hover:text-[#E2E8E2]"
               }`}
             >
               {isRTL ? "لوحة التحكم" : "Dashboard"}
@@ -580,8 +589,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
               onClick={() => setActiveTab("aiStudio")}
               className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 activeTab === "aiStudio"
-                  ? "bg-[#3E4D3E] text-white shadow-xs"
-                  : "text-[#7A7D75] hover:text-[#1F261F] dark:hover:text-[#E2E8E2]"
+                  ? "bg-[var(--brand-olive)] text-white shadow-xs"
+                  : "text-[#7A7D75] hover:text-[var(--brand-olive)] dark:hover:text-[#E2E8E2]"
               }`}
             >
               {isRTL ? "استوديو جليلة AI" : "Jalilah AI"}
@@ -591,8 +600,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
               onClick={() => setActiveTab("detective")}
               className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 activeTab === "detective"
-                  ? "bg-[#3E4D3E] text-white shadow-xs"
-                  : "text-[#7A7D75] hover:text-[#1F261F] dark:hover:text-[#E2E8E2]"
+                  ? "bg-[var(--brand-olive)] text-white shadow-xs"
+                  : "text-[#7A7D75] hover:text-[var(--brand-olive)] dark:hover:text-[#E2E8E2]"
               }`}
             >
               {isRTL ? "مكتشف الحفظ" : "Memory Detective"}
@@ -602,8 +611,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
               onClick={() => setActiveTab("memory")}
               className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 activeTab === "memory"
-                  ? "bg-[#3E4D3E] text-white shadow-xs"
-                  : "text-[#7A7D75] hover:text-[#1F261F] dark:hover:text-[#E2E8E2]"
+                  ? "bg-[var(--brand-olive)] text-white shadow-xs"
+                  : "text-[#7A7D75] hover:text-[var(--brand-olive)] dark:hover:text-[#E2E8E2]"
               }`}
             >
               {isRTL ? "خريطة الذاكرة" : "Progress Map"}
@@ -611,7 +620,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
           </div>
 
           {/* Tab Display Area */}
-          <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft min-h-[280px] flex items-center justify-center">
+          <div className="ir-surface p-6 sm:p-8 min-h-[280px] flex items-center justify-center">
             <AnimatePresence mode="wait">
               {activeTab === "dashboard" && (
                 <motion.div
@@ -665,7 +674,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
                     <p className="text-xs font-bold text-[#3E4D3E] dark:text-[#8BA888]">
                       Generated Warm-up for Tajweed Lesson:
                     </p>
-                    <p className="text-xs text-[#2D332D] dark:text-stone-300 italic">
+                    <p className="text-xs text-[#2D332D] dark:text-stone-300">
                       « Today we explore the rules of Izhar Halqi. Remember to clarify the throat letters: (ء، هـ، ع، ح، غ، خ) with clear pronunciation without nasalization (Ghunnah). »
                     </p>
                   </div>
@@ -733,12 +742,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
               )}
             </AnimatePresence>
           </div>
-        </div>
+        </MotionReveal>
       </section>
 
       {/* FINAL CALL TO ACTION */}
       <section className="py-16 sm:py-24 px-4 sm:px-8">
-        <div className="max-w-4xl mx-auto rounded-3xl bg-gradient-to-r from-[#2A352A] via-[#1F261F] to-[#161D17] text-white p-8 sm:p-12 text-center space-y-6 shadow-2xl border border-[#3E4D3E] relative overflow-hidden">
+        <MotionReveal className="max-w-4xl mx-auto">
+        <div className="rounded-3xl bg-[var(--brand-olive-deep)] text-white p-8 sm:p-12 text-center space-y-6 shadow-2xl border border-[var(--brand-olive)] relative overflow-hidden">
           <div className="absolute -top-12 -right-12 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
           <BrandLogo size="lg" showSubtitle={true} className="justify-center" />
@@ -770,6 +780,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenAuth, onEnterAsG
             </button>
           </div>
         </div>
+        </MotionReveal>
       </section>
 
       {/* FOOTER */}

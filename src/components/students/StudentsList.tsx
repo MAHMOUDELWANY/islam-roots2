@@ -55,7 +55,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] italic flex items-center gap-2.5">
+          <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2.5">
             <Users className="w-6 h-6 text-[#5A6B5A] dark:text-[#8BA888]" />
             <span>{t("students")}</span>
             <span className="px-2.5 py-0.5 rounded bg-[#E8E5DB] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] text-xs font-bold not-italic">
@@ -69,7 +69,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
 
         <button
           onClick={onOpenAddStudent}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer"
+          className="ir-button ir-button-primary flex items-center justify-center gap-2 px-4 py-2.5 text-xs cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>{t("addStudent")}</span>
@@ -77,7 +77,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="p-4 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="ir-surface p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Search */}
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3.5 rtl:right-3.5 rtl:left-auto top-3 text-[#7A7D75]" />
@@ -86,7 +86,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t("search")}
-            className="w-full pl-10 rtl:pr-10 rtl:pl-3.5 pr-3.5 py-2 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs focus:outline-hidden focus:border-[#5A6B5A]"
+            className="ir-input w-full pl-10 rtl:pr-10 rtl:pl-3.5 pr-3.5 py-2 text-xs focus:outline-none"
           />
         </div>
 
@@ -94,7 +94,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
         <select
           value={subjectFilter}
           onChange={(e) => setSubjectFilter(e.target.value)}
-          className="w-full px-3.5 py-2 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs focus:outline-hidden focus:border-[#5A6B5A]"
+          className="ir-input w-full px-3.5 py-2 text-xs focus:outline-none"
         >
           <option value="all">{t("allSubjects")}</option>
           <option value="Quran">Quran</option>
@@ -107,7 +107,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
         <select
           value={levelFilter}
           onChange={(e) => setLevelFilter(e.target.value)}
-          className="w-full px-3.5 py-2 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs focus:outline-hidden focus:border-[#5A6B5A]"
+          className="ir-input w-full px-3.5 py-2 text-xs focus:outline-none"
         >
           <option value="all">{t("allLevels")}</option>
           <option value="Beginner">Beginner</option>
@@ -118,7 +118,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
 
       {/* Student Cards Grid */}
       {filteredStudents.length === 0 ? (
-        <div className="p-12 text-center rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
+        <div className="ir-surface p-12 text-center space-y-3">
           <Users className="w-12 h-12 text-[#7A7D75] mx-auto" />
           <h3 className="font-serif font-bold text-base text-[#1F261F] dark:text-[#E2E8E2]">
             No students found
@@ -143,7 +143,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
             return (
               <div
                 key={student.id}
-                className="p-5 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft hover:border-[#5A6B5A] transition-all flex flex-col justify-between gap-4"
+                className="ir-surface ir-card-interactive p-5 flex flex-col justify-between gap-4"
               >
                 {/* Header */}
                 <div className="space-y-3">
@@ -240,7 +240,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
 
                     <button
                       onClick={() => onSelectProfile(student.id)}
-                      className="px-3 py-1.5 rounded-lg bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1"
+                      className="ir-button ir-button-primary px-3 py-1.5 text-xs cursor-pointer flex items-center gap-1"
                     >
                       <span>{t("viewProfile")}</span>
                       <ArrowRight className={`w-3.5 h-3.5 ${isRTL ? "rotate-180" : ""}`} />
