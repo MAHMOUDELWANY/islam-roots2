@@ -33,6 +33,7 @@ export interface LessonPlanInput {
   language: AllowedLanguage;
   learningGoal: string;
   customInstructions: string;
+  learningGoals: string[];
   studentProfile: RecordValue;
   learningHistory: RecordValue;
   curriculumContext: RecordValue | null;
@@ -108,6 +109,17 @@ function requiredString(
     return { ok: false, error: `${fieldName} is invalid.` };
   }
 
+  return { ok: true, value: normalized };
+}
+
+function requiredStringArray(value: unknown, fieldName: string, maxItems = 10, maxLength = MAX_INSTRUCTION_LENGTH): ValidationResult<string[]> {
+  if (!Array.isArray(value) || value.length === 0 || value.length > maxItems) {
+    return { ok: false, error: `${fieldName} is required.` };
+  }
+  const normalized = value.map((item) => typeof item === "string" ? item.trim() : "").filter(Boolean);
+  if (normalized.length !== value.length || normalized.some((item) => item.length > maxLength)) {
+    return { ok: false, error: `${fieldName} is invalid.` };
+  }
   return { ok: true, value: normalized };
 }
 
@@ -215,6 +227,7 @@ function buildLessonPlanInput(body: unknown): ValidationResult<LessonPlanInput> 
   const duration = boundedInteger(body.duration, 45, "duration", 5, 240);
   const teachingStyle = allowedValue(body.teachingStyle, "Interactive", "teachingStyle", TEACHING_STYLES);
   const language = allowedValue(body.language, "en", "language", LANGUAGES);
+  const learningGoals = requiredStringArray(body.learningGoals, "learningGoals");
   const learningGoal = optionalString(body.learningGoal, "", "learningGoal", MAX_INSTRUCTION_LENGTH);
   const customInstructions = optionalString(body.customInstructions, "", "customInstructions", MAX_INSTRUCTION_LENGTH);
   const studentProfile = validateStudentProfile(body.studentProfile);
@@ -223,7 +236,7 @@ function buildLessonPlanInput(body: unknown): ValidationResult<LessonPlanInput> 
     : { ok: false as const, error: "learningHistory is invalid." };
   const curriculumContext = validateCurriculumContext(body.curriculumContext);
 
-  const values = [subject, topic, studentId, curriculumId, studentName, studentAge, studentLevel, duration, teachingStyle, language, learningGoal, customInstructions, studentProfile, learningHistory, curriculumContext];
+  const values = [subject, topic, studentId, curriculumId, studentName, studentAge, studentLevel, duration, teachingStyle, language, learningGoals, learningGoal, customInstructions, studentProfile, learningHistory, curriculumContext];
   const failure = values.find((result): result is ValidationFailure => "error" in result);
   if (failure) {
     return failure;
@@ -244,6 +257,7 @@ function buildLessonPlanInput(body: unknown): ValidationResult<LessonPlanInput> 
       language: valueOf(language),
       learningGoal: valueOf(learningGoal),
       customInstructions: valueOf(customInstructions),
+      learningGoals: valueOf(learningGoals),
       studentProfile: valueOf(studentProfile),
       learningHistory: valueOf(learningHistory),
       curriculumContext: valueOf(curriculumContext),

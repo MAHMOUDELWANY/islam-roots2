@@ -286,6 +286,10 @@ const AppContent: React.FC = () => {
 
               {currentSection === "lessonStudio" && (
                 <LessonStudioView
+                  onOpenAddStudent={() => {
+                    setEditingStudent(null);
+                    setIsAddStudentOpen(true);
+                  }}
                   onOpenQuizModal={(type, title, subject) => {
                     setQuizModalType(type);
                     setQuizModalTitle(title);

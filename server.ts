@@ -33,13 +33,23 @@ console.info("[AI_CONFIG] Gemini lesson model selected.", {
 });
 
 async function generateWithTimeout(ai: GoogleGenAI, options: GenerateContentParameters) {
+  const controller = new AbortController();
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error("VERCEL_TIMEOUT")), AI_TIMEOUT_MS);
+    timeoutId = setTimeout(() => {
+      controller.abort();
+      reject(new Error("VERCEL_TIMEOUT"));
+    }, AI_TIMEOUT_MS);
   });
-
+  const request = ai.models.generateContent({
+    ...options,
+    config: {
+      ...(options.config || {}),
+      abortSignal: controller.signal,
+    },
+  });
   try {
-    return await Promise.race([ai.models.generateContent(options), timeoutPromise]);
+    return await Promise.race([request, timeoutPromise]);
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }
@@ -225,7 +235,7 @@ async function startServer() {
     if ("error" in validation) return sendInvalidRequest(res, validation.error);
 
     try {
-      const { subject, topic, duration, teachingStyle, language, learningGoal, customInstructions, curriculumId } = validation.value;
+      const { subject, topic, duration, teachingStyle, language, learningGoal, learningGoals, customInstructions, curriculumId } = validation.value;
       const userId = (req as any).user?.id;
       if (!userId) return res.status(401).json({ error: "Unauthorized.", category: "AUTH_ERROR" });
 
@@ -333,20 +343,23 @@ Topic: ${topic}
 Student: ${trustedStudent.name} (Age: ${trustedStudent.age}, Level: ${trustedStudent.level})
 Duration: ${duration} minutes
 Teaching style: ${teachingStyle}
-Learning goal: ${learningGoal || "General mastery and understanding"}
+Selected learning goals (high-priority teaching targets): ${learningGoals.join("; ")}
+Learning goal summary: ${learningGoal || learningGoals.join("; ")}
 Student profile (identity/context only): ${JSON.stringify(trustedStudentProfile)}
 Recorded learning history (evidence only; may be empty): ${JSON.stringify(trustedLearningHistory)}
 Curriculum context (if assigned): ${trustedCurriculumContext ? JSON.stringify(trustedCurriculumContext) : "No specific curriculum assigned."}
 Teacher focus (highest-priority constraint): ${customInstructions || "No additional focus provided."}
 
 PEDAGOGICAL RULES
-1. Make Beginner, Intermediate, and Advanced visibly different: Beginner uses simpler language, modeling, scaffolding, examples, controlled practice, and frequent checks; Intermediate uses moderate scaffolding, broader vocabulary, and meaningful independent application; Advanced uses nuance, error analysis, authentic application, higher-order tasks, and independent production.
-2. Treat the teacher focus as a hard priority. Allocate the majority of examples, guided practice, questions, assessment, and homework to that focus. Do not drift into unrelated topics.
-3. Use recorded learning history only when present. Never infer strengths, weaknesses, accuracy, mastery, attendance, or improvement from profile fields. If history is empty, internally state: No prior learning history available.
-4. Scale depth to the requested duration: 30 minutes is compact, 60 minutes is substantially developed, and 90 minutes is an extended session with realistic time allocation.
-5. Include learning objectives, retrieval/warm-up, teaching/presentation, examples, guided practice, a checkpoint, controlled practice, applied or communicative practice, error correction, independent work, assessment, homework, and teacher notes as appropriate to the subject and duration.
-6. For Quranic or Tajweed topics, provide careful explanations and do not fabricate citations or student performance.
-7. Return only the requested JSON structure.`;
+1. Follow this priority order: student level first, selected learning goals second, teacher focus third, subject fourth, topic fifth, real history/progress sixth, and general pedagogy last.
+2. Make Beginner, Intermediate, and Advanced substantively different: Beginner uses modeling, smaller chunks, simpler explanations, more scaffolding, and more guided practice; Intermediate uses less scaffolding, deeper application, and more independent practice; Advanced uses analysis, nuanced application, error diagnosis, challenging tasks, and independent performance.
+3. Treat the selected learning goals as hard requirements. Every major section, example, guided exercise, targeted practice task, and assessment must serve those goals. Do not generate a generic subject lesson.
+4. Treat the teacher focus as a hard priority after the selected goals. Allocate the majority of examples, guided practice, questions, assessment, and homework to that focus. Do not drift into unrelated topics.
+5. Use recorded learning history only when present. Never infer strengths, weaknesses, accuracy, mastery, attendance, or improvement from profile fields. If history is empty, internally state: No prior learning history available.
+6. Scale depth to the requested duration: 30 minutes is compact, 60 minutes is substantially developed, and 90 minutes is an extended session with realistic time allocation.
+7. Include learning objectives, retrieval/warm-up, teaching/presentation, examples, guided practice, a checkpoint, controlled practice, applied or communicative practice, error correction, independent work, assessment, homework, and teacher notes as appropriate to the subject and duration.
+8. For Quranic or Tajweed topics, provide careful explanations and do not fabricate citations or student performance.
+9. Return only the requested JSON structure.`;
 
       console.log("[JAL_GENERATION_AI_REQUEST] Sending request to AI Provider", { model: PRIMARY_GEMINI_MODEL });
       const result = await generateLessonWithRepair(ai, {

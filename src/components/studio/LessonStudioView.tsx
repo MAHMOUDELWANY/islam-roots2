@@ -8,6 +8,7 @@ import { exportLessonToGoogleSlides, createGoogleSlidesPresentation } from "../.
 import { captureAndDownloadScreenshot } from "../../lib/screenshot";
 import { AiClientError, requestAuthenticatedAi } from "../../lib/aiClient";
 import { SubjectType, LevelType, AILessonPlan } from "../../types";
+import { SUBJECTS, getSubjectLabel } from "../../lib/subjects";
 import {
   Sparkles,
   BookOpen,
@@ -29,7 +30,56 @@ import {
 
 interface LessonStudioViewProps {
   onOpenQuizModal: (type: "quiz" | "homework", lessonTitle: string, subject: SubjectType) => void;
+  onOpenAddStudent?: () => void;
 }
+
+type LearningGoalOption = { en: string; ar: string };
+
+const LEARNING_GOALS: Record<SubjectType, LearningGoalOption[]> = {
+  Quran: [
+    { en: "New Memorization", ar: "حفظ جديد" },
+    { en: "Memorization Revision", ar: "مراجعة الحفظ" },
+    { en: "Ayah Continuation & Recall", ar: "متابعة الآيات والاسترجاع" },
+    { en: "Surah Understanding", ar: "فهم السورة" },
+    { en: "Tafsir & Meaning", ar: "التفسير والمعنى" },
+    { en: "Connect Verses & Themes", ar: "ربط الآيات والموضوعات" },
+    { en: "Improve Fluency", ar: "تحسين الطلاقة" },
+    { en: "Prepare for Memorization Test", ar: "الاستعداد لاختبار الحفظ" },
+  ],
+  Tajweed: [
+    { en: "Makharij Practice", ar: "تدريب مخارج الحروف" },
+    { en: "Sifat of Letters", ar: "صفات الحروف" },
+    { en: "Qalqalah", ar: "القلقلة" },
+    { en: "Ghunnah", ar: "الغنة" },
+    { en: "Madd Rules", ar: "أحكام المد" },
+    { en: "Noon Sakinah & Tanween", ar: "النون الساكنة والتنوين" },
+    { en: "Meem Sakinah", ar: "الميم الساكنة" },
+    { en: "Tafkheem & Tarqeeq", ar: "التفخيم والترقيق" },
+    { en: "Practical Recitation Correction", ar: "تصحيح التلاوة العملي" },
+  ],
+  "Islamic Studies": [
+    { en: "Aqeedah Understanding", ar: "فهم العقيدة" },
+    { en: "Seerah", ar: "السيرة" },
+    { en: "Fiqh", ar: "الفقه" },
+    { en: "Hadith", ar: "الحديث" },
+    { en: "Islamic Manners & Character", ar: "الآداب والأخلاق الإسلامية" },
+    { en: "Understanding Islamic Concepts", ar: "فهم المفاهيم الإسلامية" },
+    { en: "Real-Life Application", ar: "التطبيق في الحياة" },
+    { en: "Critical Thinking & Discussion", ar: "التفكير النقدي والنقاش" },
+  ],
+  Arabic: [
+    { en: "Vocabulary", ar: "المفردات" },
+    { en: "Speaking", ar: "المحادثة" },
+    { en: "Listening", ar: "الاستماع" },
+    { en: "Reading", ar: "القراءة" },
+    { en: "Writing", ar: "الكتابة" },
+    { en: "Grammar", ar: "القواعد" },
+    { en: "Sentence Formation", ar: "تكوين الجمل" },
+    { en: "Conversation Practice", ar: "تدريب المحادثة" },
+    { en: "Pronunciation", ar: "النطق" },
+    { en: "Real-Life Communication", ar: "التواصل في الحياة" },
+  ],
+};
 
 function normalizeSavedLessonPlan(content: unknown): AILessonPlan {
   const value = (content && typeof content === "object" ? content : {}) as Partial<AILessonPlan>;
@@ -46,16 +96,20 @@ function normalizeSavedLessonPlan(content: unknown): AILessonPlan {
   } as AILessonPlan;
 }
 
-export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizModal }) => {
+export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizModal, onOpenAddStudent }) => {
   const { t, language } = useLanguage();
   const { students, getStudentSessions, getStudentCurriculum, saveAIContent, savedContents, deleteSavedAIContent } = useData();
   const { googleTokens, connectGoogleDocs, connectGoogleSlides, isGuest } = useAuth();
 
   // Generator inputs
+  const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [studentSearch, setStudentSearch] = useState("");
   const [studentName, setStudentName] = useState("");
-  const [studentAge, setStudentAge] = useState<number>(10);
+  const [studentAge, setStudentAge] = useState<number | undefined>();
   const [teachingStyle, setTeachingStyle] = useState("Interactive");
-  const [learningGoal, setLearningGoal] = useState("");
+  const [selectedLearningGoals, setSelectedLearningGoals] = useState<string[]>([]);
+  const [customGoal, setCustomGoal] = useState("");
+  const [showCustomGoal, setShowCustomGoal] = useState(false);
   const [subject, setSubject] = useState<SubjectType>("Tajweed");
   const [topic, setTopic] = useState("Rule of Noon Sakinah & Tanween (Izhhar & Idgham)");
   const [level, setLevel] = useState<LevelType>("Beginner");
@@ -89,9 +143,45 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
   const [screenshotStatusMsg, setScreenshotStatusMsg] = useState<string>("");
 
-  const selectedStudent = students.find((student) => student.name.trim().toLowerCase() === studentName.trim().toLowerCase());
+  const isArabic = language === "ar";
+  const availableStudents = students.filter((student) => student.status !== "Archived");
+  const selectedStudent = availableStudents.find((student) => student.id === selectedStudentId);
+  const filteredStudents = availableStudents.filter((student) => student.name.toLowerCase().includes(studentSearch.trim().toLowerCase()));
+  const availableStudentSubjects = selectedStudent?.subjects?.filter((studentSubject) => SUBJECTS.includes(studentSubject)) || [];
+  const selectedSubjectGoals = LEARNING_GOALS[subject];
+  const subjectOptions = selectedStudent ? availableStudentSubjects : SUBJECTS;
+  const learningGoal = [...selectedLearningGoals, ...(customGoal.trim() ? [customGoal.trim()] : [])].join(", ");
   const selectedStudentSessions = selectedStudent ? getStudentSessions(selectedStudent.id).slice(0, 8) : [];
   const selectedStudentAssignment = selectedStudent ? getStudentCurriculum(selectedStudent.id) : { curriculum: undefined, studentCurriculum: undefined };
+  const canGenerate = Boolean(
+    selectedStudent &&
+    selectedStudent.name.trim() &&
+    typeof selectedStudent.age === "number" && selectedStudent.age >= 4 &&
+    selectedStudent.level &&
+    availableStudentSubjects.includes(subject) &&
+    topic.trim() &&
+    learningGoal.trim() &&
+    !loading,
+  );
+
+  useEffect(() => {
+    if (!selectedStudent) return;
+    setSelectedLearningGoals([]);
+    setCustomGoal("");
+    setShowCustomGoal(false);
+    setStudentName(selectedStudent.name);
+    setStudentAge(selectedStudent.age);
+    if (selectedStudent.level) setLevel(selectedStudent.level);
+    if (selectedStudent.learningLanguage) {
+      setExplanationLanguage(selectedStudent.learningLanguage.toLowerCase().includes("arab") ? "Arabic" : "English");
+    }
+  }, [selectedStudent?.id]);
+
+  useEffect(() => {
+    if (!availableStudentSubjects.includes(subject) && availableStudentSubjects.length > 0) {
+      setSubject(availableStudentSubjects[0]);
+    }
+  }, [selectedStudent?.id]);
 
   useEffect(() => {
     if (!generatedPlan) return;
@@ -106,7 +196,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
           subject,
           level,
           durationMinutes,
-          focus: customInstructions || learningGoal,
+          focus: [learningGoal, customInstructions].filter(Boolean).join(" — "),
           content: generatedPlan,
         });
         setActiveSavedItemId(savedItem.id);
@@ -196,6 +286,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                 studentLevel: selectedStudent?.level || level,
                 teachingStyle,
                 learningGoal,
+                learningGoals: selectedLearningGoals.length ? selectedLearningGoals : [customGoal.trim()],
                 studentProfile: selectedStudent ? {
                   id: selectedStudent.id,
                   name: selectedStudent.name,
@@ -343,12 +434,20 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
     e.preventDefault();
     if (loading) return;
 
+    if (!selectedStudent) {
+      setError(language === "ar" ? "يرجى اختيار طالب قبل إنشاء الدرس." : "Please select a student before generating the lesson.");
+      return;
+    }
     if (!topic.trim()) {
       setError(language === "ar" ? "أدخل موضوع الدرس أولاً." : "Enter a lesson topic before generating.");
       return;
     }
-    if (!selectedStudent) {
-      setError(language === "ar" ? "اختر طالباً مسجلاً قبل إنشاء الدرس." : "Select a real student before generating the lesson.");
+    if (!learningGoal.trim()) {
+      setError(language === "ar" ? "اختر هدفاً تعليمياً واحداً على الأقل." : "Select at least one learning goal before generating.");
+      return;
+    }
+    if (!selectedStudent.age || selectedStudent.age < 4) {
+      setError(language === "ar" ? "عمر الطالب غير متوفر. حدّث ملف الطالب أولاً." : "The student's age is not provided. Update the student profile first.");
       return;
     }
     if (!selectedStudent.level) {
@@ -382,6 +481,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
         teachingStyle,
         language: explanationLanguage === "Arabic" ? "ar" : "en",
         learningGoal,
+        learningGoals: selectedLearningGoals.length ? selectedLearningGoals : [customGoal.trim()],
         customInstructions,
         studentProfile: {
           id: selectedStudent.id,
@@ -462,7 +562,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
         subject,
         level,
         durationMinutes,
-        focus: customInstructions || learningGoal,
+        focus: [learningGoal, customInstructions].filter(Boolean).join(" — "),
         content: generatedPlan,
       });
       setActiveSavedItemId(savedItem.id);
@@ -526,97 +626,155 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
             </h3>
 
             <form onSubmit={handleGenerate} className="space-y-4 text-xs font-sans">
+              {/* Required Student Selector */}
+              <div className="space-y-2">
+                <label htmlFor="lesson-student" className="font-semibold text-[#3E4D3E] dark:text-stone-300">
+                  {isArabic ? "الطالب" : "Student"} <span className="text-red-600">*</span>
+                </label>
+                {availableStudents.length === 0 ? (
+                  <div className="ir-inset p-4 space-y-3 text-center">
+                    <p className="font-semibold text-[#3E4D3E] dark:text-stone-300">{isArabic ? "لا يوجد طلاب. أضف طالباً أولاً." : "No students available. Add a student first."}</p>
+                    {onOpenAddStudent && (
+                      <button type="button" onClick={onOpenAddStudent} className="ir-button-primary px-4 py-2 text-xs">
+                        {isArabic ? "إضافة طالب" : "Add Student"}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {availableStudents.length > 5 && (
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7A7D75]" />
+                        <input
+                          type="search"
+                          value={studentSearch}
+                          onChange={(e) => setStudentSearch(e.target.value)}
+                          placeholder={isArabic ? "ابحث عن طالب..." : "Search students..."}
+                          aria-label={isArabic ? "البحث عن طالب" : "Search students"}
+                          className="ir-input pl-9"
+                        />
+                      </div>
+                    )}
+                    <select
+                      id="lesson-student"
+                      required
+                      value={selectedStudentId}
+                      onChange={(e) => setSelectedStudentId(e.target.value)}
+                      className="ir-input"
+                    >
+                      <option value="">{isArabic ? "اختر طالباً مسجلاً" : "Select a registered student"}</option>
+                      {filteredStudents.map((student) => (
+                        <option key={student.id} value={student.id}>{student.name}</option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </div>
+
+              {/* Auto-filled Student Profile */}
+              {selectedStudent && (
+                <div className="ir-inset p-4 space-y-3" aria-live="polite">
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">{isArabic ? "ملف الطالب" : "Student Profile"}</h4>
+                    <span className="ir-badge">{isArabic ? "سجل قاعدة البيانات" : "Database record"}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-[11px]">
+                    <p><span className="text-[#7A7D75]">{isArabic ? "الاسم" : "Name"}</span><br /><strong>{selectedStudent.name}</strong></p>
+                    <p><span className="text-[#7A7D75]">{isArabic ? "العمر" : "Age"}</span><br /><strong>{selectedStudent.age ? selectedStudent.age : (isArabic ? "غير متوفر" : "Not provided")}</strong></p>
+                    <p><span className="text-[#7A7D75]">{isArabic ? "المستوى" : "Level"}</span><br /><strong>{selectedStudent.level || (isArabic ? "غير متوفر" : "Not provided")}</strong></p>
+                    <p><span className="text-[#7A7D75]">{isArabic ? "اللغة" : "Language"}</span><br /><strong>{selectedStudent.learningLanguage || (isArabic ? "غير متوفر" : "Not provided")}</strong></p>
+                    <p className="col-span-2"><span className="text-[#7A7D75]">{isArabic ? "المواد المسجلة" : "Enrolled subjects"}</span><br /><strong>{availableStudentSubjects.length ? availableStudentSubjects.map((item) => getSubjectLabel(item, language)).join(", ") : (isArabic ? "غير متوفر" : "Not provided")}</strong></p>
+                    <p className="col-span-2"><span className="text-[#7A7D75]">{isArabic ? "المنهج" : "Curriculum"}</span><br /><strong>{selectedStudentAssignment.curriculum?.name || (isArabic ? "غير مسند" : "Not assigned")}</strong></p>
+                  </div>
+                </div>
+              )}
+
               {/* Subject */}
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">
-                  {t("subject")} *
+                  {t("subject")} <span className="text-red-600">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {(["Quran", "Tajweed", "Islamic Studies", "Arabic"] as SubjectType[]).map((subj) => (
+                  {subjectOptions.map((subj) => (
                     <button
                       key={subj}
                       type="button"
-                      onClick={() => setSubject(subj)}
+                      onClick={() => { setSubject(subj); setSelectedLearningGoals([]); setCustomGoal(""); }}
                       className={`p-2.5 rounded-lg border font-semibold transition-all cursor-pointer text-xs ${
                         subject === subj
                           ? "border-[#5A6B5A] bg-[#F2EFE6] dark:bg-[#232B23] text-[#3E4D3E] dark:text-[#8BA888] shadow-xs"
                           : "border-[#E8E5DB] dark:border-[#2A352A] text-[#7A7D75] dark:text-stone-300 hover:bg-[#FCFAF5]"
                       }`}
                     >
-                      {subj}
+                      {getSubjectLabel(subj, language)}
                     </button>
                   ))}
                 </div>
+                {selectedStudent && subjectOptions.length === 0 && (
+                  <p className="text-[11px] text-[#8B5A2B]">No supported enrolled subjects are provided for this student.</p>
+                )}
               </div>
 
-              {/* Topic Input */}
+              {/* Learning Goals */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">{isArabic ? "الأهداف التعليمية" : "Learning Goals"} <span className="text-red-600">*</span></label>
+                  <span className="text-[10px] text-[#7A7D75]">{isArabic ? "اختر هدفاً واحداً أو أكثر" : "Select one or more"}</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedSubjectGoals.map((goal) => {
+                    const selected = selectedLearningGoals.includes(goal.en);
+                    return (
+                      <button
+                        key={goal.en}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => setSelectedLearningGoals((current) => selected ? current.filter((item) => item !== goal.en) : [...current, goal.en])}
+                        className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${selected ? "border-[#5A6B5A] bg-[#F2EFE6] text-[#3E4D3E]" : "border-[#E8E5DB] text-[#7A7D75] hover:border-[#5A6B5A]"}`}
+                      >
+                        {language === "ar" ? goal.ar : goal.en}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomGoal((current) => !current)}
+                    className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${showCustomGoal ? "border-[#8B5A2B] bg-[#8B5A2B]/10 text-[#6B3F1D]" : "border-dashed border-[#8B5A2B] text-[#8B5A2B]"}`}
+                  >
+                    {isArabic ? "+ هدف مخصص" : "+ Custom Goal"}
+                  </button>
+                </div>
+                {showCustomGoal && (
+                  <input
+                    type="text"
+                    value={customGoal}
+                    onChange={(e) => setCustomGoal(e.target.value)}
+                    placeholder={isArabic ? "اكتب هدفاً تعليمياً مخصصاً" : "Type a custom learning goal"}
+                    className="ir-input"
+                  />
+                )}
+              </div>
+
+              {/* Lesson Topic */}
               <div className="space-y-1">
                 <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">
-                  {t("lessonTopic")} *
+                  {isArabic ? "موضوع الدرس" : t("lessonTopic")} <span className="text-red-600">*</span>
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder="e.g. Surah An-Nasr or Rules of Ghunnah"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-hidden focus:border-[#5A6B5A]"
-                />
+                <input type="text" required value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Surah An-Nasr or Rules of Ghunnah" className="ir-input" />
               </div>
 
-              {/* Student Details */}
+              {/* Teacher Style and Duration */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">Student Name</label>
-                  <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-hidden focus:border-[#5A6B5A]" placeholder="e.g. Omar" />
+                  <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">{isArabic ? "أسلوب التدريس" : "Teaching Style"}</label>
+                  <input type="text" value={teachingStyle} onChange={(e) => setTeachingStyle(e.target.value)} className="ir-input" placeholder="e.g. Interactive" />
                 </div>
                 <div className="space-y-1">
-                  <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">Student Age</label>
-                  <input type="number" value={studentAge} onChange={(e) => setStudentAge(Number(e.target.value))} className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-hidden focus:border-[#5A6B5A]" placeholder="e.g. 10" />
-                </div>
-              </div>
-
-              {/* Teaching Style & Learning Goal */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">Teaching Style</label>
-                  <input type="text" value={teachingStyle} onChange={(e) => setTeachingStyle(e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-hidden focus:border-[#5A6B5A]" placeholder="e.g. Interactive" />
-                </div>
-                <div className="space-y-1">
-                  <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">Learning Goal</label>
-                  <input type="text" value={learningGoal} onChange={(e) => setLearningGoal(e.target.value)} className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-hidden focus:border-[#5A6B5A]" placeholder="e.g. Master Tajweed rule" />
-                </div>
-              </div>
-
-              {/* Level & Duration */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">
-                    {t("level")}
-                  </label>
-                  <select
-                    value={level}
-                    onChange={(e) => setLevel(e.target.value as LevelType)}
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-hidden focus:border-[#5A6B5A]"
-                  >
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">
-                    Duration (Minutes)
-                  </label>
-                  <select
-                    value={durationMinutes}
-                    onChange={(e) => setDurationMinutes(Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-hidden focus:border-[#5A6B5A]"
-                  >
-                    <option value={30}>30 mins</option>
-                    <option value={45}>45 mins</option>
-                    <option value={60}>60 mins</option>
+                  <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">{isArabic ? "المدة (بالدقائق)" : "Duration (Minutes)"}</label>
+                  <select value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))} className="ir-input">
+                    <option value={30}>{isArabic ? "30 دقيقة" : "30 mins"}</option>
+                    <option value={45}>{isArabic ? "45 دقيقة" : "45 mins"}</option>
+                    <option value={60}>{isArabic ? "60 دقيقة" : "60 mins"}</option>
                   </select>
                 </div>
               </div>
@@ -653,7 +811,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
               {/* Generate Button */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={!canGenerate}
                 className="w-full py-3 rounded-lg bg-[#5A6B5A] hover:bg-[#495749] text-white font-semibold text-xs shadow-soft transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98 disabled:opacity-50"
               >
                 {loading ? (
@@ -1046,6 +1204,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                               setActiveSavedItemId(item.id);
                               if (item.studentId) {
                                 const linkedStudent = students.find((student) => student.id === item.studentId);
+                                setSelectedStudentId(item.studentId);
                                 if (linkedStudent) {
                                   setStudentName(linkedStudent.name);
                                   setStudentAge(linkedStudent.age);
@@ -1054,7 +1213,10 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                               if (item.subject) setSubject(item.subject);
                               if (item.level) setLevel(item.level);
                               if (item.durationMinutes) setDurationMinutes(item.durationMinutes);
-                              if (item.focus) setCustomInstructions(item.focus);
+                              if (item.focus) {
+                                setCustomGoal(item.focus);
+                                setShowCustomGoal(true);
+                              }
                               setIsLibraryOpen(false);
                             }}
                             className="px-3 py-1.5 rounded-lg bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
