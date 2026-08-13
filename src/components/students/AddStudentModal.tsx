@@ -3,6 +3,7 @@ import { Student, LevelType, SubjectType } from "../../types";
 import { useData } from "../../context/DataContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { X, UserPlus, Save } from "lucide-react";
+import { SUBJECTS } from "../../lib/subjects";
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -24,7 +25,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
   const [age, setAge] = useState(editStudent?.age || 10);
   const [email, setEmail] = useState(editStudent?.email || "");
   const [nativeLanguage, setNativeLanguage] = useState(editStudent?.nativeLanguage || "English");
-  const [learningLanguage] = useState(editStudent?.learningLanguage || "Arabic & Quran");
+  const [learningLanguage, setLearningLanguage] = useState(editStudent?.learningLanguage || "");
   const [level, setLevel] = useState<LevelType>(editStudent?.level || "Beginner");
   const [subjects, setSubjects] = useState<SubjectType[]>(editStudent?.subjects || ["Quran"]);
   const [notes, setNotes] = useState(editStudent?.notes || "");
@@ -41,24 +42,24 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
     if (editStudent) {
-      updateStudent(editStudent.id, {
-        name,
-        age: Number(age),
-        email,
-        nativeLanguage,
-        learningLanguage,
-        level,
-        subjects,
-        notes,
-      });
+        await updateStudent(editStudent.id, {
+          name,
+          age: Number(age),
+          email,
+          nativeLanguage,
+          learningLanguage,
+          level,
+          subjects,
+          notes,
+        });
       onClose();
     } else {
-      const created = addStudent({
+      const created = await addStudent({
         name,
         age: Number(age),
         email,
@@ -73,7 +74,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
     }
   };
 
-  const allSubjects: SubjectType[] = ["Quran", "Tajweed", "Islamic Studies", "Arabic"];
+  const allSubjects = SUBJECTS;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1C221C]/60 backdrop-blur-xs animate-fade-in">
@@ -149,11 +150,23 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
               <label className="font-semibold text-[#2D332D] dark:text-[#E2E8E2]">
                 {t("nativeLanguage")}
               </label>
-              <input
-                type="text"
-                value={nativeLanguage}
+                <input
+                  type="text"
+                  value={nativeLanguage}
                 onChange={(e) => setNativeLanguage(e.target.value)}
                 placeholder="e.g. English, French, German"
+                className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] focus:outline-none focus:border-[#5A6B5A] text-xs font-medium"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="font-semibold text-[#2D332D] dark:text-[#E2E8E2]">
+                Target Learning Language
+              </label>
+              <input
+                type="text"
+                value={learningLanguage}
+                onChange={(e) => setLearningLanguage(e.target.value)}
+                placeholder="Optional, e.g. Arabic"
                 className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] focus:outline-none focus:border-[#5A6B5A] text-xs font-medium"
               />
             </div>

@@ -3,6 +3,7 @@ import { Curriculum, CurriculumLesson, LevelType, SubjectType } from "../../type
 import { useData } from "../../context/DataContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { X, Plus, Trash2, MoveUp, MoveDown, BookOpen, Save } from "lucide-react";
+import { SUBJECTS } from "../../lib/subjects";
 
 interface AddCurriculumModalProps {
   isOpen: boolean;
@@ -19,7 +20,7 @@ export const AddCurriculumModal: React.FC<AddCurriculumModalProps> = ({
   const { t } = useLanguage();
 
   const [name, setName] = useState(editCurriculum?.name || "");
-  const [subject, setSubject] = useState<SubjectType>(editCurriculum?.subject || "Quran");
+  const [subject, setSubject] = useState<SubjectType | "">(editCurriculum?.subject || "");
   const [level, setLevel] = useState<LevelType>(editCurriculum?.level || "Beginner");
   const [description, setDescription] = useState(editCurriculum?.description || "");
   const [lessons, setLessons] = useState<CurriculumLesson[]>(
@@ -64,12 +65,12 @@ export const AddCurriculumModal: React.FC<AddCurriculumModalProps> = ({
     setLessons(updated.map((l, idx) => ({ ...l, order: idx + 1 })));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !subject) return;
 
     if (editCurriculum) {
-      updateCurriculum(editCurriculum.id, {
+      await updateCurriculum(editCurriculum.id, {
         name,
         subject,
         level,
@@ -77,7 +78,7 @@ export const AddCurriculumModal: React.FC<AddCurriculumModalProps> = ({
         lessons,
       });
     } else {
-      createCurriculum({
+      await createCurriculum({
         name,
         subject,
         level,
@@ -132,15 +133,14 @@ export const AddCurriculumModal: React.FC<AddCurriculumModalProps> = ({
               <label className="font-semibold text-[#2D332D] dark:text-[#E2E8E2]">
                 {t("curriculumSubject")}
               </label>
-              <select
+                              <select
+                required
                 value={subject}
                 onChange={(e) => setSubject(e.target.value as SubjectType)}
                 className="w-full px-3.5 py-2.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#232B23] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-none focus:border-[#5A6B5A]"
               >
-                <option value="Quran">Quran</option>
-                <option value="Tajweed">Tajweed</option>
-                <option value="Islamic Studies">Islamic Studies</option>
-                <option value="Arabic">Arabic</option>
+                <option value="">Select a subject</option>
+                {SUBJECTS.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </div>
 

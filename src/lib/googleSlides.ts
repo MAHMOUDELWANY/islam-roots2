@@ -570,10 +570,21 @@ export async function createGoogleSlidesPresentation(
       throw new Error('Verification failed: Exported Google Slides presentation is empty.');
     }
 
-    const firstSlideElements = verifyData.slides[0]?.pageElements;
-    if (!firstSlideElements || firstSlideElements.length === 0) {
-      console.error('[SLIDES_EXPORT_ERROR] Verification failed: First slide contains no page elements.');
-      throw new Error('Verification failed: Presentation slides contain no rendered content elements.');
+    const hasVisibleContent = (element: any): boolean => {
+      const textElements = element?.shape?.text?.textElements || [];
+      if (textElements.some((textElement: any) => Boolean(textElement?.textRun?.content?.trim()))) return true;
+      if (element?.image || element?.video || element?.table || element?.sheetsChart) return true;
+      return Boolean(element?.group?.children?.some((child: any) => hasVisibleContent(child)));
+    };
+
+    const blankSlideNumbers = verifyData.slides
+      .map((slide: any, index: number) => ({ slide, index }))
+      .filter(({ slide }: { slide: any }) => !slide?.pageElements?.some((element: any) => hasVisibleContent(element)))
+      .map(({ index }: { index: number }) => index + 1);
+
+    if (blankSlideNumbers.length > 0) {
+      console.error('[SLIDES_EXPORT_ERROR] Verification failed: blank slides detected:', blankSlideNumbers);
+      throw new Error(`Verification failed: Slides ${blankSlideNumbers.join(", ")} contain no rendered content.`);
     }
 
     console.log('[SLIDES_EXPORT_VERIFICATION_SUCCESS] Verification successful! Total verified slides count:', verifyData.slides.length);

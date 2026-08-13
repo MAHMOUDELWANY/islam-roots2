@@ -50,15 +50,24 @@ export async function createGoogleCalendarEvent(
     durationMinutes: number;
     studentName?: string;
     subject?: string;
+    recurrence?: "none" | "daily" | "weekly" | "biweekly" | "monthly";
+    recurrenceDays?: number[];
+    recurrenceEndDate?: string;
   }
 ): Promise<GoogleCalendarEvent> {
   try {
     const startDate = new Date(event.startTimeISO);
     const endDate = new Date(startDate.getTime() + event.durationMinutes * 60 * 1000);
 
+    const dayCodes = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+    const selectedDays = event.recurrenceDays?.length ? event.recurrenceDays.map((day) => dayCodes[day]).filter(Boolean) : [dayCodes[startDate.getDay()]];
+    const frequency = event.recurrence === "biweekly" ? "WEEKLY" : event.recurrence === "monthly" ? "MONTHLY" : event.recurrence === "daily" ? "DAILY" : event.recurrence === "weekly" ? "WEEKLY" : null;
+    const recurrenceRule = frequency ? `RRULE:FREQ=${frequency}${event.recurrence === "biweekly" ? ";INTERVAL=2" : ""}${frequency === "WEEKLY" ? `;BYDAY=${selectedDays.join(",")}` : ""}${event.recurrenceEndDate ? `;UNTIL=${new Date(`${event.recurrenceEndDate}T23:59:59Z`).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")}` : ""}` : undefined;
+
     const body = {
       summary: event.title,
       description: event.description || `IslamRoots Ustadh Session with ${event.studentName || 'Student'} (${event.subject || 'Lesson'})`,
+      ...(recurrenceRule ? { recurrence: [recurrenceRule] } : {}),
       start: {
         dateTime: startDate.toISOString(),
       },

@@ -70,7 +70,7 @@ interface DataContextType {
   getStudentDetectiveResults: (studentId: string) => MemoryDetectiveResult[];
 
   // Saved AI Content Actions
-  saveAIContent: (data: Omit<SavedAIContent, "id" | "teacherId" | "createdAt">) => Promise<SavedAIContent>;
+  saveAIContent: (data: Omit<SavedAIContent, "teacherId" | "createdAt"> & { id?: string; createdAt?: string }) => Promise<SavedAIContent>;
   deleteSavedAIContent: (id: string) => Promise<void>;
 
   // Memory Map Actions
@@ -256,15 +256,29 @@ const mapDetectiveResultToDb = (dr: Partial<MemoryDetectiveResult>) => {
   return dbRow;
 };
 
-const mapSavedAIFromDb = (row: any): SavedAIContent => ({
-  id: row.id,
-  teacherId: row.teacher_id,
-  studentId: row.student_id || undefined,
-  type: row.type,
-  title: row.title,
-  content: row.content || {},
-  createdAt: row.created_at,
-});
+const SAVED_CONTENT_META_KEY = "__islamRootsMeta";
+
+const mapSavedAIFromDb = (row: any): SavedAIContent => {
+  const stored = row.content && typeof row.content === "object" && !Array.isArray(row.content) ? row.content : {};
+  const meta = stored[SAVED_CONTENT_META_KEY] || {};
+  const { [SAVED_CONTENT_META_KEY]: _ignored, ...content } = stored;
+  return {
+    id: row.id,
+    teacherId: row.teacher_id,
+    studentId: row.student_id || meta.studentId || undefined,
+    type: row.type,
+    title: row.title,
+    subject: meta.subject,
+    level: meta.level,
+    durationMinutes: meta.durationMinutes,
+    focus: meta.focus,
+    content,
+    createdAt: row.created_at,
+    updatedAt: meta.updatedAt || row.created_at,
+    saveStatus: "saved",
+    exportStatus: meta.exportStatus || "not_exported",
+  };
+};
 
 const mapSavedAIToDb = (sa: Partial<SavedAIContent>) => {
   const dbRow: any = {};
@@ -273,7 +287,20 @@ const mapSavedAIToDb = (sa: Partial<SavedAIContent>) => {
   if (sa.studentId !== undefined) dbRow.student_id = sa.studentId;
   if (sa.type !== undefined) dbRow.type = sa.type;
   if (sa.title !== undefined) dbRow.title = sa.title;
-  if (sa.content !== undefined) dbRow.content = sa.content;
+  if (sa.content !== undefined) {
+    dbRow.content = {
+      ...(sa.content && typeof sa.content === "object" && !Array.isArray(sa.content) ? sa.content : {}),
+      [SAVED_CONTENT_META_KEY]: {
+        studentId: sa.studentId,
+        subject: sa.subject,
+        level: sa.level,
+        durationMinutes: sa.durationMinutes,
+        focus: sa.focus,
+        updatedAt: sa.updatedAt || new Date().toISOString(),
+        exportStatus: sa.exportStatus || "not_exported",
+      },
+    };
+  }
   if (sa.createdAt !== undefined) dbRow.created_at = sa.createdAt;
   return dbRow;
 };
@@ -289,6 +316,8 @@ const mapScheduleFromDb = (row: any): ScheduleEntry => ({
   startAt: row.start_at,
   durationMinutes: row.duration_minutes,
   recurrence: row.recurrence,
+  recurrenceDays: row.recurrence_days || undefined,
+  recurrenceEndDate: row.recurrence_end_date || undefined,
   reminderMinutes: row.reminder_minutes,
   reminderEnabled: row.reminder_enabled ?? true,
   status: row.status,
@@ -308,6 +337,8 @@ const mapScheduleToDb = (sc: Partial<ScheduleEntry>) => {
   if (sc.startAt !== undefined) dbRow.start_at = sc.startAt;
   if (sc.durationMinutes !== undefined) dbRow.duration_minutes = sc.durationMinutes;
   if (sc.recurrence !== undefined) dbRow.recurrence = sc.recurrence;
+  if (sc.recurrenceDays !== undefined) dbRow.recurrence_days = sc.recurrenceDays;
+  if (sc.recurrenceEndDate !== undefined) dbRow.recurrence_end_date = sc.recurrenceEndDate;
   if (sc.reminderMinutes !== undefined) dbRow.reminder_minutes = sc.reminderMinutes;
   if (sc.reminderEnabled !== undefined) dbRow.reminder_enabled = sc.reminderEnabled;
   if (sc.status !== undefined) dbRow.status = sc.status;
@@ -351,31 +382,31 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // State initialized with session-only guest data or demo data
   const [students, setStudents] = useState<Student[]>(() =>
-    getInitialGuestData(STORAGE_KEYS.students, DEMO_STUDENTS)
+    getInitialGuestData(STORAGE_KEYS.students, [])
   );
   const [curriculums, setCurriculums] = useState<Curriculum[]>(() =>
-    getInitialGuestData(STORAGE_KEYS.curriculums, DEMO_CURRICULUMS)
+    getInitialGuestData(STORAGE_KEYS.curriculums, [])
   );
   const [studentCurriculums, setStudentCurriculums] = useState<StudentCurriculum[]>(() =>
-    getInitialGuestData(STORAGE_KEYS.studentCurriculums, DEMO_STUDENT_CURRICULUMS)
+    getInitialGuestData(STORAGE_KEYS.studentCurriculums, [])
   );
   const [lessonSessions, setLessonSessions] = useState<LessonSession[]>(() =>
-    getInitialGuestData(STORAGE_KEYS.sessions, DEMO_LESSON_SESSIONS)
+    getInitialGuestData(STORAGE_KEYS.sessions, [])
   );
   const [detectiveResults, setDetectiveResults] = useState<MemoryDetectiveResult[]>(() =>
-    getInitialGuestData(STORAGE_KEYS.detective, DEMO_MEMORY_DETECTIVE_RESULTS)
+    getInitialGuestData(STORAGE_KEYS.detective, [])
   );
   const [savedContents, setSavedContents] = useState<SavedAIContent[]>(() =>
     getInitialGuestData(STORAGE_KEYS.savedAI, [])
   );
   const [schedules, setSchedules] = useState<ScheduleEntry[]>(() =>
-    getInitialGuestData(STORAGE_KEYS.schedules, DEMO_SCHEDULES)
+    getInitialGuestData(STORAGE_KEYS.schedules, [])
   );
   const [notifications, setNotifications] = useState<AppNotification[]>(() =>
-    getInitialGuestData(STORAGE_KEYS.notifications, DEMO_NOTIFICATIONS)
+    getInitialGuestData(STORAGE_KEYS.notifications, [])
   );
   const [memoryMapNodes, setMemoryMapNodes] = useState<MemoryMapNode[]>(() =>
-    getInitialGuestData(STORAGE_KEYS.memoryMap, DEMO_MEMORY_MAP_NODES)
+    getInitialGuestData(STORAGE_KEYS.memoryMap, [])
   );
   const [loadingData, setLoadingData] = useState<boolean>(false);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -429,15 +460,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load from Supabase when logged in as an authenticated user
   useEffect(() => {
     if (isGuestMode || !firebaseUser) {
-      setStudents(getInitialGuestData(STORAGE_KEYS.students, DEMO_STUDENTS));
-      setCurriculums(getInitialGuestData(STORAGE_KEYS.curriculums, DEMO_CURRICULUMS));
-      setStudentCurriculums(getInitialGuestData(STORAGE_KEYS.studentCurriculums, DEMO_STUDENT_CURRICULUMS));
-      setLessonSessions(getInitialGuestData(STORAGE_KEYS.sessions, DEMO_LESSON_SESSIONS));
-      setDetectiveResults(getInitialGuestData(STORAGE_KEYS.detective, DEMO_MEMORY_DETECTIVE_RESULTS));
+      setStudents(getInitialGuestData<Student[]>(STORAGE_KEYS.students, []));
+      setCurriculums(getInitialGuestData<Curriculum[]>(STORAGE_KEYS.curriculums, []));
+      setStudentCurriculums(getInitialGuestData<StudentCurriculum[]>(STORAGE_KEYS.studentCurriculums, []));
+      setLessonSessions(getInitialGuestData<LessonSession[]>(STORAGE_KEYS.sessions, []));
+      setDetectiveResults(getInitialGuestData<MemoryDetectiveResult[]>(STORAGE_KEYS.detective, []));
       setSavedContents(getInitialGuestData(STORAGE_KEYS.savedAI, []));
-      setSchedules(getInitialGuestData(STORAGE_KEYS.schedules, DEMO_SCHEDULES));
-      setNotifications(getInitialGuestData(STORAGE_KEYS.notifications, DEMO_NOTIFICATIONS));
-      setMemoryMapNodes(getInitialGuestData(STORAGE_KEYS.memoryMap, DEMO_MEMORY_MAP_NODES));
+      setSchedules(getInitialGuestData<ScheduleEntry[]>(STORAGE_KEYS.schedules, []));
+      setNotifications(getInitialGuestData<AppNotification[]>(STORAGE_KEYS.notifications, []));
+      setMemoryMapNodes(getInitialGuestData<MemoryMapNode[]>(STORAGE_KEYS.memoryMap, []));
       setLoadingData(false);
       return;
     }
@@ -576,15 +607,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearGuestData = () => {
     Object.values(STORAGE_KEYS).forEach((key) => sessionStorage.removeItem(key));
-    setStudents(DEMO_STUDENTS);
-    setCurriculums(DEMO_CURRICULUMS);
-    setStudentCurriculums(DEMO_STUDENT_CURRICULUMS);
-    setLessonSessions(DEMO_LESSON_SESSIONS);
-    setDetectiveResults(DEMO_MEMORY_DETECTIVE_RESULTS);
+    setStudents([]);
+    setCurriculums([]);
+    setStudentCurriculums([]);
+    setLessonSessions([]);
+    setDetectiveResults([]);
     setSavedContents([]);
-    setSchedules(DEMO_SCHEDULES);
-    setNotifications(DEMO_NOTIFICATIONS);
-    setMemoryMapNodes(DEMO_MEMORY_MAP_NODES);
+    setSchedules([]);
+    setNotifications([]);
+    setMemoryMapNodes([]);
   };
 
   // Student Actions
@@ -670,37 +701,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const assignCurriculumToStudent = async (studentId: string, curriculumId: string): Promise<StudentCurriculum> => {
     const curriculum = curriculums.find((c) => c.id === curriculumId);
-    const firstLessonId = curriculum?.lessons[0]?.id || "";
+    if (!curriculum) throw new Error("Curriculum not found");
 
-    const newAssignment: StudentCurriculum = {
-      id: window.crypto?.randomUUID ? window.crypto.randomUUID() : `sc-${Date.now()}`,
-      teacherId,
-      studentId,
-      curriculumId,
-      progressPercentage: 0,
-      currentLessonId: firstLessonId,
-      completedLessonIds: [],
-      startedAt: new Date().toISOString(),
-    };
+    const existing = studentCurriculums.find((sc) => sc.studentId === studentId);
+    const curriculumChanged = existing?.curriculumId !== curriculumId;
+    const nextAssignment: StudentCurriculum = existing
+      ? {
+          ...existing,
+          curriculumId,
+          progressPercentage: curriculumChanged ? 0 : existing.progressPercentage,
+          currentLessonId: curriculumChanged ? (curriculum.lessons[0]?.id || "") : existing.currentLessonId,
+          completedLessonIds: curriculumChanged ? [] : existing.completedLessonIds,
+          startedAt: curriculumChanged ? new Date().toISOString() : existing.startedAt,
+        }
+      : {
+          id: window.crypto?.randomUUID ? window.crypto.randomUUID() : `sc-${Date.now()}`,
+          teacherId,
+          studentId,
+          curriculumId,
+          progressPercentage: 0,
+          currentLessonId: curriculum.lessons[0]?.id || "",
+          completedLessonIds: [],
+          startedAt: new Date().toISOString(),
+        };
 
-    setStudentCurriculums((prev) => [...prev, newAssignment]);
+    setStudentCurriculums((prev) => {
+      const withoutStudent = prev.filter((sc) => sc.studentId !== studentId || sc.id === nextAssignment.id);
+      const alreadyPresent = withoutStudent.some((sc) => sc.id === nextAssignment.id);
+      return alreadyPresent ? withoutStudent.map((sc) => (sc.id === nextAssignment.id ? nextAssignment : sc)) : [...withoutStudent, nextAssignment];
+    });
 
     if (!isGuestMode && firebaseUser) {
-      const { data: inserted } = await runMutation(
-        "curriculum assignment",
-        supabase.from("student_curriculums").insert(mapStudentCurriculumToDb(newAssignment)).select().single(),
-      );
-      if (inserted) {
-        const mapped = mapStudentCurriculumFromDb(inserted);
-        setStudentCurriculums((prev) => prev.map((sc) => (sc.id === newAssignment.id ? mapped : sc)));
+      const query = existing
+        ? supabase.from("student_curriculums").update(mapStudentCurriculumToDb(nextAssignment)).eq("id", nextAssignment.id).select().single()
+        : supabase.from("student_curriculums").insert(mapStudentCurriculumToDb(nextAssignment)).select().single();
+      const { data: saved } = await runMutation("curriculum assignment", query);
+      if (saved) {
+        const mapped = mapStudentCurriculumFromDb(saved);
+        setStudentCurriculums((prev) => prev.map((sc) => (sc.id === nextAssignment.id ? mapped : sc)));
         return mapped;
       }
     }
-    return newAssignment;
+    return nextAssignment;
   };
 
   const getStudentCurriculum = (studentId: string) => {
-    const studentCurriculum = studentCurriculums.find((sc) => sc.studentId === studentId);
+    const studentCurriculum = studentCurriculums
+      .filter((sc) => sc.studentId === studentId)
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime())[0];
     const curriculum = curriculums.find((c) => c.id === studentCurriculum?.curriculumId);
     return { curriculum, studentCurriculum };
   };
@@ -895,28 +943,40 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Saved AI Content Actions
-  const saveAIContent = async (data: Omit<SavedAIContent, "id" | "teacherId" | "createdAt">): Promise<SavedAIContent> => {
-    const newItem: SavedAIContent = {
+  const saveAIContent = async (data: Omit<SavedAIContent, "teacherId" | "createdAt"> & { id?: string; createdAt?: string }): Promise<SavedAIContent> => {
+    const now = new Date().toISOString();
+    const existing = data.id ? savedContents.find((item) => item.id === data.id) : undefined;
+    const item: SavedAIContent = {
+      ...existing,
       ...data,
-      id: window.crypto?.randomUUID ? window.crypto.randomUUID() : `saved-${Date.now()}`,
+      id: data.id || window.crypto?.randomUUID ? (data.id || window.crypto.randomUUID()) : `saved-${Date.now()}`,
       teacherId,
-      createdAt: new Date().toISOString(),
+      createdAt: existing?.createdAt || data.createdAt || now,
+      updatedAt: now,
+      saveStatus: "saving",
+      exportStatus: data.exportStatus || existing?.exportStatus || "not_exported",
     };
 
-    setSavedContents((prev) => [newItem, ...prev]);
+    setSavedContents((prev) => {
+      const withoutCurrent = prev.filter((saved) => saved.id !== item.id);
+      return [item, ...withoutCurrent];
+    });
 
     if (!isGuestMode && firebaseUser) {
-      const { data: inserted } = await runMutation(
-        "saved AI content creation",
-        supabase.from("saved_ai_content").insert(mapSavedAIToDb(newItem)).select().single(),
-      );
-      if (inserted) {
-        const mapped = mapSavedAIFromDb(inserted);
-        setSavedContents((prev) => prev.map((i) => (i.id === newItem.id ? mapped : i)));
+      const query = existing
+        ? supabase.from("saved_ai_content").update(mapSavedAIToDb(item)).eq("id", item.id).select().single()
+        : supabase.from("saved_ai_content").insert(mapSavedAIToDb(item)).select().single();
+      const { data: saved } = await runMutation(existing ? "saved AI content update" : "saved AI content creation", query);
+      if (saved) {
+        const mapped = mapSavedAIFromDb(saved);
+        setSavedContents((prev) => prev.map((savedItem) => (savedItem.id === item.id ? mapped : savedItem)));
         return mapped;
       }
     }
-    return newItem;
+
+    const savedItem = { ...item, saveStatus: "saved" as const };
+    setSavedContents((prev) => prev.map((saved) => (saved.id === item.id ? savedItem : saved)));
+    return savedItem;
   };
 
   const deleteSavedAIContent = async (id: string) => {

@@ -70,7 +70,9 @@ export interface ScheduleEntry {
   title: string;
   startAt: string; // ISO String e.g. 2026-08-08T18:00:00
   durationMinutes: number;
-  recurrence?: "none" | "daily" | "weekly" | "biweekly";
+  recurrence?: "none" | "daily" | "weekly" | "biweekly" | "monthly";
+  recurrenceDays?: number[];
+  recurrenceEndDate?: string;
   reminderMinutes?: number;
   reminderEnabled?: boolean;
   status: "upcoming" | "completed" | "cancelled" | "missed";
@@ -259,7 +261,14 @@ export interface SavedAIContent {
   studentId?: string;
   type: "lesson_plan" | "quiz" | "homework";
   title: string;
+  subject?: SubjectType;
+  level?: LevelType;
+  durationMinutes?: number;
+  focus?: string;
   content: any;
   createdAt: string;
+  updatedAt?: string;
+  saveStatus?: "saving" | "saved" | "error";
+  exportStatus?: "not_exported" | "exported";
 }
 

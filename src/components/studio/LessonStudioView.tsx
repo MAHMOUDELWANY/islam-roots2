@@ -1,5 +1,5 @@
 import { supabase } from "../../lib/supabase";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLanguage } from "../../context/LanguageContext";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
@@ -33,7 +33,7 @@ interface LessonStudioViewProps {
 
 export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizModal }) => {
   const { t, language } = useLanguage();
-  const { saveAIContent, savedContents, deleteSavedAIContent } = useData();
+  const { students, getStudentSessions, getStudentCurriculum, saveAIContent, savedContents, deleteSavedAIContent } = useData();
   const { googleTokens, connectGoogleDocs, connectGoogleSlides } = useAuth();
 
   // Generator inputs
@@ -54,6 +54,8 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveToast, setSaveToast] = useState<string | null>(null);
+  const [activeSavedItemId, setActiveSavedItemId] = useState<string | undefined>();
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
 
   // Saved Library Modal State
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
@@ -71,6 +73,38 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
 
   const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
   const [screenshotStatusMsg, setScreenshotStatusMsg] = useState<string>("");
+
+  const selectedStudent = students.find((student) => student.name.trim().toLowerCase() === studentName.trim().toLowerCase());
+  const selectedStudentSessions = selectedStudent ? getStudentSessions(selectedStudent.id).slice(0, 8) : [];
+  const selectedStudentAssignment = selectedStudent ? getStudentCurriculum(selectedStudent.id) : { curriculum: undefined, studentCurriculum: undefined };
+
+  useEffect(() => {
+    if (!generatedPlan) return;
+    const timer = window.setTimeout(async () => {
+      setIsAutoSaving(true);
+      try {
+        const savedItem = await saveAIContent({
+          id: activeSavedItemId,
+          type: "lesson_plan",
+          title: topic,
+          studentId: selectedStudent?.id,
+          subject,
+          level,
+          durationMinutes,
+          focus: customInstructions || learningGoal,
+          content: generatedPlan,
+        });
+        setActiveSavedItemId(savedItem.id);
+        setSaved(true);
+      } catch (autosaveError) {
+        console.error("Lesson autosave failed:", autosaveError);
+        setSaved(false);
+      } finally {
+        setIsAutoSaving(false);
+      }
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [generatedPlan, topic, subject, level, durationMinutes, customInstructions, learningGoal, selectedStudent?.id, saveAIContent]);
 
   const handleTakeScreenshot = async () => {
     if (!generatedPlan) return;
@@ -137,6 +171,11 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                 duration: durationMinutes,
                 language: explanationLanguage === "Arabic" ? "ar" : "en",
                 customInstructions,
+                studentName,
+                studentAge,
+                studentLevel: level,
+                teachingStyle,
+                learningGoal,
                 lessonPlan: generatedPlan
               })
             });
@@ -270,16 +309,45 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
 
     setLoading(true);
     setSaved(false);
+    setActiveSavedItemId(undefined);
     setError(null);
     
     try {
       const plan = await requestAuthenticatedAi<AILessonPlan>("/api/gemini/lesson-plan", {
         subject,
         topic,
-        level,
+        studentName,
+        studentAge,
+        studentLevel: level,
         duration: durationMinutes,
+        teachingStyle,
         language: explanationLanguage === "Arabic" ? "ar" : "en",
+        learningGoal,
         customInstructions,
+        studentProfile: selectedStudent ? {
+          name: selectedStudent.name,
+          age: selectedStudent.age,
+          nativeLanguage: selectedStudent.nativeLanguage,
+          learningLanguage: selectedStudent.learningLanguage,
+          level: selectedStudent.level,
+          subjects: selectedStudent.subjects,
+          teacherNotes: selectedStudent.notes || "",
+        } : {},
+        learningHistory: selectedStudent ? {
+          curriculum: selectedStudentAssignment.curriculum ? {
+            name: selectedStudentAssignment.curriculum.name,
+            subject: selectedStudentAssignment.curriculum.subject,
+            progressPercentage: selectedStudentAssignment.studentCurriculum?.progressPercentage || 0,
+          } : null,
+          sessions: selectedStudentSessions.map((session) => ({
+            lessonTitle: session.lessonTitle,
+            date: session.date,
+            attendanceStatus: session.attendanceStatus,
+            teacherNotes: session.teacherNotes || "",
+            quizScore: session.quizScore ?? null,
+            completedItems: session.completedItems,
+          })),
+        } : {},
       }, (response) => response.data || response.lessonPlan);
       setGeneratedPlan(plan);
     } catch (err: any) {
@@ -315,16 +383,24 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   const handleSaveToFirestore = async () => {
     if (!generatedPlan) return;
     try {
-      await saveAIContent({
+      const savedItem = await saveAIContent({
+        id: activeSavedItemId,
         type: "lesson_plan",
         title: topic,
+        studentId: selectedStudent?.id,
+        subject,
+        level,
+        durationMinutes,
+        focus: customInstructions || learningGoal,
         content: generatedPlan,
       });
+      setActiveSavedItemId(savedItem.id);
       setSaved(true);
-      setSaveToast("Saved to your Saved Library! Click 'Saved Library' at the top anytime to view, re-export, or manage.");
+      setSaveToast(language === "ar" ? "تم حفظ الدرس في مكتبتك." : "Saved to your Saved Library.");
       setTimeout(() => setSaveToast(null), 5000);
     } catch (err) {
       console.error("Error saving lesson plan:", err);
+      setSaved(false);
     }
   };
 
@@ -608,7 +684,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                     className="p-2 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] text-[#3E4D3E] dark:text-stone-300 hover:border-[#5A6B5A] text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
                   >
                     <Bookmark className="w-3.5 h-3.5 text-[#5A6B5A]" />
-                    <span>{saved ? "Saved!" : "Save"}</span>
+                    <span>{isAutoSaving ? (language === "ar" ? "جارٍ الحفظ..." : "Autosaving...") : saved ? (language === "ar" ? "تم الحفظ" : "Saved") : language === "ar" ? "حفظ" : "Save"}</span>
                   </button>
 
                   <button
@@ -852,6 +928,18 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                             onClick={() => {
                               setGeneratedPlan(item.content);
                               setTopic(item.title);
+                              setActiveSavedItemId(item.id);
+                              if (item.studentId) {
+                                const linkedStudent = students.find((student) => student.id === item.studentId);
+                                if (linkedStudent) {
+                                  setStudentName(linkedStudent.name);
+                                  setStudentAge(linkedStudent.age);
+                                }
+                              }
+                              if (item.subject) setSubject(item.subject);
+                              if (item.level) setLevel(item.level);
+                              if (item.durationMinutes) setDurationMinutes(item.durationMinutes);
+                              if (item.focus) setCustomInstructions(item.focus);
                               setIsLibraryOpen(false);
                             }}
                             className="px-3 py-1.5 rounded-lg bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"

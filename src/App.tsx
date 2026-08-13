@@ -321,6 +321,12 @@ const AppContent: React.FC = () => {
         isOpen={isAssignCurriculumOpen}
         onClose={() => setIsAssignCurriculumOpen(false)}
         student={assigningStudent}
+        onCreateCurriculum={() => {
+          setIsAssignCurriculumOpen(false);
+          setEditingCurriculum(null);
+          setCurrentSection("curriculums");
+          setIsCreateCurriculumOpen(true);
+        }}
       />
 
       <AddCurriculumModal

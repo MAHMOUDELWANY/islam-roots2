@@ -31,6 +31,8 @@ export interface LessonPlanInput {
   language: AllowedLanguage;
   learningGoal: string;
   customInstructions: string;
+  studentProfile: RecordValue;
+  learningHistory: RecordValue;
 }
 
 export interface SlidesPlanInput extends LessonPlanInput {
@@ -170,6 +172,8 @@ function buildLessonPlanInput(body: unknown): ValidationResult<LessonPlanInput> 
   const language = allowedValue(body.language, "en", "language", LANGUAGES);
   const learningGoal = optionalString(body.learningGoal, "", "learningGoal", MAX_INSTRUCTION_LENGTH);
   const customInstructions = optionalString(body.customInstructions, "", "customInstructions", MAX_INSTRUCTION_LENGTH);
+  const studentProfile = isRecord(body.studentProfile) && isBoundedModelValue(body.studentProfile) ? body.studentProfile : {};
+  const learningHistory = isRecord(body.learningHistory) && isBoundedModelValue(body.learningHistory) ? body.learningHistory : {};
 
   const values = [subject, topic, studentName, studentAge, studentLevel, duration, teachingStyle, language, learningGoal, customInstructions];
   const failure = values.find((result): result is ValidationFailure => "error" in result);
@@ -190,6 +194,8 @@ function buildLessonPlanInput(body: unknown): ValidationResult<LessonPlanInput> 
       language: valueOf(language),
       learningGoal: valueOf(learningGoal),
       customInstructions: valueOf(customInstructions),
+      studentProfile,
+      learningHistory,
     },
   };
 }

@@ -133,6 +133,8 @@ CREATE TABLE IF NOT EXISTS schedules (
   start_at TIMESTAMPTZ,
   duration_minutes INTEGER,
   recurrence TEXT,
+  recurrence_days JSONB DEFAULT '[]'::jsonb,
+  recurrence_end_date DATE,
   reminder_minutes INTEGER,
   reminder_enabled BOOLEAN DEFAULT true,
   status TEXT DEFAULT 'Scheduled',

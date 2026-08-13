@@ -29,7 +29,7 @@ interface ScheduleViewProps {
 }
 
 export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession }) => {
-  const { students, schedules, addSchedule, deleteSchedule } = useData();
+  const { students, curriculums, schedules, addSchedule, deleteSchedule, getStudentCurriculum } = useData();
   const { t, language } = useLanguage();
   const { googleTokens, connectGoogleCalendar } = useAuth();
 
@@ -60,12 +60,14 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
   // Form State
   const [studentId, setStudentId] = useState("");
   const [curriculumId, setCurriculumId] = useState("");
-  const [subject, setSubject] = useState<"Quran" | "Tajweed" | "Islamic Studies" | "Arabic">("Quran");
+  const [subject, setSubject] = useState<"Quran" | "Tajweed" | "Islamic Studies" | "Arabic" | "">("");
   const [title, setTitle] = useState("");
   const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
   const [startTime, setStartTime] = useState("16:00");
   const [durationMinutes, setDurationMinutes] = useState(45);
-  const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "biweekly">("weekly");
+  const [recurrence, setRecurrence] = useState<"none" | "daily" | "weekly" | "biweekly" | "monthly">("weekly");
+  const [recurrenceDays, setRecurrenceDays] = useState<number[]>([new Date().getDay()]);
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
   const [reminderMinutes, setReminderMinutes] = useState(15);
   const [notes, setNotes] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
@@ -122,12 +124,15 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
       if (token) {
         const studentName = getStudentName(entry.studentId);
         await createGoogleCalendarEvent(token, {
-          title: `[IslamRoots] ${entry.title}`,
+          title: `${entry.title} — ${studentName}`,
           description: `IslamRoots Lesson Session\nStudent: ${studentName}\nSubject: ${entry.subject}\nNotes: ${entry.notes || 'N/A'}`,
           startTimeISO: entry.startAt,
           durationMinutes: entry.durationMinutes,
           studentName,
           subject: entry.subject,
+          recurrence: entry.recurrence,
+          recurrenceDays: entry.recurrenceDays,
+          recurrenceEndDate: entry.recurrenceEndDate,
         });
 
         setGcalStatusMsg(
@@ -151,7 +156,11 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
     setStudentId(id);
     const student = students.find((s) => s.id === id);
     if (student && student.subjects && student.subjects.length > 0) {
-      setSubject(student.subjects[0] as any);
+      setSubject(student.subjects[0]);
+      setCurriculumId(getStudentCurriculum(id).curriculum?.id || "");
+    } else {
+      setSubject("");
+      setCurriculumId("");
     }
   };
 
@@ -165,6 +174,14 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
       setErrorMsg(language === "ar" ? "رجاءً اكتب عنوان الدرس" : "Please enter a lesson title");
       return;
     }
+    if (!subject) {
+      setErrorMsg(language === "ar" ? "اختر مادة مرتبطة بملف الطالب" : "Choose a subject linked to the student profile");
+      return;
+    }
+    if ((recurrence === "weekly" || recurrence === "biweekly") && recurrenceDays.length === 0) {
+      setErrorMsg(language === "ar" ? "اختر يومًا واحدًا على الأقل للتكرار" : "Choose at least one weekday for recurrence");
+      return;
+    }
 
     try {
       const startAtISO = new Date(`${startDate}T${startTime}:00`).toISOString();
@@ -176,6 +193,8 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
         startAt: startAtISO,
         durationMinutes,
         recurrence,
+        recurrenceDays: recurrence === "weekly" || recurrence === "biweekly" ? recurrenceDays : undefined,
+        recurrenceEndDate: recurrence !== "none" ? recurrenceEndDate || undefined : undefined,
         reminderMinutes,
         reminderEnabled: true,
         status: "upcoming",
@@ -196,12 +215,15 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
         if (token) {
           const studentName = getStudentName(studentId);
           createGoogleCalendarEvent(token, {
-            title: `[IslamRoots] ${title.trim()}`,
+            title: `${title.trim()} — ${studentName}`,
             description: `IslamRoots Lesson Session\nStudent: ${studentName}\nSubject: ${subject}\nNotes: ${notes.trim() || 'N/A'}`,
             startTimeISO: startAtISO,
             durationMinutes,
             studentName,
             subject,
+            recurrence,
+            recurrenceDays,
+            recurrenceEndDate: recurrenceEndDate || undefined,
           }).catch((err) => console.error("Async Google Calendar sync error:", err));
         }
       }
@@ -240,12 +262,14 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
   const resetForm = () => {
     setStudentId("");
     setCurriculumId("");
-    setSubject("Quran");
+    setSubject("");
     setTitle("");
     setStartDate(new Date().toISOString().split("T")[0]);
     setStartTime("16:00");
     setDurationMinutes(45);
     setRecurrence("weekly");
+    setRecurrenceDays([new Date().getDay()]);
+    setRecurrenceEndDate("");
     setReminderMinutes(15);
     setNotes("");
     setErrorMsg("");
@@ -261,6 +285,10 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
     }
     return true;
   });
+
+  const selectedStudent = students.find((student) => student.id === studentId);
+  const subjectOptions = selectedStudent?.subjects || [];
+  const weekdayLabels = language === "ar" ? ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"] : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const getStudentName = (id: string) => {
     return students.find((s) => s.id === id)?.name || "Student";
@@ -707,10 +735,8 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
                     onChange={(e) => setSubject(e.target.value as any)}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#D4D1C5] dark:border-[#2A352A] text-xs font-medium text-[#1F261F] dark:text-[#E2E8E2]"
                   >
-                    <option value="Quran">Quran</option>
-                    <option value="Tajweed">Tajweed</option>
-                    <option value="Islamic Studies">Islamic Studies</option>
-                    <option value="Arabic">Arabic</option>
+                    <option value="">{language === "ar" ? "اختر مادة" : "Select subject"}</option>
+                    {subjectOptions.map((item) => <option key={item} value={item}>{item}</option>)}
                   </select>
                 </div>
 
@@ -805,6 +831,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
                     <option value="daily">{t("recurrenceDaily")}</option>
                     <option value="weekly">{t("recurrenceWeekly")}</option>
                     <option value="biweekly">{t("recurrenceBiweekly")}</option>
+                    <option value="monthly">{language === "ar" ? "كل شهر" : "Every Month"}</option>
                   </select>
                 </div>
                 <div>
@@ -823,6 +850,21 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
                   </select>
                 </div>
               </div>
+
+              {(recurrence === "weekly" || recurrence === "biweekly") && (
+                <div className="space-y-2 p-3 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A]">
+                  <label className="block font-semibold text-[#1F261F] dark:text-stone-200">{language === "ar" ? "أيام التكرار" : "Repeat on"}</label>
+                  <div className="flex flex-wrap gap-2">{weekdayLabels.map((label, day) => { const selected = recurrenceDays.includes(day); return <button key={label} type="button" onClick={() => setRecurrenceDays((current) => selected ? current.filter((item) => item !== day) : [...current, day].sort())} className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border ${selected ? "bg-[#5A6B5A] text-white border-[#5A6B5A]" : "bg-white dark:bg-[#161D17] text-[#7A7D75] border-[#D4D1C5]"}`}>{label}</button>; })}</div>
+                  {recurrenceDays.length === 0 && <p className="text-[11px] text-rose-600">{language === "ar" ? "اختر يومًا واحدًا على الأقل." : "Select at least one weekday."}</p>}
+                </div>
+              )}
+
+              {recurrence !== "none" && (
+                <div>
+                  <label className="block font-semibold text-[#1F261F] dark:text-stone-200 mb-1">{language === "ar" ? "ينتهي التكرار (اختياري)" : "Recurrence end date (optional)"}</label>
+                  <input type="date" value={recurrenceEndDate} min={startDate} onChange={(e) => setRecurrenceEndDate(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#D4D1C5] dark:border-[#2A352A] text-xs font-medium text-[#1F261F] dark:text-[#E2E8E2]" />
+                </div>
+              )}
 
               {/* Notes */}
               <div>

@@ -1,202 +1,39 @@
 import React, { useState } from "react";
 import { useData } from "../../context/DataContext";
 import { useLanguage } from "../../context/LanguageContext";
-import { SubjectType, MemoryMapNode } from "../../types";
+import { SubjectType } from "../../types";
 import { captureAndDownloadScreenshot } from "../../lib/screenshot";
-import { Network, CheckCircle2, Clock, AlertCircle, Lock, Camera } from "lucide-react";
+import { Network, Camera, RefreshCw } from "lucide-react";
 
 export const MemoryMapView: React.FC = () => {
-  const { students, curriculums, studentCurriculums, memoryMapNodes, updateMemoryMapNode } = useData();
-  const { t } = useLanguage();
-
+  const { students, curriculums, studentCurriculums, getStudentDetectiveResults } = useData();
+  const { t, language, isRTL } = useLanguage();
   const activeStudents = students.filter((s) => s.status === "Active");
-  const [selectedStudentId, setSelectedStudentId] = useState<string>(activeStudents[0]?.id || "");
+  const [selectedStudentId, setSelectedStudentId] = useState(activeStudents[0]?.id || "");
   const [activeCategory, setActiveCategory] = useState<SubjectType>("Quran");
-
-  // Find active student's curriculum for this category
-  const studentCurr = studentCurriculums.find((sc) => sc.studentId === selectedStudentId);
-  const assignedCurr = curriculums.find(
-    (c) => c.id === studentCurr?.curriculumId && c.subject === activeCategory
-  );
-
-  // Derive dynamic nodes from curriculum if present, else fallback to category memory nodes
-  let dynamicNodes: MemoryMapNode[] = [];
-  if (assignedCurr && assignedCurr.lessons.length > 0) {
-    const completedIds = studentCurr?.completedLessonIds || [];
-    dynamicNodes = assignedCurr.lessons.map((lesson, idx) => {
-      const isDone = completedIds.includes(lesson.id);
-      const isCurrent = lesson.id === studentCurr?.currentLessonId || (!isDone && idx === 0);
-      return {
-        id: lesson.id,
-        title: lesson.title,
-        titleArabic: lesson.objectives?.[0] || "",
-        category: activeCategory,
-        status: isDone ? "completed" : isCurrent ? "current" : "locked",
-        notes: lesson.description || "",
-      };
-    });
-  } else {
-    dynamicNodes = memoryMapNodes.filter((n) => n.category === activeCategory);
-  }
-
-  const completedCount = dynamicNodes.filter((n) => n.status === "completed").length;
-  const progressPct = dynamicNodes.length > 0 ? Math.round((completedCount / dynamicNodes.length) * 100) : 0;
+  const studentCurriculum = studentCurriculums.find((assignment) => assignment.studentId === selectedStudentId);
+  const assignedCurriculum = curriculums.find((item) => item.id === studentCurriculum?.curriculumId && item.subject === activeCategory);
+  const memoryResults = selectedStudentId ? getStudentDetectiveResults(selectedStudentId) : [];
+  const averageScore = memoryResults.length ? Math.round(memoryResults.reduce((sum, result) => sum + result.scorePercentage, 0) / memoryResults.length) : null;
 
   return (
-    <div id="memory-map-container" className="space-y-6 animate-fade-in pb-12 font-sans p-2">
-      {/* Header */}
+    <div id="memory-map-container" className="space-y-6 animate-fade-in pb-12 font-sans p-2" dir={isRTL ? "rtl" : "ltr"}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2.5">
-            <Network className="w-6 h-6 text-[#5A6B5A]" />
-            <span>{t("memoryMap")}</span>
-          </h2>
-          <p className="text-xs sm:text-sm text-[#7A7D75] dark:text-stone-400 mt-1">
-            Visual knowledge graph tracking student mastery across Quran, Tajweed, Islamic Studies, and Arabic.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() =>
-              captureAndDownloadScreenshot("memory-map-container", {
-                filename: `IslamRoots_MemoryMap_${activeCategory}.png`,
-                watermarkText: "IslamRoots Memory Map Visualization • https://islamroots.app",
-              })
-            }
-            className="px-3.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"
-            title="Take Screenshot of Memory Map (PNG)"
-          >
-            <Camera className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Save Screenshot</span>
-          </button>
-
-          {activeStudents.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-[#7A7D75]">Student:</span>
-              <select
-                value={selectedStudentId}
-                onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-white dark:bg-[#161D17] text-[#1F261F] dark:text-[#E2E8E2] text-xs font-medium focus:outline-none"
-              >
-                {activeStudents.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div className="px-4 py-2 rounded-lg bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft flex items-center gap-3">
-            <span className="text-xs font-semibold text-[#7A7D75]">Mastery:</span>
-            <span className="text-base font-bold text-[#5A6B5A] dark:text-[#8BA888]">{progressPct}%</span>
-          </div>
+        <div><h2 className="text-xl sm:text-2xl font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2.5"><Network className="w-6 h-6 text-[#5A6B5A]" /><span>{t("memoryMap")}</span></h2><p className="text-xs sm:text-sm text-[#7A7D75] dark:text-stone-400 mt-1">{language === "ar" ? "اعرض نتائج الذاكرة المسجلة فقط، مع إبقاء المعاينات منفصلة عن إتقان الطالب." : "View recorded memory evidence only; previews never count as student mastery."}</p></div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button onClick={() => captureAndDownloadScreenshot("memory-map-container", { filename: `IslamRoots_MemoryMap_${activeCategory}.png`, watermarkText: "IslamRoots Memory Map Visualization • https://islamroots.app" })} className="px-3.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"><Camera className="w-3.5 h-3.5" /><span>{language === "ar" ? "حفظ لقطة" : "Save Screenshot"}</span></button>
+          {activeStudents.length > 0 && <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} aria-label={t("selectStudent")} className="px-3 py-1.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-white dark:bg-[#161D17] text-xs font-medium">{activeStudents.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select>}
+          <div className="px-4 py-2 rounded-lg bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft flex items-center gap-3"><span className="text-xs font-semibold text-[#7A7D75]">{language === "ar" ? "متوسط الذاكرة:" : "Memory average:"}</span><span className="text-base font-bold text-[#5A6B5A] dark:text-[#8BA888]">{averageScore === null ? "—" : `${averageScore}%`}</span></div>
         </div>
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-        {(["Quran", "Tajweed", "Islamic Studies", "Arabic"] as SubjectType[]).map((cat) => {
-          const isActive = activeCategory === cat;
-          return (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                isActive
-                  ? "bg-[#5A6B5A] text-white shadow-xs"
-                  : "bg-white dark:bg-[#161D17] text-[#7A7D75] dark:text-stone-300 hover:bg-[#F2EFE6] border border-[#E8E5DB] dark:border-[#2A352A]"
-              }`}
-            >
-              {cat}
-            </button>
-          );
-        })}
-      </div>
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">{(["Quran", "Tajweed", "Islamic Studies", "Arabic"] as SubjectType[]).map((category) => <button key={category} onClick={() => setActiveCategory(category)} className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${activeCategory === category ? "bg-[#5A6B5A] text-white shadow-xs" : "bg-white dark:bg-[#161D17] text-[#7A7D75] border border-[#E8E5DB] dark:border-[#2A352A]"}`}>{category}</button>)}</div>
 
-      {/* Legend */}
-      <div className="p-4 rounded-lg bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] flex flex-wrap items-center gap-4 text-xs font-semibold">
-        <div className="flex items-center gap-1.5 text-[#3E4D3E] dark:text-[#8BA888]">
-          <CheckCircle2 className="w-4 h-4 text-[#5A6B5A]" />
-          <span>Completed / Mastered</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-[#8B5A2B]">
-          <Clock className="w-4 h-4" />
-          <span>Current Target</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-rose-700">
-          <AlertCircle className="w-4 h-4" />
-          <span>Needs Revision</span>
-        </div>
-        <div className="flex items-center gap-1.5 text-[#7A7D75]">
-          <Lock className="w-4 h-4" />
-          <span>Upcoming</span>
-        </div>
-      </div>
-
-      {/* Visual Nodes Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {dynamicNodes.map((node) => {
-          const isCompleted = node.status === "completed";
-          const isCurrent = node.status === "current";
-          const needsRevision = node.status === "needs_revision";
-
-          return (
-            <div
-              key={node.id}
-              onClick={() => {
-                const nextStatus =
-                  node.status === "locked"
-                    ? "current"
-                    : node.status === "current"
-                    ? "completed"
-                    : node.status === "completed"
-                    ? "needs_revision"
-                    : "completed";
-                updateMemoryMapNode(node.id, nextStatus, selectedStudentId);
-              }}
-              className={`p-4 rounded-xl border shadow-soft transition-all cursor-pointer space-y-2 flex flex-col justify-between hover:scale-[1.02] active:scale-98 ${
-                isCompleted
-                  ? "bg-[#FCFAF5] dark:bg-[#232B23] border-[#5A6B5A] text-[#3E4D3E] dark:text-[#8BA888]"
-                  : isCurrent
-                  ? "bg-[#FCFAF5] dark:bg-[#232B23] border-[#8B5A2B] text-[#8B5A2B]"
-                  : needsRevision
-                  ? "bg-[#FCFAF5] dark:bg-[#232B23] border-rose-700 text-rose-700"
-                  : "bg-white dark:bg-[#161D17] border-[#E8E5DB] dark:border-[#2A352A] text-[#7A7D75]"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase font-bold tracking-wider opacity-75">
-                  Node #{node.id.split("-")[1] || "1"}
-                </span>
-                {isCompleted && <CheckCircle2 className="w-4 h-4 text-[#5A6B5A]" />}
-                {isCurrent && <Clock className="w-4 h-4 text-[#8B5A2B]" />}
-                {needsRevision && <AlertCircle className="w-4 h-4 text-rose-700" />}
-                {!isCompleted && !isCurrent && !needsRevision && <Lock className="w-4 h-4 text-[#7A7D75]" />}
-              </div>
-
-              <div className="space-y-0.5">
-                <h4 className="font-serif font-bold text-sm text-[#1F261F] dark:text-[#E2E8E2]">
-                  {node.title}
-                </h4>
-                {node.titleArabic && (
-                  <p className="font-serif font-bold text-sm text-right dir-rtl">
-                    {node.titleArabic}
-                  </p>
-                )}
-              </div>
-
-              {node.notes && (
-                <p className="text-[10px] italic opacity-80 pt-1 border-t border-[#E8E5DB] dark:border-[#2A352A]">
-                  {node.notes}
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {memoryResults.length === 0 ? (
+        <div className="space-y-4"><div className="p-6 rounded-xl border border-dashed border-[#E8E5DB] dark:border-[#2A352A] bg-[#FCFAF5] dark:bg-[#161D17]"><div className="flex items-center gap-2"><RefreshCw className="w-5 h-5 text-[#7A7D75]" /><p className="text-sm font-semibold text-[#2D332D] dark:text-stone-200">{language === "ar" ? "معاينة خريطة الذاكرة" : "Memory Map Preview"}</p></div><p className="text-xs text-[#7A7D75] mt-2">{language === "ar" ? "لم يتم تسجيل اختبار ذاكرة لهذا الطالب بعد. سجّل اختبارًا لإظهار الاحتفاظ والإتقان الفعليين." : "No memory test has been recorded for this student yet. Record one to show actual retention and mastery."}</p></div>{assignedCurriculum?.lessons?.length ? <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">{assignedCurriculum.lessons.map((lesson, index) => <div key={lesson.id} className="p-4 rounded-xl border border-dashed border-[#E8E5DB] dark:border-[#2A352A] bg-white dark:bg-[#161D17] space-y-2"><span className="text-[10px] uppercase font-bold tracking-wider text-[#7A7D75]">{language === "ar" ? `درس ${index + 1}` : `Lesson ${index + 1}`}</span><h4 className="font-serif font-bold text-sm text-[#1F261F] dark:text-[#E2E8E2]">{lesson.title}</h4><span className="text-[10px] uppercase font-bold text-[#7A7D75]">{language === "ar" ? "لم يُختبر" : "Not tested"}</span></div>)}</div> : null}</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">{memoryResults.map((result) => <div key={result.id} className="p-5 rounded-xl border border-[#5A6B5A]/40 bg-[#FCFAF5] dark:bg-[#232B23] space-y-3"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-[#2D332D] dark:text-stone-200">{result.surahRange}</span><span className="text-2xl font-bold text-[#5A6B5A]">{result.scorePercentage}%</span></div><p className="text-[10px] text-[#7A7D75]">{result.date}</p>{result.strongAreas?.length ? <p className="text-xs text-[#3E4D3E] dark:text-[#8BA888]">{language === "ar" ? "نقاط قوية:" : "Strong areas:"} {result.strongAreas.join(", ")}</p> : null}{result.needsPractice?.length ? <p className="text-xs text-[#8B5A2B]">{language === "ar" ? "تحتاج ممارسة:" : "Needs practice:"} {result.needsPractice.join(", ")}</p> : null}</div>)}</div>
+      )}
     </div>
   );
 };
-

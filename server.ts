@@ -18,7 +18,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const AI_TIMEOUT_MS = 8_500;
+const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS || 8_500);
+const PRIMARY_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 async function generateWithTimeout(ai: GoogleGenAI, options: GenerateContentParameters) {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
@@ -144,30 +145,35 @@ async function startServer() {
     if ("error" in validation) return sendInvalidRequest(res, validation.error);
 
     try {
-      const { subject, topic, studentName, studentAge, studentLevel, duration, teachingStyle, language, learningGoal, customInstructions } = validation.value;
+      const { subject, topic, studentName, studentAge, studentLevel, duration, teachingStyle, language, learningGoal, customInstructions, studentProfile, learningHistory } = validation.value;
       const ai = getAi();
       const isArabic = language === "ar";
 
-      const prompt = `You are a world-class Islamic & Arabic educator designing a lesson plan for an international student.
-Generate a structured, practical, teacher-friendly lesson plan in ${isArabic ? "Arabic" : "English"}.
+      const prompt = `You are the senior pedagogical planner for the ISLAM ROOTS teacher workspace. Generate a complete, structured lesson plan in ${isArabic ? "Modern Standard Arabic" : "English"}.
 
+TRUSTED LESSON CONTEXT
 Subject: ${subject}
 Topic: ${topic}
-Student: ${studentName} (Age: ${studentAge}, Level: ${studentLevel})
+Student: ${studentName} (Age: ${studentAge}, Requested level: ${studentLevel})
 Duration: ${duration} minutes
-Teaching Style: ${teachingStyle}
-Learning Goal: ${learningGoal || "General mastery and understanding"}
+Teaching style: ${teachingStyle}
+Learning goal: ${learningGoal || "General mastery and understanding"}
+Student profile (identity/context only): ${JSON.stringify(studentProfile)}
+Recorded learning history (evidence only; may be empty): ${JSON.stringify(learningHistory)}
+Teacher focus (highest-priority constraint): ${customInstructions || "No additional focus provided."}
 
-Important Rules:
-1. Ensure explanations are tailored to age ${studentAge} (${studentLevel} level).
-2. For Quranic or Tajweed topics, ensure 100% accurate Arabic text and accurate explanations.
-3. Provide key terms with clear explanations for foreign/international students.
-${customInstructions ? `4. Custom Instructions: ${customInstructions}` : ""}
-4. Structure the response in JSON. Keep content concise to ensure fast generation.`;
+PEDAGOGICAL RULES
+1. Make Beginner, Intermediate, and Advanced visibly different: Beginner uses simpler language, modeling, scaffolding, examples, controlled practice, and frequent checks; Intermediate uses moderate scaffolding, broader vocabulary, and meaningful independent application; Advanced uses nuance, error analysis, authentic application, higher-order tasks, and independent production.
+2. Treat the teacher focus as a hard priority. Allocate the majority of examples, guided practice, questions, assessment, and homework to that focus. Do not drift into unrelated topics.
+3. Use recorded learning history only when present. Never infer strengths, weaknesses, accuracy, mastery, attendance, or improvement from profile fields. If history is empty, internally state: No prior learning history available.
+4. Scale depth to the requested duration: 30 minutes is compact, 60 minutes is substantially developed, and 90 minutes is an extended session with realistic time allocation.
+5. Include learning objectives, retrieval/warm-up, teaching/presentation, examples, guided practice, a checkpoint, controlled practice, applied or communicative practice, error correction, independent work, assessment, homework, and teacher notes as appropriate to the subject and duration.
+6. For Quranic or Tajweed topics, provide careful explanations and do not fabricate citations or student performance.
+7. Return only the requested JSON structure.`;
 
       console.log("[JAL_GENERATION_AI_REQUEST] Sending request to AI Provider");
       const response = await generateWithTimeout(ai, {
-        model: "gemini-3.5-flash-lite",
+        model: PRIMARY_GEMINI_MODEL,
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -273,7 +279,7 @@ Context: Subject: ${subject}, Topic: ${topic}, Student: ${studentName} (Age: ${s
 The number of slides should be appropriate for a ${duration} minute lesson.\n
 Provide the title, bullet points, and speaker notes for each slide.`;
       const response = await generateWithTimeout(ai, {
-        model: "gemini-3.5-flash-lite",
+        model: PRIMARY_GEMINI_MODEL,
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -326,7 +332,7 @@ Include a mix of multiple choice, true/false, and short answer questions.
 Provide the question, list of options (if applicable), correct answer, and a short explanation.`;
 
       const response = await generateWithTimeout(ai, {
-        model: "gemini-3.5-flash-lite",
+        model: PRIMARY_GEMINI_MODEL,
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -382,7 +388,7 @@ Language: ${isArabic ? "Arabic" : "English"}
 Keep it practical, encouraging, and clear.`;
 
       const response = await generateWithTimeout(ai, {
-        model: "gemini-3.5-flash-lite",
+        model: PRIMARY_GEMINI_MODEL,
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -442,7 +448,7 @@ Provide:
 3. Key recommendation/action item for next lesson`;
 
       const response = await generateWithTimeout(ai, {
-        model: "gemini-3.5-flash-lite",
+        model: PRIMARY_GEMINI_MODEL,
         contents: prompt,
         config: {
           responseMimeType: "application/json",
