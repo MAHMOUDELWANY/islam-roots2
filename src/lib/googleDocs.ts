@@ -1,3 +1,5 @@
+import { GoogleWorkspaceError, throwForGoogleResponse, toGoogleWorkspaceError } from "./googleWorkspace";
+
 export interface GoogleDocFile {
   id: string;
   name: string;
@@ -26,13 +28,14 @@ export async function createGoogleDoc(
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      console.error('Failed to create Google Doc:', errText);
-      throw new Error(`Google Docs API error (${response.status})`);
+      await throwForGoogleResponse(response, "Google Docs document creation");
     }
 
-    const docData = await response.json();
+    const docData = await response.json() as { documentId?: string; title?: string };
     const documentId = docData.documentId;
+    if (!documentId) {
+      throw new GoogleWorkspaceError("Google Docs returned no document ID.", "API_ERROR");
+    }
     const webViewLink = `https://docs.google.com/document/d/${documentId}/edit`;
 
     // 2. Insert text if provided
@@ -46,8 +49,7 @@ export async function createGoogleDoc(
       webViewLink,
     };
   } catch (err) {
-    console.error('Error creating Google Doc:', err);
-    throw err;
+    throw toGoogleWorkspaceError(err, "Google Docs document creation");
   }
 }
 
@@ -79,9 +81,7 @@ export async function insertTextIntoDoc(
   });
 
   if (!response.ok) {
-    const errText = await response.text();
-    console.error('Failed to insert text into Google Doc:', errText);
-    throw new Error(`Google Docs BatchUpdate error (${response.status})`);
+    await throwForGoogleResponse(response, "Google Docs content insertion");
   }
 }
 
@@ -95,10 +95,14 @@ export interface LessonDocExportData {
   studentName?: string;
   lessonGoal?: string;
   description?: string;
-  warmup?: string;
+  warmup?: string | { durationMinutes?: number; instructions?: string; questions?: string[] };
   keyPoints?: string[];
-  vocabulary?: Array<{ arabic: string; english: string; explanation: string }> | any[];
-  questionsToAsk?: Array<{ question: string; answer?: string; answerKey?: string }> | any[];
+  vocabulary?: Array<{ arabic?: string; english?: string; explanation?: string }> | any[];
+  questionsToAsk?: {
+    easy?: string[];
+    medium?: string[];
+    challenge?: string[];
+  } | Array<{ question: string; answer?: string; answerKey?: string }> | any[];
   examples?: string[];
   miniActivity?: string;
   quickQuiz?: Array<{ question: string; options?: string[]; correctAnswer?: string; explanation?: string }> | any[];
@@ -109,6 +113,36 @@ export interface LessonDocExportData {
   } | any;
   notes?: string;
   versesText?: string;
+}
+
+function formatWarmup(warmup: LessonDocExportData["warmup"]): string[] {
+  if (!warmup) return [];
+  if (typeof warmup === "string") return [warmup];
+  return [
+    typeof warmup.durationMinutes === "number" ? `Duration: ${warmup.durationMinutes} minutes` : "",
+    warmup.instructions || "",
+    ...(Array.isArray(warmup.questions) && warmup.questions.length > 0
+      ? ["Questions:", ...warmup.questions.map((question) => `• ${question}`)]
+      : []),
+  ].filter(Boolean);
+}
+
+function formatDiscussionQuestions(questions: LessonDocExportData["questionsToAsk"]): string[] {
+  if (!questions) return [];
+  if (Array.isArray(questions)) {
+    return questions.flatMap((question, index) => {
+      if (typeof question === "string") return [`Q${index + 1}: ${question}`];
+      return [
+        `Q${index + 1}: ${question.question}`,
+        question.answer || question.answerKey ? `   Answer Key: ${question.answer || question.answerKey}` : "",
+      ].filter(Boolean);
+    });
+  }
+  return ([
+    ["Easy", questions.easy],
+    ["Medium", questions.medium],
+    ["Challenge", questions.challenge],
+  ] as const).flatMap(([label, items]) => items?.length ? [`${label}:`, ...items.map((item) => `• ${item}`)] : []);
 }
 
 /**
@@ -136,9 +170,10 @@ export async function exportLessonToGoogleDoc(
   lines.push(``);
 
   // 2. WARM-UP & OPENING ACTIVITY
-  if (lesson.warmup) {
+  const warmupLines = formatWarmup(lesson.warmup);
+  if (warmupLines.length > 0) {
     lines.push(`2. WARM-UP & OPENING ACTIVITY`);
-    lines.push(lesson.warmup);
+    lines.push(...warmupLines);
     lines.push(``);
   }
 
@@ -176,18 +211,10 @@ export async function exportLessonToGoogleDoc(
   }
 
   // 6. DISCUSSION & EVALUATION QUESTIONS
-  if (lesson.questionsToAsk && lesson.questionsToAsk.length > 0) {
+  const discussionQuestionLines = formatDiscussionQuestions(lesson.questionsToAsk);
+  if (discussionQuestionLines.length > 0) {
     lines.push(`6. CLASSROOM DISCUSSION QUESTIONS`);
-    lesson.questionsToAsk.forEach((q: any, i: number) => {
-      if (typeof q === 'string') {
-        lines.push(`Q${i + 1}: ${q}`);
-      } else {
-        lines.push(`Q${i + 1}: ${q.question}`);
-        if (q.answer || q.answerKey) {
-          lines.push(`   Answer Key: ${q.answer || q.answerKey}`);
-        }
-      }
-    });
+    lines.push(...discussionQuestionLines);
     lines.push(``);
   }
 
@@ -279,16 +306,13 @@ export async function fetchUserGoogleDocs(
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      console.error('Failed to list Google Docs:', errText);
-      throw new Error(`Google Drive API Error (${response.status})`);
+      await throwForGoogleResponse(response, "Google Docs listing");
     }
 
     const data = await response.json();
     return data.files || [];
   } catch (err) {
-    console.error('Error fetching Google Docs:', err);
-    throw err;
+    throw toGoogleWorkspaceError(err, "Google Docs listing");
   }
 }
 
@@ -311,14 +335,11 @@ export async function deleteGoogleDoc(
     );
 
     if (!response.ok && response.status !== 404) {
-      const errText = await response.text();
-      console.error('Failed to delete Google Doc:', errText);
-      throw new Error(`Google Drive API error (${response.status})`);
+      await throwForGoogleResponse(response, "Google Docs deletion");
     }
 
     return true;
   } catch (err) {
-    console.error('Error deleting Google Doc:', err);
-    throw err;
+    throw toGoogleWorkspaceError(err, "Google Docs deletion");
   }
 }

@@ -37,6 +37,7 @@ interface AuthContextType {
   connectGmail: () => Promise<string | null>;
   connectGoogleForms: () => Promise<string | null>;
   connectGooglePicker: () => Promise<string | null>;
+  clearGoogleToken: (key: keyof GoogleTokens) => void;
   loginAsGuest: (name?: string) => void;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -499,6 +500,14 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
     );
   };
 
+  const clearGoogleToken = (key: keyof GoogleTokens) => {
+    setGoogleTokens((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  };
+
   const logout = async () => {
     sessionStorage.removeItem("islamroots_session_guest");
     localStorage.removeItem("islamroots_guest_teacher");
@@ -638,6 +647,7 @@ const loginAsGuest = (name: string = "Ustadh Guest") => {
         connectGmail,
         connectGoogleForms,
         connectGooglePicker,
+        clearGoogleToken,
         loginAsGuest,
         logout,
         resetPassword,

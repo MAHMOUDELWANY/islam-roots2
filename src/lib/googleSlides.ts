@@ -6,6 +6,8 @@ export interface GoogleSlideFile {
   iconLink?: string;
 }
 
+import { GoogleWorkspaceError, throwForGoogleResponse, toGoogleWorkspaceError } from "./googleWorkspace";
+
 export interface SlideContent {
   title: string;
   subtitle?: string;
@@ -223,13 +225,14 @@ export async function createGoogleSlidesPresentation(
     });
 
     if (!createRes.ok) {
-      const errText = await createRes.text();
-      console.error('[SLIDES_EXPORT_ERROR] Failed to create presentation shell. Status:', createRes.status);
-      throw new Error(`Google Slides API creation error (${createRes.status}): ${errText}`);
+      await throwForGoogleResponse(createRes, "Google Slides presentation creation");
     }
 
-    const presData = await createRes.json();
+    const presData = await createRes.json() as { presentationId?: string; title?: string; slides?: Array<{ objectId?: string }> };
     const presentationId = presData.presentationId;
+    if (!presentationId) {
+      throw new GoogleWorkspaceError("Google Slides returned no presentation ID.", "API_ERROR");
+    }
     const defaultSlideId = presData.slides?.[0]?.objectId;
 
     console.log('[SLIDES_PRESENTATION_CREATED] Created presentation shell with ID:', presentationId);
@@ -259,9 +262,9 @@ export async function createGoogleSlidesPresentation(
         createSlide: {
           objectId: slideId,
           insertionIndex: index,
-          slideLayout: {
-            predefinedLayout: 'BLANK',
-          },
+            slideLayoutReference: {
+              predefinedLayout: 'BLANK',
+            },
         },
       });
 
@@ -540,9 +543,7 @@ export async function createGoogleSlidesPresentation(
     });
 
     if (!batchResponse.ok) {
-      const batchErr = await batchResponse.text();
-      console.error('[SLIDES_EXPORT_ERROR] Google Slides batchUpdate failed with HTTP status:', batchResponse.status);
-      throw new Error(`Google Slides batchUpdate failed (${batchResponse.status}): ${batchErr}`);
+      await throwForGoogleResponse(batchResponse, "Google Slides content export");
     }
 
     console.log('[SLIDES_BATCH_UPDATE_SUCCESS] Google Slides batchUpdate completed successfully.');
@@ -558,9 +559,7 @@ export async function createGoogleSlidesPresentation(
     });
 
     if (!verifyRes.ok) {
-      const verifyErr = await verifyRes.text();
-      console.error('[SLIDES_EXPORT_ERROR] Presentation verification failed with status:', verifyRes.status);
-      throw new Error(`Google Slides verification request failed (${verifyRes.status}): ${verifyErr}`);
+      await throwForGoogleResponse(verifyRes, "Google Slides export verification");
     }
 
     const verifyData = await verifyRes.json();
@@ -597,9 +596,8 @@ export async function createGoogleSlidesPresentation(
       title: verifyData.title || title,
       webViewLink,
     };
-  } catch (err: any) {
-    console.error('[SLIDES_EXPORT_ERROR] Error creating Google Slides presentation:', err?.message || err);
-    throw err;
+  } catch (err) {
+    throw toGoogleWorkspaceError(err, "Google Slides export");
   }
 }
 

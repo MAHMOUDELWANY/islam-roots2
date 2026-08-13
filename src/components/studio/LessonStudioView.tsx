@@ -7,6 +7,12 @@ import { exportLessonToGoogleDoc } from "../../lib/googleDocs";
 import { exportLessonToGoogleSlides, createGoogleSlidesPresentation } from "../../lib/googleSlides";
 import { captureAndDownloadScreenshot } from "../../lib/screenshot";
 import { AiClientError, requestAuthenticatedAi } from "../../lib/aiClient";
+import {
+  GoogleWorkspaceError,
+  googleWorkspaceUserMessage,
+  isGoogleWorkspaceAuthError,
+  toGoogleWorkspaceError,
+} from "../../lib/googleWorkspace";
 import { SubjectType, LevelType, AILessonPlan } from "../../types";
 import { SUBJECTS, getSubjectLabel } from "../../lib/subjects";
 import {
@@ -26,6 +32,8 @@ import {
   Trash2,
   X,
   FolderHeart,
+  Download,
+  ChevronDown,
 } from "lucide-react";
 
 interface LessonStudioViewProps {
@@ -99,7 +107,7 @@ function normalizeSavedLessonPlan(content: unknown): AILessonPlan {
 export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizModal, onOpenAddStudent }) => {
   const { t, language } = useLanguage();
   const { students, getStudentSessions, getStudentCurriculum, saveAIContent, savedContents, deleteSavedAIContent } = useData();
-  const { googleTokens, connectGoogleDocs, connectGoogleSlides, isGuest } = useAuth();
+  const { googleTokens, connectGoogleDocs, connectGoogleSlides, clearGoogleToken, isGuest } = useAuth();
 
   // Generator inputs
   const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -142,6 +150,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
 
   const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
   const [screenshotStatusMsg, setScreenshotStatusMsg] = useState<string>("");
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
   const isArabic = language === "ar";
   const availableStudents = students.filter((student) => student.status !== "Archived");
@@ -153,6 +162,29 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   const learningGoal = [...selectedLearningGoals, ...(customGoal.trim() ? [customGoal.trim()] : [])].join(", ");
   const selectedStudentSessions = selectedStudent ? getStudentSessions(selectedStudent.id).slice(0, 8) : [];
   const selectedStudentAssignment = selectedStudent ? getStudentCurriculum(selectedStudent.id) : { curriculum: undefined, studentCurriculum: undefined };
+  const runGoogleExportWithReconnect = async <T,>(
+    service: "docs" | "slides",
+    connect: () => Promise<string | null>,
+    operation: (token: string) => Promise<T>,
+  ): Promise<T> => {
+    const existingToken = googleTokens[service];
+    const token = existingToken || await connect();
+    if (!token) {
+      throw new GoogleWorkspaceError("Google authorization was not granted.", "AUTH_ERROR");
+    }
+
+    try {
+      return await operation(token);
+    } catch (exportError) {
+      if (existingToken && isGoogleWorkspaceAuthError(exportError)) {
+        clearGoogleToken(service);
+        const refreshedToken = await connect();
+        if (refreshedToken) return operation(refreshedToken);
+      }
+      throw exportError;
+    }
+  };
+
   const canGenerate = Boolean(
     selectedStudent &&
     selectedStudent.name.trim() &&
@@ -216,6 +248,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
 
   const handleTakeScreenshot = async () => {
     if (!generatedPlan) return;
+    setIsExportMenuOpen(false);
     setIsCapturingScreenshot(true);
     setScreenshotStatusMsg(
       language === "ar" ? "جارٍ التقاط صورة الدرس..." : "Capturing lesson plan screenshot..."
@@ -245,33 +278,22 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
 
   const handleExportToGoogleSlides = async () => {
     if (!generatedPlan) return;
+    setIsExportMenuOpen(false);
     setIsExportingSlides(true);
-    setSlidesStatusMsg(
-      language === "ar" ? "جارٍ بدء إنشاء العرض..." : "Starting presentation creation..."
-    );
+    setSlidesStatusMsg(language === "ar" ? "جارٍ بدء إنشاء العرض..." : "Starting presentation creation...");
     setCreatedSlidesLink(null);
 
     try {
-      let token = googleTokens.slides;
-      if (!token) {
-        token = await connectGoogleSlides();
-      }
-
-      if (token) {
-        let aiSlides = null;
+      const result = await runGoogleExportWithReconnect("slides", connectGoogleSlides, async (token) => {
+        let aiSlides: any[] | null = null;
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          const fbToken = session?.access_token;
-          if (fbToken) {
-            setSlidesStatusMsg(
-              language === "ar" ? "جارٍ بناء هيكل السلايدات..." : "Generating AI slide structure..."
-            );
+          const sessionToken = session?.access_token;
+          if (sessionToken) {
+            setSlidesStatusMsg(language === "ar" ? "جارٍ بناء هيكل السلايدات..." : "Preparing the presentation outline...");
             const planRes = await fetch("/api/gemini/slides-plan", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${fbToken}`
-              },
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionToken}` },
               body: JSON.stringify({
                 subject,
                 topic,
@@ -303,38 +325,27 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                   level: selectedStudentAssignment.curriculum.level,
                   progressPercentage: selectedStudentAssignment.studentCurriculum?.progressPercentage || 0,
                 } : null,
-                lessonPlan: generatedPlan
-              })
+                lessonPlan: generatedPlan,
+              }),
             });
             if (planRes.ok) {
               const planData = await planRes.json();
-              if (planData.data && Array.isArray(planData.data.slides) && planData.data.slides.length > 0) {
+              if (Array.isArray(planData.data?.slides) && planData.data.slides.length > 0) {
                 aiSlides = planData.data.slides;
-                const presTitle = planData.data.title || `[IslamRoots Deck] ${subject} - ${topic}`;
-                const result = await createGoogleSlidesPresentation(
+                return createGoogleSlidesPresentation(
                   token,
-                  presTitle,
+                  planData.data.title || `[IslamRoots Deck] ${subject} - ${topic}`,
                   aiSlides,
-                  {
-                    onProgress: (msg) => setSlidesStatusMsg(msg)
-                  }
+                  { onProgress: setSlidesStatusMsg },
                 );
-                setCreatedSlidesLink(result.webViewLink);
-                setSlidesStatusMsg(
-                  language === "ar"
-                    ? "تم إنشاء عرض Google Slides بنجاح وتصدير جميع العناصر!"
-                    : "Google Presentation created and populated successfully!"
-                );
-                setIsExportingSlides(false);
-                return;
               }
             }
           }
-        } catch (e) {
-          console.warn("[SLIDES_EXPORT_ERROR] AI slide plan endpoint failed, falling back to full lesson normalizer:", e);
+        } catch {
+          setSlidesStatusMsg(language === "ar" ? "جارٍ استخدام مخطط الدرس المباشر..." : "Using the lesson plan directly...");
         }
 
-        const result = await exportLessonToGoogleSlides(
+        return exportLessonToGoogleSlides(
           token,
           {
             title: topic,
@@ -352,25 +363,16 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
             homework: generatedPlan.homework,
             teachingTips: generatedPlan.teachingTips,
           },
-          {
-            onProgress: (msg) => setSlidesStatusMsg(msg)
-          }
+          { onProgress: setSlidesStatusMsg },
         );
+      });
 
-        setCreatedSlidesLink(result.webViewLink);
-        setSlidesStatusMsg(
-          language === "ar"
-            ? "تم إنشاء عرض Google Slides بنجاح وتصدير جميع العناصر!"
-            : "Google Presentation created and populated successfully!"
-        );
-      }
-    } catch (err: any) {
-      console.error("[SLIDES_EXPORT_ERROR] Failed to export Google Slides:", err);
-      setSlidesStatusMsg(
-        language === "ar"
-          ? "فشل إنشاء عرض Google Slides. حاول مرة أخرى."
-          : "Failed to create Google Slides. Please try again."
-      );
+      setCreatedSlidesLink(result.webViewLink);
+      setSlidesStatusMsg(language === "ar" ? "تم إنشاء عرض Google Slides بنجاح." : "Google Slides presentation created successfully.");
+    } catch (err: unknown) {
+      const normalized = toGoogleWorkspaceError(err, "Google Slides export");
+      console.error("[SLIDES_EXPORT_ERROR] Export failed.", { code: normalized.code, status: normalized.status, reason: normalized.reason });
+      setSlidesStatusMsg(googleWorkspaceUserMessage(normalized, language === "ar" ? "ar" : "en"));
     } finally {
       setIsExportingSlides(false);
     }
@@ -378,53 +380,35 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
 
   const handleExportToGoogleDoc = async () => {
     if (!generatedPlan) return;
+    setIsExportMenuOpen(false);
     setIsExportingDoc(true);
-    setDocStatusMsg("");
+    setDocStatusMsg(language === "ar" ? "جارٍ إنشاء المستند..." : "Creating your Google Doc...");
     setCreatedDocLink(null);
 
     try {
-      let token = googleTokens.docs;
-      if (!token) {
-        token = await connectGoogleDocs();
-      }
+      const result = await runGoogleExportWithReconnect("docs", connectGoogleDocs, (token) => exportLessonToGoogleDoc(token, {
+        title: topic,
+        subject,
+        level,
+        lessonGoal: generatedPlan.lessonGoal,
+        description: generatedPlan.lessonGoal,
+        warmup: generatedPlan.warmup,
+        keyPoints: generatedPlan.keyPoints,
+        vocabulary: generatedPlan.vocabulary,
+        questionsToAsk: generatedPlan.questionsToAsk,
+        examples: generatedPlan.examples,
+        miniActivity: generatedPlan.miniActivity,
+        quickQuiz: generatedPlan.quickQuiz,
+        homework: generatedPlan.homework,
+        teachingTips: generatedPlan.teachingTips,
+      }));
 
-      if (token) {
-        const keyPointsText = generatedPlan.keyPoints?.map((kp) => `• ${kp}`).join("\n");
-        const vocabText = generatedPlan.vocabulary
-          ?.map((v) => `${v.arabic} (${v.english}): ${v.explanation}`)
-          .join("\n");
-
-        const result = await exportLessonToGoogleDoc(token, {
-          title: topic,
-          subject,
-          level,
-          lessonGoal: generatedPlan.lessonGoal,
-          description: generatedPlan.lessonGoal,
-          warmup: generatedPlan.warmup,
-          keyPoints: generatedPlan.keyPoints,
-          vocabulary: generatedPlan.vocabulary,
-          questionsToAsk: generatedPlan.questionsToAsk,
-          examples: generatedPlan.examples,
-          miniActivity: generatedPlan.miniActivity,
-          quickQuiz: generatedPlan.quickQuiz,
-          homework: generatedPlan.homework,
-          teachingTips: generatedPlan.teachingTips,
-        });
-
-        setCreatedDocLink(result.webViewLink);
-        setDocStatusMsg(
-          language === "ar"
-            ? "تم إنشاء مستند Google Docs بنجاح!"
-            : "Google Doc created successfully!"
-        );
-      }
-    } catch (err: any) {
-      console.error("Failed to export Google Doc:", err);
-      setDocStatusMsg(
-        language === "ar"
-          ? "فشل إنشاء مستند Google Docs. حاول مرة أخرى."
-          : "Failed to create Google Doc. Please try again."
-      );
+      setCreatedDocLink(result.webViewLink);
+      setDocStatusMsg(language === "ar" ? "تم إنشاء مستند Google Docs بنجاح." : "Google Doc created successfully.");
+    } catch (err: unknown) {
+      const normalized = toGoogleWorkspaceError(err, "Google Docs export");
+      console.error("[DOCS_EXPORT_ERROR] Export failed.", { code: normalized.code, status: normalized.status, reason: normalized.reason });
+      setDocStatusMsg(googleWorkspaceUserMessage(normalized, language === "ar" ? "ar" : "en"));
     } finally {
       setIsExportingDoc(false);
     }
@@ -545,41 +529,15 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
 
   const handleCopyPlan = () => {
     if (!generatedPlan) return;
+    setIsExportMenuOpen(false);
     const text = `Topic: ${topic}\nSubject: ${subject} | Level: ${level}\nGoal: ${generatedPlan.lessonGoal}\n\nKey Points:\n${generatedPlan.keyPoints?.map((k) => `• ${k}`).join("\n")}\n\nVocabulary:\n${generatedPlan.vocabulary?.map((v) => `${v.arabic} (${v.english}): ${v.explanation}`).join("\n")}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSaveToFirestore = async () => {
-    if (!generatedPlan) return;
-    try {
-      const savedItem = await saveAIContent({
-        id: activeSavedItemId,
-        type: "lesson_plan",
-        title: topic,
-        studentId: selectedStudent?.id,
-        subject,
-        level,
-        durationMinutes,
-        focus: [learningGoal, customInstructions].filter(Boolean).join(" — "),
-        content: generatedPlan,
-      });
-      setActiveSavedItemId(savedItem.id);
-      setSaved(true);
-      setSaveToast(language === "ar" ? "تم حفظ الدرس في مكتبتك." : "Saved to your Saved Library.");
-      setTimeout(() => setSaveToast(null), 5000);
-    } catch (err) {
-      console.error("[Lesson] Manual lesson save failed.", err);
-      setSaved(false);
-      const message = language === "ar" ? "تعذر حفظ الدرس في مكتبتك. حاول مرة أخرى." : "The lesson could not be saved to your library. Please try again.";
-      setSaveToast(import.meta.env.DEV ? `${message} [SAVE_ERROR]` : message);
-      setTimeout(() => setSaveToast(null), 5000);
-    }
-  };
-
   return (
-    <div className="space-y-6 sm:space-y-8 animate-fade-in pb-12 font-sans">
+    <div className="mx-auto w-full max-w-[1480px] space-y-8 pb-16 font-sans animate-fade-in">
       {/* Header Banner */}
       <div className="p-6 sm:p-8 rounded-xl bg-[#2D332D] text-[#E2E8E2] shadow-soft space-y-3 border border-[#3E4D3E] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1.5">
@@ -616,16 +574,19 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(300px,0.85fr)_minmax(0,1.45fr)] xl:gap-10">
         {/* Generator Controls Panel (5 cols) */}
-        <div className="lg:col-span-5 space-y-5">
-          <div className="p-6 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4">
-            <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-[#5A6B5A]" />
-              <span>Lesson Specification</span>
-            </h3>
+        <div className="space-y-6">
+          <div className="ir-surface p-6 sm:p-8 space-y-7">
+            <div className="space-y-1">
+              <h3 className="flex items-center gap-2 text-lg font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2]">
+                <BookOpen className="w-5 h-5 text-[#5A6B5A]" />
+                <span>Lesson Specification</span>
+              </h3>
+              <p className="max-w-md text-xs leading-5 text-[#677167] dark:text-stone-400">Choose the learner and lesson focus first. The remaining details will shape the generated plan.</p>
+            </div>
 
-            <form onSubmit={handleGenerate} className="space-y-4 text-xs font-sans">
+            <form onSubmit={handleGenerate} className="space-y-6 text-sm font-sans">
               {/* Required Student Selector */}
               <div className="space-y-2">
                 <label htmlFor="lesson-student" className="font-semibold text-[#3E4D3E] dark:text-stone-300">
@@ -660,7 +621,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                       required
                       value={selectedStudentId}
                       onChange={(e) => setSelectedStudentId(e.target.value)}
-                      className="ir-input"
+                      className="ir-input w-full px-3.5 py-2.5 text-sm focus:outline-none"
                     >
                       <option value="">{isArabic ? "اختر طالباً مسجلاً" : "Select a registered student"}</option>
                       {filteredStudents.map((student) => (
@@ -688,6 +649,10 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                   </div>
                 </div>
               )}
+
+              <div className="border-t border-[#E8E5DB] pt-6 dark:border-[#2A352A]">
+                <p className="ir-section-label">Lesson focus</p>
+              </div>
 
               {/* Subject */}
               <div className="space-y-2">
@@ -721,7 +686,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                   <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">{isArabic ? "الأهداف التعليمية" : "Learning Goals"} <span className="text-red-600">*</span></label>
                   <span className="text-[10px] text-[#7A7D75]">{isArabic ? "اختر هدفاً واحداً أو أكثر" : "Select one or more"}</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {selectedSubjectGoals.map((goal) => {
                     const selected = selectedLearningGoals.includes(goal.en);
                     return (
@@ -730,7 +695,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                         type="button"
                         aria-pressed={selected}
                         onClick={() => setSelectedLearningGoals((current) => selected ? current.filter((item) => item !== goal.en) : [...current, goal.en])}
-                        className={`rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${selected ? "border-[#5A6B5A] bg-[#F2EFE6] text-[#3E4D3E]" : "border-[#E8E5DB] text-[#7A7D75] hover:border-[#5A6B5A]"}`}
+                        className={`w-full rounded-xl border px-3 py-2.5 text-start text-xs font-semibold transition-colors ${selected ? "border-[#5A6B5A] bg-[#F2EFE6] text-[#3E4D3E]" : "border-[#E8E5DB] text-[#7A7D75] hover:border-[#5A6B5A]"}`}
                       >
                         {language === "ar" ? goal.ar : goal.en}
                       </button>
@@ -750,28 +715,32 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                     value={customGoal}
                     onChange={(e) => setCustomGoal(e.target.value)}
                     placeholder={isArabic ? "اكتب هدفاً تعليمياً مخصصاً" : "Type a custom learning goal"}
-                    className="ir-input"
+                    className="ir-input w-full px-3.5 py-2.5 text-sm focus:outline-none"
                   />
                 )}
               </div>
 
+              <div className="border-t border-[#E8E5DB] pt-6 dark:border-[#2A352A]">
+                <p className="ir-section-label">Teaching setup</p>
+              </div>
+
               {/* Lesson Topic */}
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">
                   {isArabic ? "موضوع الدرس" : t("lessonTopic")} <span className="text-red-600">*</span>
                 </label>
-                <input type="text" required value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Surah An-Nasr or Rules of Ghunnah" className="ir-input" />
+                <input type="text" required value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Surah An-Nasr or Rules of Ghunnah" className="ir-input w-full px-3.5 py-2.5 text-sm focus:outline-none" />
               </div>
 
               {/* Teacher Style and Duration */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div className="space-y-1">
                   <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">{isArabic ? "أسلوب التدريس" : "Teaching Style"}</label>
-                  <input type="text" value={teachingStyle} onChange={(e) => setTeachingStyle(e.target.value)} className="ir-input" placeholder="e.g. Interactive" />
+                  <input type="text" value={teachingStyle} onChange={(e) => setTeachingStyle(e.target.value)} className="ir-input w-full px-3.5 py-2.5 text-sm focus:outline-none" placeholder="e.g. Interactive" />
                 </div>
                 <div className="space-y-1">
                   <label className="font-semibold text-[#3E4D3E] dark:text-stone-300">{isArabic ? "المدة (بالدقائق)" : "Duration (Minutes)"}</label>
-                  <select value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))} className="ir-input">
+                  <select value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))} className="ir-input w-full px-3.5 py-2.5 text-sm focus:outline-none">
                     <option value={30}>{isArabic ? "30 دقيقة" : "30 mins"}</option>
                     <option value={45}>{isArabic ? "45 دقيقة" : "45 mins"}</option>
                     <option value={60}>{isArabic ? "60 دقيقة" : "60 mins"}</option>
@@ -838,7 +807,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
         </div>
 
         {/* Lesson Display Output Panel (7 cols) */}
-        <div className="lg:col-span-7 space-y-5">
+        <div className="min-w-0 space-y-6">
           {!generatedPlan ? (
             <div className="h-full min-h-[400px] p-8 rounded-xl bg-white dark:bg-[#161D17] border border-dashed border-[#E8E5DB] dark:border-[#2A352A] flex flex-col items-center justify-center text-center space-y-3">
               <div className="p-4 rounded-xl bg-[#F2EFE6] dark:bg-[#232B23] text-[#5A6B5A] dark:text-[#8BA888]">
@@ -852,9 +821,9 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
               </p>
             </div>
           ) : (
-            <div id="lesson-plan-container" className="p-6 sm:p-8 rounded-xl bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-6 animate-fade-in">
+            <div id="lesson-plan-container" className="ir-surface p-6 sm:p-10 space-y-8 animate-fade-in">
               {/* Header Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E8E5DB] dark:border-[#2A352A]">
+              <div className="flex flex-col gap-5 border-b border-[#E8E5DB] pb-6 dark:border-[#2A352A] sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded bg-[#F2EFE6] text-[#3E4D3E] text-[10px] font-bold">
@@ -870,101 +839,85 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                   <p className="text-xs text-[#7A7D75]">Goal: {generatedPlan.lessonGoal}</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={handleTakeScreenshot}
-                    disabled={isCapturingScreenshot}
-                    className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
-                    title={language === "ar" ? "التقاط صورة للدرس (PNG)" : "Take Lesson Screenshot (PNG)"}
-                  >
-                    {isCapturingScreenshot ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                    ) : (
-                      <Camera className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsExportMenuOpen((current) => !current)}
+                      aria-expanded={isExportMenuOpen}
+                      aria-haspopup="menu"
+                      className="ir-button ir-button-secondary inline-flex items-center gap-2 px-3.5 text-xs"
+                    >
+                      <Download className="w-4 h-4 text-[#5A6B5A]" />
+                      <span>{language === "ar" ? "تصدير" : "Export"}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExportMenuOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    {isExportMenuOpen && (
+                      <div role="menu" className="absolute end-0 top-[calc(100%+0.5rem)] z-20 w-56 rounded-xl border border-[#E8E5DB] bg-white p-1.5 shadow-lg dark:border-[#2A352A] dark:bg-[#161D17]">
+                        <button type="button" role="menuitem" onClick={handleExportToGoogleDoc} disabled={isExportingDoc} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-start text-xs font-semibold text-[#3E4D3E] hover:bg-[#F2EFE6] disabled:opacity-60 dark:text-stone-200 dark:hover:bg-[#232B23]">
+                          {isExportingDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4 text-[#5A6B5A]" />}
+                          <span>{language === "ar" ? "تصدير إلى Google Docs" : "Export to Google Docs"}</span>
+                        </button>
+                        <button type="button" role="menuitem" onClick={handleExportToGoogleSlides} disabled={isExportingSlides} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-start text-xs font-semibold text-[#3E4D3E] hover:bg-[#F2EFE6] disabled:opacity-60 dark:text-stone-200 dark:hover:bg-[#232B23]">
+                          {isExportingSlides ? <Loader2 className="h-4 w-4 animate-spin" /> : <Presentation className="h-4 w-4 text-[#8B5A2B]" />}
+                          <span>{language === "ar" ? "تصدير إلى Google Slides" : "Export to Google Slides"}</span>
+                        </button>
+                        <button type="button" role="menuitem" onClick={handleTakeScreenshot} disabled={isCapturingScreenshot} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-start text-xs font-semibold text-[#3E4D3E] hover:bg-[#F2EFE6] disabled:opacity-60 dark:text-stone-200 dark:hover:bg-[#232B23]">
+                          {isCapturingScreenshot ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4 text-[#5A6B5A]" />}
+                          <span>{language === "ar" ? "حفظ صورة" : "Save screenshot"}</span>
+                        </button>
+                        <button type="button" role="menuitem" onClick={handleCopyPlan} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-start text-xs font-semibold text-[#3E4D3E] hover:bg-[#F2EFE6] dark:text-stone-200 dark:hover:bg-[#232B23]">
+                          {copied ? <Check className="h-4 w-4 text-[#5A6B5A]" /> : <Copy className="h-4 w-4" />}
+                          <span>{copied ? (language === "ar" ? "تم النسخ" : "Copied") : (language === "ar" ? "نسخ الخطة" : "Copy plan")}</span>
+                        </button>
+                      </div>
                     )}
-                    <span>{language === "ar" ? "حفظ كصورة" : "Screenshot"}</span>
-                  </button>
+                  </div>
 
                   <button
-                    onClick={handleExportToGoogleDoc}
-                    disabled={isExportingDoc}
-                    className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    {isExportingDoc ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#5A6B5A]" />
-                    ) : (
-                      <FileText className="w-3.5 h-3.5 text-[#5A6B5A] dark:text-[#8BA888]" />
-                    )}
-                    <span>{language === "ar" ? "تصدير إلى Docs" : "Export Doc"}</span>
-                  </button>
-
-                  <button
-                    onClick={handleExportToGoogleSlides}
-                    disabled={isExportingSlides}
-                    className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300 hover:bg-amber-100 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    {isExportingSlides ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
-                    ) : (
-                      <Presentation className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                    )}
-                    <span>{language === "ar" ? "تصدير إلى Slides" : "Export Slides"}</span>
-                  </button>
-
-                  <button
-                    onClick={handleSaveToFirestore}
-                    className="p-2 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] text-[#3E4D3E] dark:text-stone-300 hover:border-[#5A6B5A] text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Bookmark className="w-3.5 h-3.5 text-[#5A6B5A]" />
-                    <span>{isAutoSaving ? (language === "ar" ? "جارٍ الحفظ..." : "Autosaving...") : saved ? (language === "ar" ? "تم الحفظ" : "Saved") : language === "ar" ? "حفظ" : "Save"}</span>
-                  </button>
-
-                  <button
-                    onClick={handleCopyPlan}
-                    className="p-2 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] text-[#3E4D3E] dark:text-stone-300 hover:border-[#5A6B5A] text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
-                  >
-                    {copied ? <Check className="w-3.5 h-3.5 text-[#5A6B5A]" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copied ? "Copied" : "Copy"}</span>
-                  </button>
-
-                  <button
+                    type="button"
                     onClick={() => onOpenQuizModal("quiz", topic, subject)}
-                    className="px-3 py-2 rounded-lg bg-[#8B5A2B] hover:bg-[#734A23] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                    className="ir-button inline-flex items-center gap-2 bg-[#8B5A2B] px-3.5 text-xs text-white hover:bg-[#734A23]"
                   >
-                    <FileQuestion className="w-3.5 h-3.5" />
-                    <span>Create Quiz</span>
+                    <FileQuestion className="w-4 h-4" />
+                    <span>{language === "ar" ? "إنشاء اختبار" : "Create quiz"}</span>
                   </button>
+
+                  <div className="hidden items-center gap-1.5 text-[11px] text-[#677167] sm:flex" aria-live="polite">
+                    {isAutoSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 text-[#5A6B5A]" />}
+                    <span>{isAutoSaving ? (language === "ar" ? "جارٍ الحفظ تلقائياً" : "Saving automatically") : saved ? (language === "ar" ? "محفوظ في المكتبة" : "Saved to library") : (language === "ar" ? "سيُحفظ تلقائياً" : "Auto-save on")}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div className="ir-inset p-4 space-y-2 sm:col-span-2">
+              <div className="grid grid-cols-1 gap-6 text-sm sm:grid-cols-2">
+                <div className="ir-inset p-5 sm:p-6 space-y-3 sm:col-span-2">
                   <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Learning Objectives</h4>
                   <ul className="list-disc rtl:list-[arabic-indic] pl-4 rtl:pr-4 rtl:pl-0 space-y-1 text-[#2D332D] dark:text-stone-300">
                     {generatedPlan.learningObjectives.map((objective, index) => <li key={index}>{objective}</li>)}
                   </ul>
                 </div>
-                <div className="ir-inset p-4 space-y-2 sm:col-span-2">
+                <div className="ir-inset p-5 sm:p-6 space-y-3 sm:col-span-2">
                   <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Teacher Explanation</h4>
                   <p className="text-[#2D332D] dark:text-stone-300 leading-relaxed">{generatedPlan.teacherExplanation}</p>
                 </div>
-                <div className="ir-inset p-4 space-y-2">
+                <div className="ir-inset p-5 sm:p-6 space-y-3">
                   <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Guided Practice</h4>
                   <ul className="list-disc pl-4 rtl:pr-4 rtl:pl-0 space-y-1">{generatedPlan.guidedPractice.map((item, index) => <li key={index}>{item}</li>)}</ul>
                 </div>
-                <div className="ir-inset p-4 space-y-2">
+                <div className="ir-inset p-5 sm:p-6 space-y-3">
                   <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Student Practice</h4>
                   <ul className="list-disc pl-4 rtl:pr-4 rtl:pl-0 space-y-1">{generatedPlan.studentPractice.map((item, index) => <li key={index}>{item}</li>)}</ul>
                 </div>
-                <div className="ir-inset p-4 space-y-2">
+                <div className="ir-inset p-5 sm:p-6 space-y-3">
                   <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Checkpoint Questions</h4>
                   <ul className="list-disc pl-4 rtl:pr-4 rtl:pl-0 space-y-1">{generatedPlan.checkpointQuestions.map((item, index) => <li key={index}>{item}</li>)}</ul>
                 </div>
-                <div className="ir-inset p-4 space-y-2">
+                <div className="ir-inset p-5 sm:p-6 space-y-3">
                   <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Assessment</h4>
                   <ul className="list-disc pl-4 rtl:pr-4 rtl:pl-0 space-y-1">{generatedPlan.assessment.map((item, index) => <li key={index}>{item}</li>)}</ul>
                 </div>
-                <div className="ir-inset p-4 space-y-2 sm:col-span-2">
+                <div className="ir-inset p-5 sm:p-6 space-y-3 sm:col-span-2">
                   <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Differentiated Activities</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     <p><strong>Beginner:</strong> {generatedPlan.differentiatedActivities.beginner}</p>
@@ -972,7 +925,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                     <p><strong>Advanced:</strong> {generatedPlan.differentiatedActivities.advanced}</p>
                   </div>
                 </div>
-                <div className="ir-inset p-4 space-y-2 sm:col-span-2">
+                <div className="ir-inset p-5 sm:p-6 space-y-3 sm:col-span-2">
                   <h4 className="font-bold text-[#3E4D3E] dark:text-stone-300">Estimated Timing</h4>
                   <p>{generatedPlan.estimatedTiming.warmupMinutes}m warm-up · {generatedPlan.estimatedTiming.explanationMinutes}m explanation · {generatedPlan.estimatedTiming.guidedPracticeMinutes}m guided practice · {generatedPlan.estimatedTiming.studentPracticeMinutes}m student practice · {generatedPlan.estimatedTiming.assessmentMinutes}m assessment · {generatedPlan.estimatedTiming.totalMinutes}m total</p>
                 </div>
