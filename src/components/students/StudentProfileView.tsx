@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useData } from "../../context/DataContext";
 import { useLanguage } from "../../context/LanguageContext";
-import { captureAndDownloadScreenshot } from "../../lib/screenshot";
 import {
   ArrowLeft,
   BookOpen,
@@ -13,7 +12,6 @@ import {
   AlertCircle,
   Play,
   Calendar,
-  Camera,
   CircleDashed,
 } from "lucide-react";
 
@@ -28,7 +26,6 @@ const copy = {
   en: {
     notFound: "Student not found.",
     back: "Back to Students",
-    screenshot: "Screenshot Report",
     changeCurriculum: "Change Curriculum",
     assignFirst: "Assign First Curriculum",
     noCurriculum: "No curriculum assigned",
@@ -55,7 +52,6 @@ const copy = {
   ar: {
     notFound: "لم يتم العثور على الطالب.",
     back: "العودة إلى الطلاب",
-    screenshot: "لقطة تقرير الطالب",
     changeCurriculum: "تغيير المنهج",
     assignFirst: "تعيين أول منهج",
     noCurriculum: "لم يتم تعيين منهج",
@@ -137,16 +133,6 @@ export const StudentProfileView: React.FC<StudentProfileViewProps> = ({
         </button>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => captureAndDownloadScreenshot("student-profile-container", {
-              filename: `IslamRoots_StudentProfile_${student.name.replace(/\s+/g, "_")}.png`,
-              watermarkText: `IslamRoots Student Report: ${student.name} • https://islamroots.app`,
-            })}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition-all cursor-pointer shadow-xs"
-          >
-            <Camera className="w-3.5 h-3.5" />
-            <span>{text.screenshot}</span>
-          </button>
           <button onClick={() => onStartLesson(student.id)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold shadow-xs transition-all active:scale-95 cursor-pointer">
             <Play className="w-3.5 h-3.5 fill-current" />
             <span>{t("startLesson")}</span>

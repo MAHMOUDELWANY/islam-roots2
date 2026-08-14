@@ -19,7 +19,6 @@
     "dotenv": "^17.4.2",
     "driver.js": "^1.8.0",
     "express": "^4.22.2",
-    "html2canvas": "^1.4.1",
     "lucide-react": "^0.546.0",
     "motion": "^12.43.0",
     "react": "^19.2.8",

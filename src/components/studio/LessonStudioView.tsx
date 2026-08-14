@@ -498,7 +498,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-8 pb-16 font-sans animate-fade-in">
+    <div className="mx-auto w-full max-w-none space-y-8 pb-16 font-sans animate-fade-in">
       {/* Header Banner */}
       <div className="p-6 sm:p-8 rounded-xl bg-[#2D332D] text-[#E2E8E2] shadow-soft space-y-3 border border-[#3E4D3E] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1.5">
@@ -535,14 +535,14 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(300px,0.85fr)_minmax(0,1.45fr)] xl:gap-10">
-        {/* Generator Controls Panel (5 cols) */}
-        <div className="space-y-6">
-          <div className="ir-surface p-6 sm:p-8 space-y-7">
+      <div className="space-y-10">
+        {/* Lesson specification: full-width upper section */}
+        <section aria-labelledby="lesson-specification-heading" className="w-full ir-surface p-6 sm:p-8 lg:p-10 space-y-7">
+
             <div className="space-y-1">
               <h3 className="flex items-center gap-2 text-lg font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2]">
                 <BookOpen className="w-5 h-5 text-[#5A6B5A]" />
-                <span>Lesson Specification</span>
+                <span id="lesson-specification-heading">Lesson Specification</span>
               </h3>
               <p className="max-w-md text-xs leading-5 text-[#677167] dark:text-stone-400">Choose the learner and lesson focus first. The remaining details will shape the generated plan.</p>
             </div>
@@ -764,11 +764,20 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                 </div>
               )}
             </form>
-          </div>
-        </div>
+        </section>
 
-        {/* Lesson Display Output Panel (7 cols) */}
-        <div className="min-w-0 space-y-6">
+        {/* Generated content: full-width lower section */}
+        <section aria-labelledby="generated-content-heading" className="min-w-0 w-full space-y-6 border-t border-[#D9DED7] pt-10 dark:border-[#2A352A]">
+          <div className="flex items-center justify-between gap-4 px-1">
+            <div>
+              <p className="ir-section-label">Lesson output</p>
+              <h3 id="generated-content-heading" className="mt-1 text-lg font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2]">
+                {language === "ar" ? "محتوى الدرس المُنشأ" : "Generated lesson content"}
+              </h3>
+            </div>
+            {generatedPlan && <span className="text-xs font-medium text-[#7A7D75] dark:text-stone-400">{language === "ar" ? "راجع الخطة بعد الإنشاء" : "Review your plan below"}</span>}
+          </div>
+          <div className="min-w-0 space-y-6">
           {!generatedPlan ? (
             <div className="h-full min-h-[400px] p-8 rounded-xl bg-white dark:bg-[#161D17] border border-dashed border-[#E8E5DB] dark:border-[#2A352A] flex flex-col items-center justify-center text-center space-y-3">
               <div className="p-4 rounded-xl bg-[#F2EFE6] dark:bg-[#232B23] text-[#5A6B5A] dark:text-[#8BA888]">
@@ -782,7 +791,7 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
               </p>
             </div>
           ) : (
-            <div id="lesson-plan-container" className="ir-surface p-6 sm:p-10 space-y-8 animate-fade-in">
+            <div id="lesson-plan-container" className="w-full ir-surface p-6 sm:p-10 space-y-8 animate-fade-in">
               {/* Header Bar */}
               <div className="flex flex-col gap-5 border-b border-[#E8E5DB] pb-6 dark:border-[#2A352A] sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1">
@@ -990,7 +999,8 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
               )}
             </div>
           )}
-        </div>
+          </div>
+        </section>
       </div>
 
       {/* Saved Library Modal */}

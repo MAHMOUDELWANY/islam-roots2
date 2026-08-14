@@ -3,9 +3,8 @@ import React, { useState } from "react";
 import { SubjectType, LevelType } from "../../types";
 import { useLanguage } from "../../context/LanguageContext";
 import { useData } from "../../context/DataContext";
-import { captureAndDownloadScreenshot } from "../../lib/screenshot";
 import { requestAuthenticatedAi } from "../../lib/aiClient";
-import { X, FileQuestion, Sparkles, Loader2, CheckCircle2, Copy, Check, Bookmark, Camera } from "lucide-react";
+import { X, FileQuestion, Sparkles, Loader2, CheckCircle2, Copy, Check, Bookmark } from "lucide-react";
 
 interface QuizHomeworkModalProps {
   isOpen: boolean;
@@ -286,19 +285,6 @@ export const QuizHomeworkModal: React.FC<QuizHomeworkModalProps> = ({
               )}
 
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() =>
-                    captureAndDownloadScreenshot("quiz-homework-container", {
-                      filename: `IslamRoots_${type}_${lessonTitle.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, "_")}.png`,
-                      watermarkText: `IslamRoots ${type.toUpperCase()} Card • https://islamroots.app`,
-                    })
-                  }
-                  className="px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
-                  title="Take Screenshot (PNG)"
-                >
-                  <Camera className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Screenshot</span>
-                </button>
                 <button
                   onClick={handleSaveToFirestore}
                   className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${

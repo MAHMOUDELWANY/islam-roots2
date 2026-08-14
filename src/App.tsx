@@ -199,7 +199,7 @@ const AppContent: React.FC = () => {
           onOpenTour={() => setIsTourOpen(true)}
         />
 
-        <main className="flex-1 p-4 sm:p-6 xl:p-8 max-w-7xl w-full mx-auto">
+        <main className={`flex-1 p-4 sm:p-6 xl:p-8 w-full mx-auto ${currentSection === "lessonStudio" ? "max-w-none" : "max-w-7xl"}`}>
           {syncError && (
             <div role="alert" className="mb-4 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-100">
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />

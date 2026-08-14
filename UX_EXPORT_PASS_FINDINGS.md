@@ -41,3 +41,7 @@ The corrected production bundle opens successfully in the guest workspace, and t
 ## Pass 3 final local QA
 
 The current local production bundle opens Jalilah AI Studio successfully. The specification view visibly shows the new `Lesson focus` and `Teaching setup` hierarchy, and the static source scan confirms that Screenshot, animated autosave labels, and the old saved-state control are absent. The guest fixture did not produce a generated lesson in this unauthenticated local session, so the generated toolbar was not fabricated or falsely marked as browser-tested.
+
+## Pass 4 local visual QA
+
+The rebuilt local production bundle opens Jalilah Studio successfully. At the tested desktop viewport, the specification panel now spans the available content width, and the page presents a separate `Lesson output` section directly below it with the empty/generated state. The right-hand split layout is gone. The local guest session did not generate a real plan, so generated-content rendering remains covered by the existing build/source validation rather than an unauthenticated fabricated success.

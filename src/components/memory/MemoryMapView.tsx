@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { useData } from "../../context/DataContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { SubjectType } from "../../types";
-import { captureAndDownloadScreenshot } from "../../lib/screenshot";
-import { Network, Camera, RefreshCw } from "lucide-react";
+import { Network, RefreshCw } from "lucide-react";
 
 export const MemoryMapView: React.FC = () => {
   const { students, curriculums, studentCurriculums, getStudentDetectiveResults } = useData();
@@ -21,7 +20,6 @@ export const MemoryMapView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div><h2 className="text-xl sm:text-2xl font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2.5"><Network className="w-6 h-6 text-[#5A6B5A]" /><span>{t("memoryMap")}</span></h2><p className="text-xs sm:text-sm text-[#7A7D75] dark:text-stone-400 mt-1">{language === "ar" ? "اعرض نتائج الذاكرة المسجلة فقط، مع إبقاء المعاينات منفصلة عن إتقان الطالب." : "View recorded memory evidence only; previews never count as student mastery."}</p></div>
         <div className="flex flex-wrap items-center gap-3">
-          <button onClick={() => captureAndDownloadScreenshot("memory-map-container", { filename: `IslamRoots_MemoryMap_${activeCategory}.png`, watermarkText: "IslamRoots Memory Map Visualization • https://islamroots.app" })} className="px-3.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-300 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs"><Camera className="w-3.5 h-3.5" /><span>{language === "ar" ? "حفظ لقطة" : "Save Screenshot"}</span></button>
           {activeStudents.length > 0 && <select value={selectedStudentId} onChange={(e) => setSelectedStudentId(e.target.value)} aria-label={t("selectStudent")} className="px-3 py-1.5 rounded-lg border border-[#E8E5DB] dark:border-[#2A352A] bg-white dark:bg-[#161D17] text-xs font-medium">{activeStudents.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select>}
           <div className="px-4 py-2 rounded-lg bg-white dark:bg-[#161D17] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft flex items-center gap-3"><span className="text-xs font-semibold text-[#7A7D75]">{language === "ar" ? "متوسط الذاكرة:" : "Memory average:"}</span><span className="text-base font-bold text-[#5A6B5A] dark:text-[#8BA888]">{averageScore === null ? "—" : `${averageScore}%`}</span></div>
         </div>
