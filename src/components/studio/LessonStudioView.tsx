@@ -1,10 +1,9 @@
-import { supabase } from "../../lib/supabase";
 import React, { useEffect, useRef, useState } from "react";
 import { useLanguage } from "../../context/LanguageContext";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
 import { exportLessonToGoogleDoc } from "../../lib/googleDocs";
-import { exportLessonToGoogleSlides, createGoogleSlidesPresentation } from "../../lib/googleSlides";
+import { exportLessonToGoogleSlides } from "../../lib/googleSlides";
 import { AiClientError, requestAuthenticatedAi } from "../../lib/aiClient";
 import {
   GoogleWorkspaceError,
@@ -105,7 +104,7 @@ function normalizeSavedLessonPlan(content: unknown): AILessonPlan {
 export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizModal, onOpenAddStudent }) => {
   const { t, language } = useLanguage();
   const { students, getStudentSessions, getStudentCurriculum, saveAIContent, savedContents, deleteSavedAIContent } = useData();
-  const { googleTokens, connectGoogleDocs, connectGoogleSlides, clearGoogleToken, isGuest } = useAuth();
+  const { teacher, googleTokens, connectGoogleDocs, connectGoogleSlides, clearGoogleToken, isGuest } = useAuth();
 
   // Generator inputs
   const [selectedStudentId, setSelectedStudentId] = useState("");
@@ -145,6 +144,9 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   const [slidesStatusMsg, setSlidesStatusMsg] = useState<string>("");
 
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
+  const draftStorageKey = `ir_lesson_studio_draft_v2_${teacher?.id || (isGuest ? "guest" : "pending")}`;
+  const latestDraftRef = useRef<Record<string, unknown> | null>(null);
 
   const isArabic = language === "ar";
   // Keep the latest persistence function without making the autosave effect reschedule on every provider rerender.
@@ -192,6 +194,76 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
     learningGoal.trim() &&
     !loading,
   );
+
+  useEffect(() => {
+    try {
+      const rawDraft = sessionStorage.getItem(draftStorageKey);
+      if (rawDraft) {
+        const draft = JSON.parse(rawDraft) as Record<string, any>;
+        if (typeof draft.selectedStudentId === "string") setSelectedStudentId(draft.selectedStudentId);
+        if (typeof draft.studentSearch === "string") setStudentSearch(draft.studentSearch);
+        if (typeof draft.teachingStyle === "string") setTeachingStyle(draft.teachingStyle);
+        if (Array.isArray(draft.selectedLearningGoals)) setSelectedLearningGoals(draft.selectedLearningGoals);
+        if (typeof draft.customGoal === "string") setCustomGoal(draft.customGoal);
+        if (typeof draft.showCustomGoal === "boolean") setShowCustomGoal(draft.showCustomGoal);
+        if (typeof draft.subject === "string") setSubject(draft.subject as SubjectType);
+        if (typeof draft.topic === "string") setTopic(draft.topic);
+        if (typeof draft.level === "string") setLevel(draft.level as LevelType);
+        if (typeof draft.durationMinutes === "number") setDurationMinutes(draft.durationMinutes);
+        if (typeof draft.explanationLanguage === "string") setExplanationLanguage(draft.explanationLanguage);
+        if (typeof draft.customInstructions === "string") setCustomInstructions(draft.customInstructions);
+        if (draft.generatedPlan && typeof draft.generatedPlan === "object") setGeneratedPlan(draft.generatedPlan as AILessonPlan);
+        if (typeof draft.activeSavedItemId === "string") setActiveSavedItemId(draft.activeSavedItemId);
+      }
+    } catch {
+      // A damaged or unavailable session draft must never block the studio.
+    } finally {
+      setDraftReady(true);
+    }
+  }, [draftStorageKey]);
+
+  useEffect(() => {
+    if (!draftReady) return;
+    const draft: Record<string, unknown> = {
+      selectedStudentId,
+      studentSearch,
+      teachingStyle,
+      selectedLearningGoals,
+      customGoal,
+      showCustomGoal,
+      subject,
+      topic,
+      level,
+      durationMinutes,
+      explanationLanguage,
+      customInstructions,
+      generatedPlan,
+      activeSavedItemId,
+    };
+    latestDraftRef.current = draft;
+    try {
+      sessionStorage.setItem(draftStorageKey, JSON.stringify(draft));
+    } catch {
+      // Session storage is a resilience layer; persistence failures do not interrupt teaching.
+    }
+  }, [draftReady, draftStorageKey, selectedStudentId, studentSearch, teachingStyle, selectedLearningGoals, customGoal, showCustomGoal, subject, topic, level, durationMinutes, explanationLanguage, customInstructions, generatedPlan, activeSavedItemId]);
+
+  useEffect(() => {
+    const persistDraft = () => {
+      if (!latestDraftRef.current) return;
+      try {
+        sessionStorage.setItem(draftStorageKey, JSON.stringify(latestDraftRef.current));
+      } catch {
+        // Best-effort lifecycle persistence only.
+      }
+    };
+    window.addEventListener("pagehide", persistDraft);
+    document.addEventListener("visibilitychange", persistDraft);
+    return () => {
+      window.removeEventListener("pagehide", persistDraft);
+      document.removeEventListener("visibilitychange", persistDraft);
+    };
+  }, [draftStorageKey]);
 
   useEffect(() => {
     if (!selectedStudent) return;
@@ -246,67 +318,8 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
     setCreatedSlidesLink(null);
 
     try {
-      const result = await runGoogleExportWithReconnect("slides", connectGoogleSlides, async (token) => {
-        let aiSlides: any[] | null = null;
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const sessionToken = session?.access_token;
-          if (sessionToken) {
-            setSlidesStatusMsg(language === "ar" ? "جارٍ بناء هيكل السلايدات..." : "Preparing the presentation outline...");
-            const planRes = await fetch("/api/gemini/slides-plan", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionToken}` },
-              body: JSON.stringify({
-                subject,
-                topic,
-                studentId: selectedStudent?.id,
-                curriculumId: selectedStudentAssignment.studentCurriculum?.curriculumId || null,
-                level: selectedStudent?.level || level,
-                duration: durationMinutes,
-                language: explanationLanguage === "Arabic" ? "ar" : "en",
-                customInstructions,
-                studentName: selectedStudent?.name || studentName,
-                studentAge: selectedStudent?.age || studentAge,
-                studentLevel: selectedStudent?.level || level,
-                teachingStyle,
-                learningGoal,
-                learningGoals: selectedLearningGoals.length ? selectedLearningGoals : [customGoal.trim()],
-                studentProfile: selectedStudent ? {
-                  id: selectedStudent.id,
-                  name: selectedStudent.name,
-                  age: selectedStudent.age,
-                  level: selectedStudent.level,
-                  subjects: selectedStudent.subjects,
-                } : null,
-                learningHistory: {
-                  sessions: selectedStudentSessions.map((session) => ({ lessonTitle: session.lessonTitle, date: session.date, quizScore: session.quizScore ?? null })),
-                },
-                curriculumContext: selectedStudentAssignment.curriculum ? {
-                  name: selectedStudentAssignment.curriculum.name,
-                  subject: selectedStudentAssignment.curriculum.subject,
-                  level: selectedStudentAssignment.curriculum.level,
-                  progressPercentage: selectedStudentAssignment.studentCurriculum?.progressPercentage || 0,
-                } : null,
-                lessonPlan: generatedPlan,
-              }),
-            });
-            if (planRes.ok) {
-              const planData = await planRes.json();
-              if (Array.isArray(planData.data?.slides) && planData.data.slides.length > 0) {
-                aiSlides = planData.data.slides;
-                return createGoogleSlidesPresentation(
-                  token,
-                  planData.data.title || `[IslamRoots Deck] ${subject} - ${topic}`,
-                  aiSlides,
-                  { onProgress: setSlidesStatusMsg },
-                );
-              }
-            }
-          }
-        } catch {
-          setSlidesStatusMsg(language === "ar" ? "جارٍ استخدام مخطط الدرس المباشر..." : "Using the lesson plan directly...");
-        }
-
+      const result = await runGoogleExportWithReconnect("slides", connectGoogleSlides, (token) => {
+        setSlidesStatusMsg(language === "ar" ? "جارٍ بناء العرض من خطة الدرس..." : "Building the presentation from your lesson plan...");
         return exportLessonToGoogleSlides(
           token,
           {

@@ -48,7 +48,7 @@ export const JalilahTourModal: React.FC<JalilahTourModalProps> = ({
       showProgress: true,
       animate: true,
       smoothScroll: true,
-      allowClose: true,
+      allowClose: false,
       waitForElement: 2000,
       overlayColor: theme === "dark" ? "rgba(0, 0, 0, 0.8)" : "rgba(22, 29, 23, 0.6)", 
       nextBtnText: isAr ? "التالي" : "Next",
@@ -56,12 +56,10 @@ export const JalilahTourModal: React.FC<JalilahTourModalProps> = ({
       doneBtnText: isAr ? "إنهاء الجولة" : "Start Exploring",
       popoverClass: "islamroots-tour-theme",
       onDestroyStarted: () => {
-        if (!driverRef.current?.hasNextStep()) {
-          handleCloseAndComplete();
-        } else {
-          driverRef.current.destroy();
-          onClose();
-        }
+        // Do not allow an outside click, Escape, or an accidental destroy to
+        // dismiss the tour before the educator reaches the final step.
+        if (driverRef.current?.hasNextStep()) return;
+        handleCloseAndComplete();
       },
       onPopoverRender: (popover, { state }) => {
         // Custom animated dots progress indicator replacing the default text

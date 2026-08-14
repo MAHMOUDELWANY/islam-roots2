@@ -10,19 +10,12 @@ import {
   X,
   AlertCircle,
   Sparkles,
-  ExternalLink,
   RefreshCw,
-  Share2,
 } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAuth } from "../../context/AuthContext";
-import {
-  createGoogleCalendarEvent,
-  fetchGoogleCalendarEvents,
-  deleteGoogleCalendarEvent,
-  GoogleCalendarEvent,
-} from "../../lib/googleCalendar";
+import { createGoogleCalendarEvent } from "../../lib/googleCalendar";
 
 interface ScheduleViewProps {
   onStartLessonSession?: (studentId: string) => void;
@@ -33,14 +26,13 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
   const { t, language } = useLanguage();
   const { googleTokens, connectGoogleCalendar } = useAuth();
 
-  const [viewMode, setViewMode] = useState<"agenda" | "today" | "google">("agenda");
+  const [viewMode, setViewMode] = useState<"agenda" | "today">("agenda");
   const [selectedStudentFilter, setSelectedStudentFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Google Calendar Integration State
+  // Google Calendar synchronization state. Islam Roots only writes schedules created here;
+  // it never imports or deletes the educator's personal Google Calendar events.
   const [syncToGoogleCalendar, setSyncToGoogleCalendar] = useState(true);
-  const [gcalEvents, setGcalEvents] = useState<GoogleCalendarEvent[]>([]);
-  const [isFetchingGcal, setIsFetchingGcal] = useState(false);
   const [gcalStatusMsg, setGcalStatusMsg] = useState<string>("");
   const [syncingScheduleId, setSyncingScheduleId] = useState<string | null>(null);
 
@@ -49,8 +41,6 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
     isOpen: boolean;
     scheduleId: string;
     title: string;
-    isGcalEvent?: boolean;
-    gcalEventId?: string;
   }>({
     isOpen: false,
     scheduleId: "",
@@ -72,25 +62,6 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
   const [notes, setNotes] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  useEffect(() => {
-    if (googleTokens.calendar && viewMode === "google") {
-      loadGcalEvents(googleTokens.calendar);
-    }
-  }, [googleTokens.calendar, viewMode]);
-
-  const loadGcalEvents = async (token: string) => {
-    setIsFetchingGcal(true);
-    setGcalStatusMsg("");
-    try {
-      const events = await fetchGoogleCalendarEvents(token);
-      setGcalEvents(events);
-    } catch (err: any) {
-      setGcalStatusMsg(language === "ar" ? "تعذر تحميل تقويم Google" : "Failed to fetch Google Calendar events.");
-    } finally {
-      setIsFetchingGcal(false);
-    }
-  };
-
   const handleConnectGoogleCalendar = async () => {
     try {
       setGcalStatusMsg("");
@@ -98,16 +69,15 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
       if (token) {
         setGcalStatusMsg(
           language === "ar"
-            ? "تم الاتصال بتقويم Google بنجاح!"
-            : "Connected to Google Calendar successfully!"
+            ? "تم ربط تقويم Google لمزامنة دروسك فقط."
+            : "Google Calendar is connected for Islam Roots schedule sync only."
         );
-        loadGcalEvents(token);
       }
-    } catch (err: any) {
+    } catch {
       setGcalStatusMsg(
         language === "ar"
-          ? "فشل الاتصال بتقويم Google"
-          : "Failed to connect to Google Calendar. Please try again."
+          ? "فشل ربط تقويم Google"
+          : "Could not connect Google Calendar. Your schedule remains saved in Islam Roots."
       );
     }
   };
@@ -116,36 +86,32 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
     setSyncingScheduleId(entry.id);
     setGcalStatusMsg("");
     try {
-      let token = googleTokens.calendar;
-      if (!token) {
-        token = await connectGoogleCalendar();
-      }
+      const token = googleTokens.calendar || await connectGoogleCalendar();
+      if (!token) throw new Error("Google Calendar authorization was not granted.");
 
-      if (token) {
-        const studentName = getStudentName(entry.studentId);
-        await createGoogleCalendarEvent(token, {
-          title: `${entry.title} — ${studentName}`,
-          description: `IslamRoots Lesson Session\nStudent: ${studentName}\nSubject: ${entry.subject}\nNotes: ${entry.notes || 'N/A'}`,
-          startTimeISO: entry.startAt,
-          durationMinutes: entry.durationMinutes,
-          studentName,
-          subject: entry.subject,
-          recurrence: entry.recurrence,
-          recurrenceDays: entry.recurrenceDays,
-          recurrenceEndDate: entry.recurrenceEndDate,
-        });
+      const studentName = getStudentName(entry.studentId);
+      await createGoogleCalendarEvent(token, {
+        title: `${entry.title} — ${studentName}`,
+        description: `IslamRoots Lesson Session\nStudent: ${studentName}\nSubject: ${entry.subject}\nNotes: ${entry.notes || "N/A"}`,
+        startTimeISO: entry.startAt,
+        durationMinutes: entry.durationMinutes,
+        studentName,
+        subject: entry.subject,
+        recurrence: entry.recurrence,
+        recurrenceDays: entry.recurrenceDays,
+        recurrenceEndDate: entry.recurrenceEndDate,
+      });
 
-        setGcalStatusMsg(
-          language === "ar"
-            ? `تم تصدير "${entry.title}" إلى تقويم Google!`
-            : `Successfully exported "${entry.title}" to Google Calendar!`
-        );
-      }
-    } catch (err: any) {
       setGcalStatusMsg(
         language === "ar"
-          ? "فشل التصدير إلى تقويم Google"
-          : "Failed to export event to Google Calendar."
+          ? `تمت مزامنة "${entry.title}" إلى تقويم Google.`
+          : `"${entry.title}" was synchronized to Google Calendar.`
+      );
+    } catch {
+      setGcalStatusMsg(
+        language === "ar"
+          ? "تم حفظ الحصة في جذور الإسلام، لكن تعذرت مزامنتها إلى Google Calendar."
+          : "The lesson is saved in Islam Roots, but Google Calendar synchronization failed."
       );
     } finally {
       setSyncingScheduleId(null);
@@ -201,22 +167,16 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
         notes: notes.trim() || undefined,
       });
 
-      // Sync to Google Calendar if requested
+      // Local persistence is authoritative. Google synchronization is explicit, awaited,
+      // and never allowed to discard the schedule saved in Islam Roots.
       if (syncToGoogleCalendar) {
-        let token = googleTokens.calendar;
-        if (!token) {
-          try {
-            token = await connectGoogleCalendar();
-          } catch (e) {
-            console.warn("Could not connect to Google Calendar during schedule submit:", e);
-          }
-        }
-
-        if (token) {
+        try {
+          const token = googleTokens.calendar || await connectGoogleCalendar();
+          if (!token) throw new Error("Google Calendar authorization was not granted.");
           const studentName = getStudentName(studentId);
-          createGoogleCalendarEvent(token, {
+          await createGoogleCalendarEvent(token, {
             title: `${title.trim()} — ${studentName}`,
-            description: `IslamRoots Lesson Session\nStudent: ${studentName}\nSubject: ${subject}\nNotes: ${notes.trim() || 'N/A'}`,
+            description: `IslamRoots Lesson Session\nStudent: ${studentName}\nSubject: ${subject}\nNotes: ${notes.trim() || "N/A"}`,
             startTimeISO: startAtISO,
             durationMinutes,
             studentName,
@@ -224,8 +184,13 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
             recurrence,
             recurrenceDays,
             recurrenceEndDate: recurrenceEndDate || undefined,
-          }).catch((err) => console.error("Async Google Calendar sync error:", err));
+          });
+          setGcalStatusMsg(language === "ar" ? "تم حفظ الحصة ومزامنتها إلى Google Calendar." : "Lesson saved and synchronized to Google Calendar.");
+        } catch {
+          setGcalStatusMsg(language === "ar" ? "تم حفظ الحصة في جذور الإسلام، لكن تعذرت مزامنتها إلى Google Calendar." : "Lesson saved in Islam Roots, but Google Calendar synchronization failed.");
         }
+      } else {
+        setGcalStatusMsg(language === "ar" ? "تم حفظ الحصة في جذور الإسلام." : "Lesson saved in Islam Roots.");
       }
 
       setIsModalOpen(false);
@@ -240,21 +205,12 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
       isOpen: true,
       scheduleId,
       title,
-      isGcalEvent: false,
     });
   };
 
   const handleExecuteDelete = async () => {
     if (deleteConfirmModal.scheduleId) {
       await deleteSchedule(deleteConfirmModal.scheduleId);
-    } else if (deleteConfirmModal.isGcalEvent && deleteConfirmModal.gcalEventId && googleTokens.calendar) {
-      try {
-        await deleteGoogleCalendarEvent(googleTokens.calendar, deleteConfirmModal.gcalEventId);
-        setGcalEvents((prev) => prev.filter((e) => e.id !== deleteConfirmModal.gcalEventId));
-        setGcalStatusMsg(language === "ar" ? "تم حذف الحدث من تقويم Google" : "Event deleted from Google Calendar.");
-      } catch (err) {
-        setGcalStatusMsg(language === "ar" ? "فشل حذف الحدث" : "Failed to delete event from Google Calendar.");
-      }
     }
     setDeleteConfirmModal({ isOpen: false, scheduleId: "", title: "" });
   };
@@ -433,139 +389,11 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
           >
             {t("viewToday")}
           </button>
-          <button
-            onClick={() => {
-              setViewMode("google");
-              if (googleTokens.calendar) {
-                loadGcalEvents(googleTokens.calendar);
-              }
-            }}
-            className={`px-3 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-              viewMode === "google"
-                ? "bg-white dark:bg-[#3E4D3E] text-[#3E4D3E] dark:text-white shadow-xs"
-                : "text-[#7A7D75] dark:text-stone-300 hover:text-[#3E4D3E]"
-            }`}
-          >
-            <CalendarIcon className="w-3.5 h-3.5" />
-            <span>Google Calendar</span>
-          </button>
         </div>
       </div>
 
-      {/* View Mode Content */}
-      {viewMode === "google" ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-serif font-bold text-base text-[#1F261F] dark:text-[#E2E8E2]">
-              {language === "ar" ? "أحداث تقويم Google القادمة" : "Upcoming Google Calendar Events"}
-            </h3>
-            {googleTokens.calendar && (
-              <button
-                onClick={() => loadGcalEvents(googleTokens.calendar)}
-                disabled={isFetchingGcal}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#E8E5DB] dark:bg-[#2A352A] text-xs font-semibold text-[#3E4D3E] dark:text-stone-200 hover:bg-[#D4D1C5] transition-all cursor-pointer"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isFetchingGcal ? "animate-spin" : ""}`} />
-                <span>{language === "ar" ? "تحديث" : "Refresh"}</span>
-              </button>
-            )}
-          </div>
-
-          {!googleTokens.calendar ? (
-            <div className="p-10 text-center bg-white dark:bg-[#1C221C] rounded-2xl border border-[#E8E5DB] dark:border-[#2A352A] space-y-4">
-              <CalendarIcon className="w-12 h-12 text-[#5A6B5A] mx-auto" />
-              <div className="max-w-md mx-auto space-y-1">
-                <h4 className="font-serif font-bold text-lg text-[#1F261F] dark:text-[#E2E8E2]">
-                  {language === "ar" ? "قم بربط حساب Google الخاص بك" : "Connect Your Google Calendar"}
-                </h4>
-                <p className="text-xs text-[#7A7D75] dark:text-stone-400">
-                  {language === "ar"
-                    ? "استعرض مواعيدك من Google Calendar وقم بمزامنة دروسك مع الطلاب تلقائيًا."
-                    : "View your Google Calendar appointments and seamlessly sync your student lesson schedules."}
-                </p>
-              </div>
-              <button
-                onClick={handleConnectGoogleCalendar}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#5A6B5A] hover:bg-[#495749] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
-              >
-                <span>{language === "ar" ? "ربط تقويم Google الآن" : "Connect Google Calendar Now"}</span>
-              </button>
-            </div>
-          ) : isFetchingGcal ? (
-            <div className="p-12 text-center bg-white dark:bg-[#1C221C] rounded-2xl border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
-              <RefreshCw className="w-8 h-8 text-[#5A6B5A] animate-spin mx-auto" />
-              <p className="text-xs text-[#7A7D75] dark:text-stone-400 font-medium">
-                {language === "ar" ? "جاري جلب أحداث تقويم Google..." : "Fetching Google Calendar events..."}
-              </p>
-            </div>
-          ) : gcalEvents.length === 0 ? (
-            <div className="p-10 text-center bg-white dark:bg-[#1C221C] rounded-2xl border border-[#E8E5DB] dark:border-[#2A352A]">
-              <p className="text-xs text-[#7A7D75] dark:text-stone-400 font-medium">
-                {language === "ar" ? "لا توجد أحداث قادمة في تقويم Google." : "No upcoming events found on Google Calendar."}
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {gcalEvents.map((evt) => {
-                const startTimeStr = evt.start.dateTime || evt.start.date || "";
-                return (
-                  <div
-                    key={evt.id}
-                    className="bg-white dark:bg-[#1C221C] p-5 rounded-2xl border border-[#E8E5DB] dark:border-[#2A352A] shadow-xs flex flex-col justify-between space-y-3 hover:border-[#5A6B5A]/50 transition-all"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">
-                          Google Calendar
-                        </span>
-                        {evt.htmlLink && (
-                          <a
-                            href={evt.htmlLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1 text-[#7A7D75] hover:text-[#5A6B5A]"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
-                        )}
-                      </div>
-                      <h4 className="font-serif font-bold text-sm text-[#1F261F] dark:text-[#E2E8E2]">
-                        {evt.summary}
-                      </h4>
-                      <div className="flex items-center gap-2 text-xs text-[#7A7D75] dark:text-stone-400 mt-2">
-                        <Clock className="w-3.5 h-3.5 text-[#5A6B5A]" />
-                        <span>{formatDate(startTimeStr)} • {formatTime(startTimeStr)}</span>
-                      </div>
-                      {evt.description && (
-                        <p className="text-xs text-[#7A7D75] dark:text-stone-400 line-clamp-2 mt-2 bg-[#FCFAF5] dark:bg-[#161D17] p-2 rounded-lg">
-                          {evt.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="pt-2 border-t border-[#E8E5DB] dark:border-[#2A352A] flex justify-end">
-                      <button
-                        onClick={() =>
-                          setDeleteConfirmModal({
-                            isOpen: true,
-                            scheduleId: "",
-                            title: evt.summary,
-                            isGcalEvent: true,
-                            gcalEventId: evt.id,
-                          })
-                        }
-                        className="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs flex items-center gap-1 font-semibold"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>{language === "ar" ? "حذف" : "Remove"}</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      ) : filteredSchedules.length === 0 ? (
+      {/* View Mode Content: website-owned student schedules only */}
+      {filteredSchedules.length === 0 ? (
         <div className="p-12 text-center bg-white dark:bg-[#1C221C] rounded-2xl border border-[#E8E5DB] dark:border-[#2A352A] space-y-3">
           <CalendarIcon className="w-10 h-10 text-[#7A7D75] mx-auto opacity-50" />
           <p className="text-sm text-[#7A7D75] dark:text-stone-400 font-medium">
@@ -651,13 +479,15 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
                   <button
                     onClick={() => handleExportToGoogleCalendar(entry)}
                     disabled={syncingScheduleId === entry.id}
-                    title="Export to Google Calendar"
+                    type="button"
+                    title={language === "ar" ? "مزامنة هذه الحصة إلى Google Calendar" : "Synchronize this lesson to Google Calendar"}
+                    aria-label={language === "ar" ? "مزامنة هذه الحصة إلى Google Calendar" : "Synchronize this lesson to Google Calendar"}
                     className="p-2 rounded-xl border border-[#D4D1C5] dark:border-[#2A352A] hover:bg-[#FCFAF5] dark:hover:bg-[#232B23] text-[#7A7D75] hover:text-[#5A6B5A] transition-colors cursor-pointer"
                   >
                     {syncingScheduleId === entry.id ? (
                       <RefreshCw className="w-4 h-4 animate-spin text-[#5A6B5A]" />
                     ) : (
-                      <Share2 className="w-4 h-4" />
+                      <RefreshCw className="w-4 h-4" />
                     )}
                   </button>
 

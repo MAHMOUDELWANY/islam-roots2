@@ -8,127 +8,84 @@ export interface GoogleCalendarEvent {
   status?: string;
 }
 
-export async function fetchGoogleCalendarEvents(
-  accessToken: string,
-  timeMinISO?: string
-): Promise<GoogleCalendarEvent[]> {
-  try {
-    const timeMin = timeMinISO || new Date().toISOString();
-    const url = new URL('https://www.googleapis.com/calendar/v3/calendars/primary/events');
-    url.searchParams.append('timeMin', timeMin);
-    url.searchParams.append('singleEvents', 'true');
-    url.searchParams.append('orderBy', 'startTime');
-    url.searchParams.append('maxResults', '20');
-
-    const response = await fetch(url.toString(), {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Failed to fetch Google Calendar events:', errText);
-      throw new Error(`Google Calendar API Error (${response.status})`);
-    }
-
-    const data = await response.json();
-    return data.items || [];
-  } catch (err) {
-    console.error('Error fetching Google Calendar events:', err);
-    throw err;
-  }
+export interface GoogleCalendarWriteEvent {
+  title: string;
+  description?: string;
+  startTimeISO: string;
+  durationMinutes: number;
+  studentName?: string;
+  subject?: string;
+  recurrence?: "none" | "daily" | "weekly" | "biweekly" | "monthly";
+  recurrenceDays?: number[];
+  recurrenceEndDate?: string;
 }
 
+/**
+ * Writes an Islam Roots schedule to the educator's primary Google Calendar.
+ * This module intentionally has no list/read/delete helpers: the product only
+ * synchronizes events created in Islam Roots and never imports personal events.
+ */
 export async function createGoogleCalendarEvent(
   accessToken: string,
-  event: {
-    title: string;
-    description?: string;
-    startTimeISO: string;
-    durationMinutes: number;
-    studentName?: string;
-    subject?: string;
-    recurrence?: "none" | "daily" | "weekly" | "biweekly" | "monthly";
-    recurrenceDays?: number[];
-    recurrenceEndDate?: string;
-  }
+  event: GoogleCalendarWriteEvent,
 ): Promise<GoogleCalendarEvent> {
-  try {
-    const startDate = new Date(event.startTimeISO);
-    const endDate = new Date(startDate.getTime() + event.durationMinutes * 60 * 1000);
+  const startDate = new Date(event.startTimeISO);
+  const endDate = new Date(startDate.getTime() + event.durationMinutes * 60 * 1000);
 
-    const dayCodes = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
-    const selectedDays = event.recurrenceDays?.length ? event.recurrenceDays.map((day) => dayCodes[day]).filter(Boolean) : [dayCodes[startDate.getDay()]];
-    const frequency = event.recurrence === "biweekly" ? "WEEKLY" : event.recurrence === "monthly" ? "MONTHLY" : event.recurrence === "daily" ? "DAILY" : event.recurrence === "weekly" ? "WEEKLY" : null;
-    const recurrenceRule = frequency ? `RRULE:FREQ=${frequency}${event.recurrence === "biweekly" ? ";INTERVAL=2" : ""}${frequency === "WEEKLY" ? `;BYDAY=${selectedDays.join(",")}` : ""}${event.recurrenceEndDate ? `;UNTIL=${new Date(`${event.recurrenceEndDate}T23:59:59Z`).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")}` : ""}` : undefined;
-
-    const body = {
-      summary: event.title,
-      description: event.description || `IslamRoots Ustadh Session with ${event.studentName || 'Student'} (${event.subject || 'Lesson'})`,
-      ...(recurrenceRule ? { recurrence: [recurrenceRule] } : {}),
-      start: {
-        dateTime: startDate.toISOString(),
-      },
-      end: {
-        dateTime: endDate.toISOString(),
-      },
-      reminders: {
-        useDefault: false,
-        overrides: [
-          { method: 'popup', minutes: 15 },
-          { method: 'email', minutes: 30 },
-        ],
-      },
-    };
-
-    const response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('Failed to create Google Calendar event:', errText);
-      throw new Error(`Google Calendar API error (${response.status})`);
-    }
-
-    return await response.json();
-  } catch (err) {
-    console.error('Error creating Google Calendar event:', err);
-    throw err;
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    throw new Error("Invalid schedule date");
   }
-}
 
-export async function deleteGoogleCalendarEvent(
-  accessToken: string,
-  eventId: string
-): Promise<boolean> {
-  try {
-    const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
+  const dayCodes = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+  const selectedDays = event.recurrenceDays?.length
+    ? event.recurrenceDays.map((day) => dayCodes[day]).filter(Boolean)
+    : [dayCodes[startDate.getDay()]];
+  const frequency = event.recurrence === "biweekly"
+    ? "WEEKLY"
+    : event.recurrence === "monthly"
+      ? "MONTHLY"
+      : event.recurrence === "daily"
+        ? "DAILY"
+        : event.recurrence === "weekly"
+          ? "WEEKLY"
+          : null;
+  const recurrenceRule = frequency
+    ? `RRULE:FREQ=${frequency}${event.recurrence === "biweekly" ? ";INTERVAL=2" : ""}${frequency === "WEEKLY" ? `;BYDAY=${selectedDays.join(",")}` : ""}${event.recurrenceEndDate ? `;UNTIL=${new Date(`${event.recurrenceEndDate}T23:59:59Z`).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z")}` : ""}`
+    : undefined;
 
-    if (!response.ok && response.status !== 404) {
-      const errText = await response.text();
-      console.error('Failed to delete Google Calendar event:', errText);
-      throw new Error(`Google Calendar API error (${response.status})`);
-    }
+  const body = {
+    summary: event.title,
+    description: event.description || `IslamRoots Ustadh Session with ${event.studentName || "Student"} (${event.subject || "Lesson"})`,
+    ...(recurrenceRule ? { recurrence: [recurrenceRule] } : {}),
+    start: { dateTime: startDate.toISOString() },
+    end: { dateTime: endDate.toISOString() },
+    // Keep reminders private to the connected calendar; do not send email notifications.
+    reminders: {
+      useDefault: false,
+      overrides: [{ method: "popup", minutes: 15 }],
+    },
+    extendedProperties: {
+      private: {
+        islamRootsManaged: "true",
+      },
+    },
+  };
 
-    return true;
-  } catch (err) {
-    console.error('Error deleting Google Calendar event:', err);
-    throw err;
+  const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const error = new Error(`Google Calendar event write failed (${response.status})`) as Error & { code?: string; status?: number };
+    error.code = "GOOGLE_CALENDAR_WRITE_FAILED";
+    error.status = response.status;
+    throw error;
   }
+
+  return await response.json() as GoogleCalendarEvent;
 }

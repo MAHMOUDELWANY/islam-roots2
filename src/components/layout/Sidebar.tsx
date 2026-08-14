@@ -38,14 +38,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
     {
       id: "dashboard",
       labelKey: "dashboard",
-      icon: <LayoutDashboard className="w-4 h-4" />,
+      icon: <LayoutDashboard className="w-5 h-5" />,
     },
     ...(isAdmin
       ? [
           {
             id: "admin" as NavSection,
             labelKey: "adminMonitor",
-            icon: <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />,
+            icon: <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
             badge: "SUPER",
           },
         ]
@@ -53,38 +53,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
     {
       id: "students",
       labelKey: "students",
-      icon: <Users className="w-4 h-4" />,
+      icon: <Users className="w-5 h-5" />,
     },
     {
       id: "curriculums",
       labelKey: "curriculums",
-      icon: <BookOpen className="w-4 h-4" />,
+      icon: <BookOpen className="w-5 h-5" />,
     },
     {
       id: "schedule",
       labelKey: "schedule",
-      icon: <Calendar className="w-4 h-4" />,
+      icon: <Calendar className="w-5 h-5" />,
     },
     {
       id: "lessonStudio",
       labelKey: "lessonStudio",
-      icon: <Sparkles className="w-4 h-4" />,
+      icon: <Sparkles className="w-5 h-5" />,
       badge: "AI",
     },
     {
       id: "quranDetective",
       labelKey: "quranDetective",
-      icon: <SearchCheck className="w-4 h-4" />,
+      icon: <SearchCheck className="w-5 h-5" />,
     },
     {
       id: "progressMap",
       labelKey: "progressMap",
-      icon: <Network className="w-4 h-4" />,
+      icon: <Network className="w-5 h-5" />,
     },
     {
       id: "settings",
       labelKey: "settings",
-      icon: <Settings className="w-4 h-4" />,
+      icon: <Settings className="w-5 h-5" />,
     },
   ];
 
@@ -96,7 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 space-y-2.5 my-2">
+      <nav className="flex-1 space-y-3 my-2">
         {navItems.map((item) => {
           const isActive = currentSection === item.id;
           return (
@@ -104,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
               key={item.id}
               id={`desktop-tour-nav-${item.id}`}
               onClick={() => onSelectSection(item.id)}
-              className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+              className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl text-sm font-medium transition-all duration-200 cursor-pointer ${
                 isActive
                   ? "bg-[var(--brand-olive)]/10 dark:bg-[#20382A] text-[var(--brand-olive)] dark:text-[#B9D7BF] border-l-4 border-[var(--brand-olive)] font-semibold shadow-xs"
                   : "text-[var(--brand-muted)] dark:text-stone-400 hover:text-[var(--brand-olive)] dark:hover:text-[#E2E8E2] hover:bg-[var(--brand-ivory)] dark:hover:bg-[#1D3024]"
