@@ -316,7 +316,7 @@ export async function createGoogleSlidesPresentation(
           updateParagraphStyle: {
             objectId: titleShapeId,
             style: {
-              alignment: isArabicTitle ? 'RIGHT' : 'LEFT',
+              alignment: isArabicTitle ? 'END' : 'START',
               direction: isArabicTitle ? 'RIGHT_TO_LEFT' : 'LEFT_TO_RIGHT',
             },
             fields: 'alignment,direction',
@@ -371,7 +371,7 @@ export async function createGoogleSlidesPresentation(
           updateParagraphStyle: {
             objectId: bodyShapeId,
             style: {
-              alignment: isArabicSubtitle ? 'RIGHT' : 'LEFT',
+              alignment: isArabicSubtitle ? 'END' : 'START',
               direction: isArabicSubtitle ? 'RIGHT_TO_LEFT' : 'LEFT_TO_RIGHT',
             },
             fields: 'alignment,direction',
@@ -445,7 +445,7 @@ export async function createGoogleSlidesPresentation(
           updateParagraphStyle: {
             objectId: headerShapeId,
             style: {
-              alignment: isArabicTitle ? 'RIGHT' : 'LEFT',
+              alignment: isArabicTitle ? 'END' : 'START',
               direction: isArabicTitle ? 'RIGHT_TO_LEFT' : 'LEFT_TO_RIGHT',
             },
             fields: 'alignment,direction',
@@ -509,7 +509,7 @@ export async function createGoogleSlidesPresentation(
             updateParagraphStyle: {
               objectId: bodyShapeId,
               style: {
-                alignment: isArabicBody ? 'RIGHT' : 'LEFT',
+                alignment: isArabicBody ? 'END' : 'START',
                 direction: isArabicBody ? 'RIGHT_TO_LEFT' : 'LEFT_TO_RIGHT',
                 lineSpacing: 115,
               },

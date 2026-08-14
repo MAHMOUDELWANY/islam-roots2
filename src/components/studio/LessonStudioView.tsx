@@ -1,11 +1,10 @@
 import { supabase } from "../../lib/supabase";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useLanguage } from "../../context/LanguageContext";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
 import { exportLessonToGoogleDoc } from "../../lib/googleDocs";
 import { exportLessonToGoogleSlides, createGoogleSlidesPresentation } from "../../lib/googleSlides";
-import { captureAndDownloadScreenshot } from "../../lib/screenshot";
 import { AiClientError, requestAuthenticatedAi } from "../../lib/aiClient";
 import {
   GoogleWorkspaceError,
@@ -27,7 +26,6 @@ import {
   FileText,
   Presentation,
   ExternalLink,
-  Camera,
   Search,
   Trash2,
   X,
@@ -129,10 +127,8 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   const [error, setError] = useState<string | null>(null);
   const [generatedPlan, setGeneratedPlan] = useState<AILessonPlan | null>(null);
   const [copied, setCopied] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [saveToast, setSaveToast] = useState<string | null>(null);
   const [activeSavedItemId, setActiveSavedItemId] = useState<string | undefined>();
-  const [isAutoSaving, setIsAutoSaving] = useState(false);
 
   // Saved Library Modal State
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
@@ -148,11 +144,12 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   const [createdSlidesLink, setCreatedSlidesLink] = useState<string | null>(null);
   const [slidesStatusMsg, setSlidesStatusMsg] = useState<string>("");
 
-  const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
-  const [screenshotStatusMsg, setScreenshotStatusMsg] = useState<string>("");
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
   const isArabic = language === "ar";
+  // Keep the latest persistence function without making the autosave effect reschedule on every provider rerender.
+  const saveAIContentRef = useRef(saveAIContent);
+  saveAIContentRef.current = saveAIContent;
   const availableStudents = students.filter((student) => student.status !== "Archived");
   const selectedStudent = availableStudents.find((student) => student.id === selectedStudentId);
   const filteredStudents = availableStudents.filter((student) => student.name.toLowerCase().includes(studentSearch.trim().toLowerCase()));
@@ -218,9 +215,8 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
   useEffect(() => {
     if (!generatedPlan) return;
     const timer = window.setTimeout(async () => {
-      setIsAutoSaving(true);
       try {
-        const savedItem = await saveAIContent({
+        const savedItem = await saveAIContentRef.current({
           id: activeSavedItemId,
           type: "lesson_plan",
           title: topic,
@@ -232,49 +228,15 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
           content: generatedPlan,
         });
         setActiveSavedItemId(savedItem.id);
-        setSaved(true);
       } catch (autosaveError) {
         console.error("[Lesson] Lesson autosave failed.", autosaveError);
-        setSaved(false);
         const message = language === "ar" ? "تم إنشاء الدرس، لكن تعذر حفظه في المكتبة." : "Lesson generated, but it could not be saved to the library.";
         setSaveToast(import.meta.env.DEV ? `${message} [SAVE_ERROR]` : message);
         window.setTimeout(() => setSaveToast(null), 5000);
-      } finally {
-        setIsAutoSaving(false);
       }
     }, 900);
     return () => window.clearTimeout(timer);
-  }, [generatedPlan, topic, subject, level, durationMinutes, customInstructions, learningGoal, selectedStudent?.id, saveAIContent]);
-
-  const handleTakeScreenshot = async () => {
-    if (!generatedPlan) return;
-    setIsExportMenuOpen(false);
-    setIsCapturingScreenshot(true);
-    setScreenshotStatusMsg(
-      language === "ar" ? "جارٍ التقاط صورة الدرس..." : "Capturing lesson plan screenshot..."
-    );
-
-    try {
-      await captureAndDownloadScreenshot("lesson-plan-container", {
-        filename: `IslamRoots_Lesson_${topic.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, "_")}.png`,
-        watermarkText: "IslamRoots AI Educator Network • https://islamroots.app",
-        onSuccess: () => {
-          setScreenshotStatusMsg(
-            language === "ar" ? "تم تحميل صورة الدرس بنجاح!" : "Lesson screenshot downloaded successfully!"
-          );
-        },
-        onError: () => {
-          setScreenshotStatusMsg(
-            language === "ar" ? "فشل التقاط الصورة. حاول مرة أخرى." : "Failed to capture screenshot."
-          );
-        },
-      });
-    } catch (e) {
-      console.error("Screenshot error:", e);
-    } finally {
-      setIsCapturingScreenshot(false);
-    }
-  };
+  }, [generatedPlan, topic, subject, level, durationMinutes, customInstructions, learningGoal, selectedStudent?.id]);
 
   const handleExportToGoogleSlides = async () => {
     if (!generatedPlan) return;
@@ -448,7 +410,6 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
     }
 
     setLoading(true);
-    setSaved(false);
     setActiveSavedItemId(undefined);
     setError(null);
     
@@ -862,10 +823,6 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                           {isExportingSlides ? <Loader2 className="h-4 w-4 animate-spin" /> : <Presentation className="h-4 w-4 text-[#8B5A2B]" />}
                           <span>{language === "ar" ? "تصدير إلى Google Slides" : "Export to Google Slides"}</span>
                         </button>
-                        <button type="button" role="menuitem" onClick={handleTakeScreenshot} disabled={isCapturingScreenshot} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-start text-xs font-semibold text-[#3E4D3E] hover:bg-[#F2EFE6] disabled:opacity-60 dark:text-stone-200 dark:hover:bg-[#232B23]">
-                          {isCapturingScreenshot ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4 text-[#5A6B5A]" />}
-                          <span>{language === "ar" ? "حفظ صورة" : "Save screenshot"}</span>
-                        </button>
                         <button type="button" role="menuitem" onClick={handleCopyPlan} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-start text-xs font-semibold text-[#3E4D3E] hover:bg-[#F2EFE6] dark:text-stone-200 dark:hover:bg-[#232B23]">
                           {copied ? <Check className="h-4 w-4 text-[#5A6B5A]" /> : <Copy className="h-4 w-4" />}
                           <span>{copied ? (language === "ar" ? "تم النسخ" : "Copied") : (language === "ar" ? "نسخ الخطة" : "Copy plan")}</span>
@@ -883,10 +840,6 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                     <span>{language === "ar" ? "إنشاء اختبار" : "Create quiz"}</span>
                   </button>
 
-                  <div className="hidden items-center gap-1.5 text-[11px] text-[#677167] sm:flex" aria-live="polite">
-                    {isAutoSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5 text-[#5A6B5A]" />}
-                    <span>{isAutoSaving ? (language === "ar" ? "جارٍ الحفظ تلقائياً" : "Saving automatically") : saved ? (language === "ar" ? "محفوظ في المكتبة" : "Saved to library") : (language === "ar" ? "سيُحفظ تلقائياً" : "Auto-save on")}</span>
-                  </div>
                 </div>
               </div>
 
@@ -970,16 +923,6 @@ export const LessonStudioView: React.FC<LessonStudioViewProps> = ({ onOpenQuizMo
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
-                </div>
-              )}
-
-              {/* Screenshot Status Banner */}
-              {screenshotStatusMsg && (
-                <div className="p-3 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-xs font-semibold text-emerald-900 dark:text-emerald-300 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Camera className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>{screenshotStatusMsg}</span>
-                  </div>
                 </div>
               )}
 

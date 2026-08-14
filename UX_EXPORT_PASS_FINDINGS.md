@@ -35,3 +35,9 @@ With a registered guest student selected, the local Lesson Studio renders the ne
 ## Generation QA result
 
 The local guest session selected a registered student and rendered the expanded specification form, but the attempted goal selection did not visibly transition the form into a generated state before the click test. The build remained on the empty output state; no false success was claimed. Generated-plan action behavior is therefore validated through the compiled source path and the confirmed Slides API schema fix, with a follow-up authenticated end-to-end test still desirable.
+## Pass 3 local QA checkpoint
+
+The corrected production bundle opens successfully in the guest workspace, and the onboarding overlay can be dismissed normally. The next inspection target is the Lesson Studio generated-plan toolbar; the source scan has already confirmed that Screenshot, animated autosave labels, and the old saved-state control are absent from the updated component.
+## Pass 3 final local QA
+
+The current local production bundle opens Jalilah AI Studio successfully. The specification view visibly shows the new `Lesson focus` and `Teaching setup` hierarchy, and the static source scan confirms that Screenshot, animated autosave labels, and the old saved-state control are absent. The guest fixture did not produce a generated lesson in this unauthenticated local session, so the generated toolbar was not fabricated or falsely marked as browser-tested.

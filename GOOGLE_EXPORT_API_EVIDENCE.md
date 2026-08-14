@@ -23,3 +23,9 @@ These official references were consulted during the export diagnosis:
    - Applications should examine granted scopes and request additional permissions incrementally when a feature is used.
 
 Confirmed repository defect: the previous Slides export sent `slideLayout`, which is not the official `CreateSlideRequest` field. Because `batchUpdate` is atomic, that malformed request explains the reported `Failed to create Google Slides` state. The implementation now sends `slideLayoutReference: { predefinedLayout: "BLANK" }` and preserves the existing incremental OAuth scopes.
+
+## Pass 3 rejection evidence
+
+The live Google Slides discovery schema confirms that `ParagraphStyle.alignment` accepts `ALIGNMENT_UNSPECIFIED`, `START`, `CENTER`, `END`, and `JUSTIFIED`. The previous export builder sent `LEFT` and `RIGHT`, which are not valid enum values for this field and can cause the atomic `batchUpdate` request to be rejected with HTTP 400. The builder now sends `START` for left-to-right content and `END` for right-to-left content, while keeping `LEFT_TO_RIGHT` and `RIGHT_TO_LEFT` for the separate `direction` field.
+
+Reference: https://slides.googleapis.com/$discovery/rest?version=v1
