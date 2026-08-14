@@ -27,7 +27,7 @@ export const SettingsView: React.FC = () => {
   };
 
   return (
-    <div className="w-full space-y-5 sm:space-y-7 animate-fade-in pb-12">
+    <div className="mx-auto w-full max-w-none space-y-8 pb-16 font-sans animate-fade-in">
       {/* Header */}
       <div>
         <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#173326] dark:text-[#E2E8E2] flex items-center gap-2.5">
@@ -39,14 +39,15 @@ export const SettingsView: React.FC = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 xl:gap-7 items-start">
-        {/* Left Column: Educator Profile & App Preferences */}
-        <div className="lg:col-span-7 space-y-5 sm:space-y-6">
+      <div className="space-y-10">
+        {/* Upper settings: profile and preferences */}
+        <section aria-labelledby="profile-settings-heading" className="w-full ir-surface p-6 sm:p-8 lg:p-10 space-y-8">
           {/* Teacher Profile Section */}
-          <div className="p-6 rounded-2xl ir-surface space-y-4">
+          <div className="space-y-4">
+
             <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
               <User className="w-5 h-5 text-[#5A6B5A]" />
-              <span>{language === "ar" ? "ملف المعلم" : "Educator Profile"}</span>
+              <span id="profile-settings-heading">{language === "ar" ? "ملف المعلم" : "Educator Profile"}</span>
             </h3>
 
             <form onSubmit={handleSaveProfile} className="space-y-4 text-xs">
@@ -162,7 +163,8 @@ export const SettingsView: React.FC = () => {
           </div>
 
           {/* Preferences Section */}
-          <div className="p-6 rounded-2xl ir-surface space-y-4 text-xs">
+          <div className="border-t border-[#E8E5DB] pt-8 dark:border-[#2A352A]">
+            <div className="space-y-4 text-xs">
             <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
               <Globe className="w-5 h-5 text-[#8B5A2B]" />
               <span>{language === "ar" ? "تفضيلات الواجهة" : "Language & Appearance"}</span>
@@ -229,11 +231,13 @@ export const SettingsView: React.FC = () => {
                 </div>
               </div>
             </div>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Right Column: Integrations, Database Status & Actions */}
-        <div className="lg:col-span-5 space-y-5 sm:space-y-6 lg:sticky lg:top-24 self-start">
+        {/* Lower settings: integrations, privacy, and account controls */}
+        <section aria-labelledby="connections-settings-heading" className="w-full space-y-6">
+          <div className="space-y-6">
 
       {/* Supabase Database & Authentication Status (Super Admin / Admin Only) */}
       {isAdmin && (
@@ -278,7 +282,7 @@ export const SettingsView: React.FC = () => {
       <div className="p-6 rounded-2xl ir-surface space-y-4 text-xs">
         <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
           <Globe className="w-5 h-5 text-[#5A6B5A] dark:text-[#8BA888]" />
-          <span>{language === "ar" ? "اتصالات Google Workspace" : "Google Workspace Connections"}</span>
+          <span id="connections-settings-heading">{language === "ar" ? "اتصالات Google Workspace" : "Google Workspace Connections"}</span>
         </h3>
         <p className="text-[#7A7D75] dark:text-stone-400">
           {language === "ar" ? "اربط تقويم Google وDocs وSlides وTasks وGmail وForms وDrive لمزامنة الجداول وتصدير خطط الدروس وإدارة مهامك التعليمية." : "Connect your Google Calendar, Google Docs, Google Slides, Google Tasks, Gmail, Google Forms, or Google Drive/Picker accounts to sync schedules, export lesson plans, manage tasks, and send student updates."}
@@ -469,13 +473,15 @@ export const SettingsView: React.FC = () => {
             </button>
           </div>
         </div>
-      </div>
+          </div>
+          </div>
+        </section>
 
-      {/* Legal & Public Links Section */}
-      <div className="p-6 rounded-2xl ir-surface space-y-4 text-xs">
+          {/* Legal & Public Links Section */}
+        <section aria-labelledby="legal-settings-heading" className="w-full ir-surface p-6 sm:p-8 lg:p-10 space-y-4 text-xs">
         <h3 className="text-base font-serif font-bold text-[#1F261F] dark:text-[#E2E8E2] flex items-center gap-2">
           <Settings className="w-5 h-5 text-[#8B5A2B]" />
-          <span>{language === "ar" ? "الخصوصية والروابط القانونية" : "Legal & Privacy Links"}</span>
+          <span id="legal-settings-heading">{language === "ar" ? "الخصوصية والروابط القانونية" : "Legal & Privacy Links"}</span>
         </h3>
         <p className="text-[#7A7D75] dark:text-stone-400">
           {language === "ar" ? "روابط الامتثال العامة لوحدة تحكم Google Cloud والتحقق من بيانات OAuth." : "Public compliance links for Google Cloud Console and OAuth User Data verification."}
@@ -499,13 +505,13 @@ export const SettingsView: React.FC = () => {
             {language === "ar" ? "عرض شروط الخدمة" : "View Terms of Service"}
           </a>
         </div>
-      </div>
+        </section>
 
-      {/* Demo Data Reset & Logout Section */}
-      <div className="p-6 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 text-xs">
+        {/* Demo Data Reset & Logout Section */}
+        <section aria-labelledby="account-settings-heading" className="w-full p-6 sm:p-8 lg:p-10 rounded-xl bg-[#FCFAF5] dark:bg-[#232B23] border border-[#E8E5DB] dark:border-[#2A352A] shadow-soft space-y-4 text-xs">
         <h3 className="text-base font-serif font-bold text-rose-800 dark:text-rose-400 flex items-center gap-2">
           <RefreshCw className="w-5 h-5 text-rose-700" />
-          <span>{language === "ar" ? "الحساب وبيانات المعاينة" : "Account & Demo Controls"}</span>
+          <span id="account-settings-heading">{language === "ar" ? "الحساب وبيانات المعاينة" : "Account & Demo Controls"}</span>
         </h3>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -549,10 +555,9 @@ export const SettingsView: React.FC = () => {
             {language === "ar" ? "تسجيل الخروج" : "Log Out"}
           </button>
         </div>
+        </section>
       </div>
     </div>
-  </div>
-</div>
   );
 };
 

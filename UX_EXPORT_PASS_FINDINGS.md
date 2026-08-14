@@ -45,3 +45,11 @@ The current local production bundle opens Jalilah AI Studio successfully. The sp
 ## Pass 4 local visual QA
 
 The rebuilt local production bundle opens Jalilah Studio successfully. At the tested desktop viewport, the specification panel now spans the available content width, and the page presents a separate `Lesson output` section directly below it with the empty/generated state. The right-hand split layout is gone. The local guest session did not generate a real plan, so generated-content rendering remains covered by the existing build/source validation rather than an unauthenticated fabricated success.
+
+## Settings redesign local QA checkpoint
+
+The rebuilt local production bundle opens successfully and the onboarding overlay can be dismissed. The Settings route is the next inspection target for the new full-width vertical composition.
+
+## Settings redesign visual QA
+
+The local production bundle shows Settings as a full-width vertical page. The upper section contains the educator profile and Language & Appearance controls; the lower section begins with Google Workspace Connections and continues to Legal & Privacy Links and Account & Demo Controls. The previous desktop left/right split and sticky integration column are gone. Existing controls remain visible and reachable in the new reading order.
