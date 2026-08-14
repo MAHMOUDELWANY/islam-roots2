@@ -179,7 +179,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#EFF3EF] dark:bg-[#121813] text-stone-800 dark:text-stone-100 font-sans transition-colors flex">
+    <div className="min-h-screen bg-[var(--brand-sand)] dark:bg-[#121813] text-stone-800 dark:text-stone-100 font-sans transition-colors">
       {/* Sidebar for Desktop & Tablet */}
       <Sidebar
         currentSection={currentSection}
@@ -187,7 +187,7 @@ const AppContent: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-0">
+      <div className="min-h-screen flex flex-col min-w-0 pb-16 lg:pb-0 lg:ml-64 xl:ml-[17rem]">
         <Header
           onOpenAddStudent={() => {
             setEditingStudent(null);

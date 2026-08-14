@@ -5,6 +5,7 @@ interface BrandLogoProps {
   className?: string;
   size?: "sm" | "md" | "lg" | "xl";
   showSubtitle?: boolean;
+  showWorkspaceBadge?: boolean;
   variant?: "inline" | "card";
 }
 
@@ -12,6 +13,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   className = "",
   size = "md",
   showSubtitle = false,
+  showWorkspaceBadge = true,
   variant = "inline"
 }) => {
   const { language } = useLanguage();
@@ -71,17 +73,21 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
           <div className={`font-serif font-bold tracking-tight ${textClasses} text-[#2A3B2C] dark:text-[#E2E8E2] flex items-center`}>
             <span>جذور</span>
             <span className="text-[#1F6F4A] dark:text-[#8BA888] font-semibold">الإسلام</span>
-            <span className="text-[10px] bg-[#16211A] text-[#8BA888] px-1.5 py-0.5 rounded font-mono font-normal border border-[#28382B]">
-              {isRTL ? "مساحة العمل" : "workspace"}
-            </span>
+            {showWorkspaceBadge && (
+              <span className="text-[10px] bg-[#16211A] text-[#8BA888] px-1.5 py-0.5 rounded font-mono font-normal border border-[#28382B]">
+                {isRTL ? "مساحة العمل" : "workspace"}
+              </span>
+            )}
           </div>
         ) : (
           <div className={`font-serif font-bold tracking-tight ${textClasses} text-[#2A3B2C] dark:text-[#E2E8E2] uppercase flex items-center`}>
             <span>ISLAM</span>
             <span className="text-[#1F6F4A] dark:text-[#8BA888] font-semibold">ROOTS</span>
-            <span className="text-[10px] font-mono font-semibold tracking-normal text-[#8BA888] lowercase bg-[#16211A] px-1.5 py-0.5 rounded border border-[#28382B]">
-              workspace
-            </span>
+            {showWorkspaceBadge && (
+              <span className="text-[10px] font-mono font-semibold tracking-normal text-[#8BA888] lowercase bg-[#16211A] px-1.5 py-0.5 rounded border border-[#28382B]">
+                workspace
+              </span>
+            )}
           </div>
         )}
 

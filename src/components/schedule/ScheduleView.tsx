@@ -16,6 +16,7 @@ import { useData } from "../../context/DataContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAuth } from "../../context/AuthContext";
 import { createGoogleCalendarEvent } from "../../lib/googleCalendar";
+import { googleWorkspaceUserMessage, isGoogleWorkspaceAuthError } from "../../lib/googleWorkspace";
 
 interface ScheduleViewProps {
   onStartLessonSession?: (studentId: string) => void;
@@ -24,9 +25,10 @@ interface ScheduleViewProps {
 export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession }) => {
   const { students, curriculums, schedules, addSchedule, deleteSchedule, getStudentCurriculum } = useData();
   const { t, language } = useLanguage();
-  const { googleTokens, connectGoogleCalendar } = useAuth();
+  const { teacher, googleTokens, connectGoogleCalendar, clearGoogleToken } = useAuth();
 
   const [viewMode, setViewMode] = useState<"agenda" | "today">("agenda");
+  const [now, setNow] = useState(() => Date.now());
   const [selectedStudentFilter, setSelectedStudentFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -34,6 +36,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
   // it never imports or deletes the educator's personal Google Calendar events.
   const [syncToGoogleCalendar, setSyncToGoogleCalendar] = useState(true);
   const [gcalStatusMsg, setGcalStatusMsg] = useState<string>("");
+  const [gcalEventLink, setGcalEventLink] = useState<string | null>(null);
   const [syncingScheduleId, setSyncingScheduleId] = useState<string | null>(null);
 
   // Confirmation Modal State
@@ -62,9 +65,30 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
   const [notes, setNotes] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const syncCalendarEvent = async (event: Parameters<typeof createGoogleCalendarEvent>[1]) => {
+    let token = googleTokens.calendar || await connectGoogleCalendar();
+    if (!token) throw new Error("Google Calendar authorization was not granted.");
+
+    try {
+      return await createGoogleCalendarEvent(token, event);
+    } catch (error) {
+      if (!isGoogleWorkspaceAuthError(error)) throw error;
+      clearGoogleToken("calendar");
+      token = await connectGoogleCalendar();
+      if (!token) throw error;
+      return await createGoogleCalendarEvent(token, event);
+    }
+  };
+
   const handleConnectGoogleCalendar = async () => {
     try {
       setGcalStatusMsg("");
+      setGcalEventLink(null);
       const token = await connectGoogleCalendar();
       if (token) {
         setGcalStatusMsg(
@@ -85,12 +109,10 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
   const handleExportToGoogleCalendar = async (entry: any) => {
     setSyncingScheduleId(entry.id);
     setGcalStatusMsg("");
+    setGcalEventLink(null);
     try {
-      const token = googleTokens.calendar || await connectGoogleCalendar();
-      if (!token) throw new Error("Google Calendar authorization was not granted.");
-
       const studentName = getStudentName(entry.studentId);
-      await createGoogleCalendarEvent(token, {
+      const createdEvent = await syncCalendarEvent({
         title: `${entry.title} — ${studentName}`,
         description: `IslamRoots Lesson Session\nStudent: ${studentName}\nSubject: ${entry.subject}\nNotes: ${entry.notes || "N/A"}`,
         startTimeISO: entry.startAt,
@@ -100,18 +122,20 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
         recurrence: entry.recurrence,
         recurrenceDays: entry.recurrenceDays,
         recurrenceEndDate: entry.recurrenceEndDate,
+        timeZone: teacher?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
 
+      setGcalEventLink(createdEvent.htmlLink || null);
       setGcalStatusMsg(
         language === "ar"
           ? `تمت مزامنة "${entry.title}" إلى تقويم Google.`
           : `"${entry.title}" was synchronized to Google Calendar.`
       );
-    } catch {
+    } catch (error) {
       setGcalStatusMsg(
         language === "ar"
-          ? "تم حفظ الحصة في جذور الإسلام، لكن تعذرت مزامنتها إلى Google Calendar."
-          : "The lesson is saved in Islam Roots, but Google Calendar synchronization failed."
+          ? `تعذرت مزامنة الحصة إلى Google Calendar: ${googleWorkspaceUserMessage(error, "ar")}`
+          : `The lesson is saved in Islam Roots, but Calendar sync failed: ${googleWorkspaceUserMessage(error, "en")}`
       );
     } finally {
       setSyncingScheduleId(null);
@@ -132,6 +156,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
 
   const handleScheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setGcalEventLink(null);
     if (!studentId) {
       setErrorMsg(language === "ar" ? "رجاءً اختر الطالب" : "Please select a student");
       return;
@@ -171,10 +196,8 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
       // and never allowed to discard the schedule saved in Islam Roots.
       if (syncToGoogleCalendar) {
         try {
-          const token = googleTokens.calendar || await connectGoogleCalendar();
-          if (!token) throw new Error("Google Calendar authorization was not granted.");
           const studentName = getStudentName(studentId);
-          await createGoogleCalendarEvent(token, {
+          const createdEvent = await syncCalendarEvent({
             title: `${title.trim()} — ${studentName}`,
             description: `IslamRoots Lesson Session\nStudent: ${studentName}\nSubject: ${subject}\nNotes: ${notes.trim() || "N/A"}`,
             startTimeISO: startAtISO,
@@ -184,10 +207,12 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
             recurrence,
             recurrenceDays,
             recurrenceEndDate: recurrenceEndDate || undefined,
+            timeZone: teacher?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
           });
+          setGcalEventLink(createdEvent.htmlLink || null);
           setGcalStatusMsg(language === "ar" ? "تم حفظ الحصة ومزامنتها إلى Google Calendar." : "Lesson saved and synchronized to Google Calendar.");
-        } catch {
-          setGcalStatusMsg(language === "ar" ? "تم حفظ الحصة في جذور الإسلام، لكن تعذرت مزامنتها إلى Google Calendar." : "Lesson saved in Islam Roots, but Google Calendar synchronization failed.");
+        } catch (error) {
+          setGcalStatusMsg(language === "ar" ? `تم حفظ الحصة، لكن تعذرت مزامنتها: ${googleWorkspaceUserMessage(error, "ar")}` : `Lesson saved in Islam Roots, but Calendar sync failed: ${googleWorkspaceUserMessage(error, "en")}`);
         }
       } else {
         setGcalStatusMsg(language === "ar" ? "تم حفظ الحصة في جذور الإسلام." : "Lesson saved in Islam Roots.");
@@ -266,8 +291,20 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
     }
   };
 
-  const getCountdownText = (isoString: string) => {
-    const diffMs = new Date(isoString).getTime() - Date.now();
+  const getScheduleDisplayStatus = (entry: (typeof schedules)[number]) => {
+    if (entry.status === "completed" || entry.status === "cancelled" || entry.status === "missed") return entry.status;
+    // A recurring entry represents future occurrences as well, so it stays
+    // upcoming until the educator explicitly completes or misses it.
+    if (entry.recurrence && entry.recurrence !== "none") return "upcoming";
+    const endAt = new Date(entry.startAt).getTime() + entry.durationMinutes * 60 * 1000;
+    return endAt < now ? "missed" : "upcoming";
+  };
+
+  const getCountdownText = (isoString: string, status: string) => {
+    if (status === "missed") return language === "ar" ? "فاتت" : "MISSED";
+    if (status === "completed") return language === "ar" ? "مكتمل" : "COMPLETED";
+    if (status === "cancelled") return language === "ar" ? "ملغى" : "CANCELLED";
+    const diffMs = new Date(isoString).getTime() - now;
     if (diffMs <= 0) return language === "ar" ? "الآن" : "NOW";
     const mins = Math.floor(diffMs / 60000);
     if (mins < 60) return `${t("startsIn")} ${mins}m`;
@@ -337,10 +374,15 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
 
       {/* Google Calendar Status Message */}
       {gcalStatusMsg && (
-        <div className="p-3.5 rounded-xl bg-[#FCFAF5] dark:bg-[#161D17] border border-[#5A6B5A]/30 text-xs font-semibold text-[#3E4D3E] dark:text-[#8BA888] flex items-center justify-between">
+        <div className="p-3.5 rounded-xl bg-[var(--brand-surface)] dark:bg-[#161D17] border border-[var(--brand-olive)]/40 text-xs font-semibold text-[var(--brand-olive-deep)] dark:text-[var(--brand-sage)] flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-[#5A6B5A]" />
             <span>{gcalStatusMsg}</span>
+            {gcalEventLink && (
+              <a href={gcalEventLink} target="_blank" rel="noreferrer" className="ml-3 shrink-0 underline underline-offset-2 hover:text-[var(--brand-olive)]">
+                {language === "ar" ? "فتح الحدث" : "Open event"}
+              </a>
+            )}
           </div>
           <button onClick={() => setGcalStatusMsg("")} className="p-1 text-[#7A7D75] hover:text-[#1F261F]">
             <X className="w-3.5 h-3.5" />
@@ -410,7 +452,8 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredSchedules.map((entry) => {
-            const countdown = getCountdownText(entry.startAt);
+            const displayStatus = getScheduleDisplayStatus(entry);
+            const countdown = getCountdownText(entry.startAt, displayStatus);
 
             return (
               <div
@@ -425,9 +468,15 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({ onStartLessonSession
                     </span>
                     <span
                       className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] flex items-center gap-1 ${
-                        countdown === "NOW" || countdown.includes("min")
-                          ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 animate-pulse"
-                          : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                        displayStatus === "missed"
+                          ? "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
+                          : displayStatus === "completed"
+                          ? "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300"
+                          : displayStatus === "cancelled"
+                          ? "bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300"
+                          : countdown === "NOW" || countdown.includes("min")
+                          ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 animate-pulse"
+                          : "bg-[var(--brand-sage)]/30 text-[var(--brand-olive-deep)] dark:bg-[#294A32] dark:text-[#D6E9D5]"
                       }`}
                     >
                       <Clock className="w-3 h-3" />

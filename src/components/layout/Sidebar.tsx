@@ -31,7 +31,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSection }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { teacher, isAdmin } = useAuth();
 
   const navItems: { id: NavSection; labelKey: any; icon: React.ReactNode; badge?: string }[] = [
@@ -45,7 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
           {
             id: "admin" as NavSection,
             labelKey: "adminMonitor",
-            icon: <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />,
+            icon: <ShieldCheck className="w-5 h-5 text-[var(--brand-olive)] dark:text-[var(--brand-sage)]" />,
             badge: "SUPER",
           },
         ]
@@ -89,10 +89,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
   ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 xl:w-68 bg-[var(--brand-sand)] dark:bg-[#142019] border-r border-[var(--brand-line)] dark:border-[#294535] min-h-screen p-5 xl:p-6 transition-colors select-none">
+    <aside
+      aria-label={language === "ar" ? "التنقل الرئيسي" : "Main navigation"}
+      className="hidden lg:flex fixed inset-y-0 left-0 z-40 flex-col w-64 xl:w-68 h-screen overflow-y-auto bg-[var(--brand-sand)] dark:bg-[#142019] border-r border-[var(--brand-line)] dark:border-[#294535] p-5 xl:p-6 transition-colors select-none"
+    >
       {/* Brand Header */}
-      <div className="mb-8">
-        <BrandLogo size="md" showSubtitle={false} />
+      <div className="mb-8 shrink-0">
+        <BrandLogo size="md" showSubtitle={false} showWorkspaceBadge={false} />
+        <p className="mt-2 ms-[58px] text-[10px] font-mono font-semibold tracking-wider uppercase text-[var(--brand-olive)] dark:text-[var(--brand-sage)]">
+          {language === "ar" ? "مساحة العمل" : "Workspace"}
+        </p>
       </div>
 
       {/* Navigation Items */}
@@ -106,12 +112,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
               onClick={() => onSelectSection(item.id)}
               className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl text-sm font-medium transition-all duration-200 cursor-pointer ${
                 isActive
-                  ? "bg-[var(--brand-olive)]/10 dark:bg-[#20382A] text-[var(--brand-olive)] dark:text-[#B9D7BF] border-l-4 border-[var(--brand-olive)] font-semibold shadow-xs"
+                  ? "bg-[var(--brand-olive)] text-white dark:bg-[#294A32] dark:text-[#D6E9D5] border-l-4 border-[var(--brand-olive-deep)] dark:border-[var(--brand-sage)] font-semibold shadow-xs"
                   : "text-[var(--brand-muted)] dark:text-stone-400 hover:text-[var(--brand-olive)] dark:hover:text-[#E2E8E2] hover:bg-[var(--brand-ivory)] dark:hover:bg-[#1D3024]"
               }`}
             >
               <div className="flex items-center gap-3.5 min-w-0">
-                <span className={`relative shrink-0 transition-colors ${isActive ? "text-[var(--brand-olive-soft)] dark:text-[#8BA888]" : "text-[#7A7D75] dark:text-stone-400"}`}>
+                <span className={`relative shrink-0 transition-colors ${isActive ? "text-white dark:text-[#D6E9D5]" : "text-[#7A7D75] dark:text-stone-400"}`}>
                   {item.icon}
                 </span>
                 <span className="max-w-[145px] whitespace-normal text-left leading-tight">{t(item.labelKey)}</span>
@@ -121,7 +127,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
                   <span
                     className={`ir-badge rounded-md uppercase tracking-wider ${
                       isActive
-                        ? "bg-[var(--brand-olive-soft)] text-white"
+                        ? "bg-white/20 text-white dark:bg-[var(--brand-sage)]/20 dark:text-[#D6E9D5]"
                         : "bg-[var(--brand-line)] text-[var(--brand-olive)] dark:bg-stone-700 dark:text-stone-300"
                     }`}
                   >
@@ -135,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentSection, onSelectSectio
       </nav>
 
       {/* Educator Footer Card */}
-      <div className="ir-inset mt-auto p-4 dark:bg-[#1B2C21]">
+      <div className="ir-inset mt-auto p-4 dark:bg-[#1B2C21] shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-[#D4D1C5] dark:bg-stone-600 text-[#3E4D3E] dark:text-stone-200 flex items-center justify-center font-bold text-sm font-serif">
             {teacher?.name?.charAt(0) || "U"}

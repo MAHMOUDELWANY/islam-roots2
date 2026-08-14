@@ -1,3 +1,5 @@
+import { throwForGoogleResponse } from "./googleWorkspace";
+
 export interface GoogleCalendarEvent {
   id: string;
   summary: string;
@@ -18,6 +20,7 @@ export interface GoogleCalendarWriteEvent {
   recurrence?: "none" | "daily" | "weekly" | "biweekly" | "monthly";
   recurrenceDays?: number[];
   recurrenceEndDate?: string;
+  timeZone?: string;
 }
 
 /**
@@ -57,8 +60,8 @@ export async function createGoogleCalendarEvent(
     summary: event.title,
     description: event.description || `IslamRoots Ustadh Session with ${event.studentName || "Student"} (${event.subject || "Lesson"})`,
     ...(recurrenceRule ? { recurrence: [recurrenceRule] } : {}),
-    start: { dateTime: startDate.toISOString() },
-    end: { dateTime: endDate.toISOString() },
+    start: { dateTime: startDate.toISOString(), ...(event.timeZone ? { timeZone: event.timeZone } : {}) },
+    end: { dateTime: endDate.toISOString(), ...(event.timeZone ? { timeZone: event.timeZone } : {}) },
     // Keep reminders private to the connected calendar; do not send email notifications.
     reminders: {
       useDefault: false,
@@ -71,7 +74,7 @@ export async function createGoogleCalendarEvent(
     },
   };
 
-  const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+  const response = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates=none", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -81,10 +84,7 @@ export async function createGoogleCalendarEvent(
   });
 
   if (!response.ok) {
-    const error = new Error(`Google Calendar event write failed (${response.status})`) as Error & { code?: string; status?: number };
-    error.code = "GOOGLE_CALENDAR_WRITE_FAILED";
-    error.status = response.status;
-    throw error;
+    await throwForGoogleResponse(response, "Google Calendar event creation");
   }
 
   return await response.json() as GoogleCalendarEvent;

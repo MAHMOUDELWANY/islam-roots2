@@ -3,40 +3,40 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-brand-olive: #3E4D3E;
-  --color-brand-olive-deep: #2A352A;
-  --color-brand-olive-soft: #5A6B5A;
-  --color-brand-sage: #8BA888;
-  --color-brand-forest: #3E4D3E;
-  --color-brand-leaf: #8BA888;
+  --color-brand-olive: #667052;
+  --color-brand-olive-deep: #4D583D;
+  --color-brand-olive-soft: #7E8966;
+  --color-brand-sage: #B9C49C;
+  --color-brand-forest: #4E5940;
+  --color-brand-leaf: #A7B68A;
   --color-brand-earth: #8B5A2B;
   --color-brand-earth-dark: #6B3F1D;
-  --color-brand-ivory: #F3F0E6;
-  --color-brand-sand: #F7F3E9;
-  --color-brand-surface: #FCFAF5;
-  --color-brand-ink: #1F261F;
-  --color-brand-muted: #677167;
-  --color-brand-line: #E8E5DB;
+  --color-brand-ivory: #ECECE1;
+  --color-brand-sand: #F7F7EE;
+  --color-brand-surface: #FFFEF9;
+  --color-brand-ink: #273022;
+  --color-brand-muted: #6C7467;
+  --color-brand-line: #C6CCB0;
 }
 
 @layer base {
   :root {
     --font-sans: 'Plus Jakarta Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
     --font-arabic: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', system-ui, sans-serif;
-    --brand-olive: #3E4D3E;
-    --brand-olive-deep: #2A352A;
-    --brand-olive-soft: #5A6B5A;
-    --brand-sage: #8BA888;
-    --brand-forest: #3E4D3E;
-    --brand-leaf: #8BA888;
+    --brand-olive: #667052;
+    --brand-olive-deep: #4D583D;
+    --brand-olive-soft: #7E8966;
+    --brand-sage: #B9C49C;
+    --brand-forest: #4E5940;
+    --brand-leaf: #A7B68A;
     --brand-earth: #8B5A2B;
     --brand-earth-dark: #6B3F1D;
-    --brand-ivory: #F3F0E6;
-    --brand-sand: #F7F3E9;
-    --brand-surface: #FCFAF5;
-    --brand-ink: #1F261F;
-    --brand-muted: #677167;
-    --brand-line: #E8E5DB;
+    --brand-ivory: #ECECE1;
+    --brand-sand: #F7F7EE;
+    --brand-surface: #FFFEF9;
+    --brand-ink: #273022;
+    --brand-muted: #6C7467;
+    --brand-line: #C6CCB0;
     --motion-fast: 140ms;
     --motion-base: 220ms;
     --motion-slow: 420ms;
@@ -45,6 +45,21 @@
     --shadow-card: 0 12px 32px -18px rgba(42, 53, 42, 0.32), 0 2px 8px -4px rgba(42, 53, 42, 0.12);
     --shadow-card-hover: 0 20px 44px -20px rgba(42, 53, 42, 0.38), 0 6px 14px -8px rgba(42, 53, 42, 0.14);
     --shadow-olive: 0 16px 32px -18px rgba(42, 53, 42, 0.48);
+  }
+
+  .dark {
+    --brand-olive: #9FC59A;
+    --brand-olive-deep: #78A77B;
+    --brand-olive-soft: #A8C99E;
+    --brand-sage: #B9D7BF;
+    --brand-forest: #A8C99E;
+    --brand-leaf: #B9D7BF;
+    --brand-ivory: #1A241D;
+    --brand-sand: #142019;
+    --brand-surface: #1B271F;
+    --brand-ink: #E2E8E2;
+    --brand-muted: #AAB9AB;
+    --brand-line: #416047;
   }
 
   html {
@@ -280,6 +295,21 @@
   background: #232B23;
 }
 
-.dark .ir-inset {
+  .dark .ir-inset {
   background: #232B23;
+}
+
+/* Legacy utility classes now follow the olive outline system. */
+.border-\[\#E8E5DB\],
+.border-\[\#D4D1C5\] {
+  border-color: var(--brand-line) !important;
+}
+
+.bg-\[\#FCFAF5\] {
+  background-color: var(--brand-surface) !important;
+}
+
+.bg-\[\#F3F0E6\],
+.bg-\[\#F7F3E9\] {
+  background-color: var(--brand-sand) !important;
 }

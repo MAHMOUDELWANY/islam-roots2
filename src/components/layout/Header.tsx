@@ -75,8 +75,8 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setLanguage("en")}
               className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
                 language === "en"
-                  ? "bg-white dark:bg-[#3E4D3E] text-[#3E4D3E] dark:text-white shadow-xs"
-                  : "text-[#7A7D75] dark:text-stone-300 hover:text-[#3E4D3E]"
+                  ? "bg-[var(--brand-olive)] dark:bg-[#294A32] text-white dark:text-[#D6E9D5] shadow-xs"
+                  : "text-[#7A7D75] dark:text-stone-300 hover:text-[var(--brand-olive)]"
               }`}
             >
               English
@@ -85,8 +85,8 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => setLanguage("ar")}
               className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer ${
                 language === "ar"
-                  ? "bg-white dark:bg-[#3E4D3E] text-[#3E4D3E] dark:text-white shadow-xs"
-                  : "text-[#7A7D75] dark:text-stone-300 hover:text-[#3E4D3E]"
+                  ? "bg-[var(--brand-olive)] dark:bg-[#294A32] text-white dark:text-[#D6E9D5] shadow-xs"
+                  : "text-[#7A7D75] dark:text-stone-300 hover:text-[var(--brand-olive)]"
               }`}
             >
               العربية
